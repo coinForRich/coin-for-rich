@@ -1,0 +1,815 @@
+[2021-05-14 22:24:26,134: INFO/MainProcess] Connected to amqp://coin_user:**@127.0.0.1:5672/coin_fetcher
+[2021-05-14 22:24:26,152: INFO/MainProcess] mingle: searching for neighbors
+[2021-05-14 22:24:27,181: INFO/MainProcess] mingle: sync with 1 nodes
+[2021-05-14 22:24:27,182: INFO/MainProcess] mingle: sync complete
+[2021-05-14 22:24:27,204: INFO/MainProcess] bitfinexWorker@h ready.
+[2021-05-14 22:24:44,025: INFO/MainProcess] Received task: celery_tasks.bitfinex_fetchOHLCV_task[835f8a5c-d6b9-4092-843a-e1634be17299]  
+[2021-05-14 22:24:44,571: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol 1INCH:USD
+[2021-05-14 22:24:44,572: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol 1INCH:UST
+[2021-05-14 22:24:44,572: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol AAABBB
+[2021-05-14 22:24:44,572: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol AAVE:USD
+[2021-05-14 22:24:44,572: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol AAVE:UST
+[2021-05-14 22:24:44,572: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ADABTC
+[2021-05-14 22:24:44,572: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ADAUSD
+[2021-05-14 22:24:44,572: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ADAUST
+[2021-05-14 22:24:44,572: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ALBT:USD
+[2021-05-14 22:24:44,572: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ALBT:UST
+[2021-05-14 22:24:44,572: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ALGBTC
+[2021-05-14 22:24:44,572: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ALGUSD
+[2021-05-14 22:24:44,573: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ALGUST
+[2021-05-14 22:24:44,573: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol AMPBTC
+[2021-05-14 22:24:44,573: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol AMPUSD
+[2021-05-14 22:24:44,573: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol AMPUST
+[2021-05-14 22:24:44,573: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ANTBTC
+[2021-05-14 22:24:44,573: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ANTETH
+[2021-05-14 22:24:44,573: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ANTUSD
+[2021-05-14 22:24:44,573: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ATOBTC
+[2021-05-14 22:24:44,573: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ATOETH
+[2021-05-14 22:24:44,573: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ATOUSD
+[2021-05-14 22:24:44,573: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol AVAX:USD
+[2021-05-14 22:24:44,574: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol AVAX:UST
+[2021-05-14 22:24:44,574: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol B21X:USD
+[2021-05-14 22:24:44,574: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol B21X:UST
+[2021-05-14 22:24:44,574: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BALUSD
+[2021-05-14 22:24:44,574: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BALUST
+[2021-05-14 22:24:44,574: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BAND:USD
+[2021-05-14 22:24:44,574: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BAND:UST
+[2021-05-14 22:24:44,574: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BATBTC
+[2021-05-14 22:24:44,574: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BATETH
+[2021-05-14 22:24:44,574: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BATUSD
+[2021-05-14 22:24:44,574: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BCHABC:USD
+[2021-05-14 22:24:44,575: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BCHN:USD
+[2021-05-14 22:24:44,575: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BEST:USD
+[2021-05-14 22:24:44,575: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BFTUSD
+[2021-05-14 22:24:44,575: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BMIUSD
+[2021-05-14 22:24:44,575: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BMIUST
+[2021-05-14 22:24:44,575: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BNTUSD
+[2021-05-14 22:24:44,575: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BOSON:USD
+[2021-05-14 22:24:44,575: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BOSON:UST
+[2021-05-14 22:24:44,576: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BSVBTC
+[2021-05-14 22:24:44,576: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BSVUSD
+[2021-05-14 22:24:44,576: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTC:CNHT
+[2021-05-14 22:24:44,576: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTCEUR
+[2021-05-14 22:24:44,576: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTCGBP
+[2021-05-14 22:24:44,576: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTCJPY
+[2021-05-14 22:24:44,576: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTCUSD
+[2021-05-14 22:24:44,576: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTCUST
+[2021-05-14 22:24:44,576: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTCXCH
+[2021-05-14 22:24:44,576: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTGBTC
+[2021-05-14 22:24:44,576: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTGUSD
+[2021-05-14 22:24:44,577: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTSE:USD
+[2021-05-14 22:24:44,577: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTTUSD
+[2021-05-14 22:24:44,577: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol CELUSD
+[2021-05-14 22:24:44,577: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol CELUST
+[2021-05-14 22:24:44,577: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol CHZUSD
+[2021-05-14 22:24:44,577: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol CHZUST
+[2021-05-14 22:24:44,577: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol CLOUSD
+[2021-05-14 22:24:44,577: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol CNH:CNHT
+[2021-05-14 22:24:44,577: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol COMP:USD
+[2021-05-14 22:24:44,577: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol COMP:UST
+[2021-05-14 22:24:44,578: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol CTKUSD
+[2021-05-14 22:24:44,578: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol CTKUST
+[2021-05-14 22:24:44,578: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DAIBTC
+[2021-05-14 22:24:44,578: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DAIETH
+[2021-05-14 22:24:44,578: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DAIUSD
+[2021-05-14 22:24:44,578: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DAPP:USD
+[2021-05-14 22:24:44,578: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DAPP:UST
+[2021-05-14 22:24:44,578: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DATBTC
+[2021-05-14 22:24:44,578: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DATUSD
+[2021-05-14 22:24:44,579: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DGBUSD
+[2021-05-14 22:24:44,579: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DGXUSD
+[2021-05-14 22:24:44,579: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DOGBTC
+[2021-05-14 22:24:44,579: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DOGE:USD
+[2021-05-14 22:24:44,579: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DOGE:UST
+[2021-05-14 22:24:44,579: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DOGUSD
+[2021-05-14 22:24:44,579: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DOGUST
+[2021-05-14 22:24:44,579: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DOTBTC
+[2021-05-14 22:24:44,579: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DOTUSD
+[2021-05-14 22:24:44,579: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DOTUST
+[2021-05-14 22:24:44,579: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DSHBTC
+[2021-05-14 22:24:44,580: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DSHUSD
+[2021-05-14 22:24:44,580: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DUSK:BTC
+[2021-05-14 22:24:44,580: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol DUSK:USD
+[2021-05-14 22:24:44,580: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EDOBTC
+[2021-05-14 22:24:44,580: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EDOETH
+[2021-05-14 22:24:44,580: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EDOUSD
+[2021-05-14 22:24:44,580: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EGLD:USD
+[2021-05-14 22:24:44,580: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EGLD:UST
+[2021-05-14 22:24:44,580: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ENJUSD
+[2021-05-14 22:24:44,580: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EOSBTC
+[2021-05-14 22:24:44,580: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EOSDT:USD
+[2021-05-14 22:24:44,581: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EOSDT:UST
+[2021-05-14 22:24:44,581: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EOSETH
+[2021-05-14 22:24:44,581: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EOSEUR
+[2021-05-14 22:24:44,581: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EOSGBP
+[2021-05-14 22:24:44,581: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EOSJPY
+[2021-05-14 22:24:44,581: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EOSUSD
+[2021-05-14 22:24:44,581: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EOSUST
+[2021-05-14 22:24:44,581: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ESSUSD
+[2021-05-14 22:24:44,581: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETCBTC
+[2021-05-14 22:24:44,581: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETCUSD
+[2021-05-14 22:24:44,582: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETH2X:ETH
+[2021-05-14 22:24:44,582: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETH2X:USD
+[2021-05-14 22:24:44,582: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETH2X:UST
+[2021-05-14 22:24:44,582: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETHBTC
+[2021-05-14 22:24:44,582: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETHEUR
+[2021-05-14 22:24:44,582: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETHGBP
+[2021-05-14 22:24:44,582: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETHJPY
+[2021-05-14 22:24:44,582: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETHUSD
+[2021-05-14 22:24:44,582: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETHUST
+[2021-05-14 22:24:44,582: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETPBTC
+[2021-05-14 22:24:44,583: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETPETH
+[2021-05-14 22:24:44,583: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ETPUSD
+[2021-05-14 22:24:44,583: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EUSBTC
+[2021-05-14 22:24:44,583: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EUSUSD
+[2021-05-14 22:24:44,583: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EUTEUR
+[2021-05-14 22:24:44,583: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EUTUSD
+[2021-05-14 22:24:44,583: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EUTUST
+[2021-05-14 22:24:44,583: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EXRD:BTC
+[2021-05-14 22:24:44,583: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol EXRD:USD
+[2021-05-14 22:24:44,583: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol FETUSD
+[2021-05-14 22:24:44,584: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol FETUST
+[2021-05-14 22:24:44,584: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol FILUSD
+[2021-05-14 22:24:44,584: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol FILUST
+[2021-05-14 22:24:44,584: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol FORTH:USD
+[2021-05-14 22:24:44,584: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol FORTH:UST
+[2021-05-14 22:24:44,584: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol FTTUSD
+[2021-05-14 22:24:44,584: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol FTTUST
+[2021-05-14 22:24:44,584: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol FUNUSD
+[2021-05-14 22:24:44,584: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol GNOUSD
+[2021-05-14 22:24:44,584: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol GNTUSD
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol GOTEUR
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol GOTUSD
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol GTXUSD
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol GTXUST
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol HEZUSD
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol HEZUST
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ICEUSD
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol IDXBTC
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol IDXUSD
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol IOTBTC
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol IOTETH
+[2021-05-14 22:24:44,585: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol IOTEUR
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol IOTGBP
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol IOTJPY
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol IOTUSD
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol IQXUSD
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol IQXUST
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol JSTBTC
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol JSTUSD
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol JSTUST
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol KANUSD
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol KANUST
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol KNCBTC
+[2021-05-14 22:24:44,586: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol KNCUSD
+[2021-05-14 22:24:44,587: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol KSMUSD
+[2021-05-14 22:24:44,587: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol KSMUST
+[2021-05-14 22:24:44,587: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LEOBTC
+[2021-05-14 22:24:44,587: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LEOEOS
+[2021-05-14 22:24:44,587: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LEOETH
+[2021-05-14 22:24:44,587: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LEOUSD
+[2021-05-14 22:24:44,587: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LEOUST
+[2021-05-14 22:24:44,587: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LINK:USD
+[2021-05-14 22:24:44,587: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LINK:UST
+[2021-05-14 22:24:44,587: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LRCUSD
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LTCBTC
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LTCUSD
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LTCUST
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LUNA:USD
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LUNA:UST
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol LYMUSD
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol MKRUSD
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol MLNUSD
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol MNABTC
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol MNAUSD
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol MOBUSD
+[2021-05-14 22:24:44,588: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol MOBUST
+[2021-05-14 22:24:44,589: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol NEAR:USD
+[2021-05-14 22:24:44,589: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol NEAR:UST
+[2021-05-14 22:24:44,589: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol NECUSD
+[2021-05-14 22:24:44,589: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol NEOBTC
+[2021-05-14 22:24:44,589: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol NEOETH
+[2021-05-14 22:24:44,589: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol NEOEUR
+[2021-05-14 22:24:44,589: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol NEOGBP
+[2021-05-14 22:24:44,589: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol NEOJPY
+[2021-05-14 22:24:44,589: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol NEOUSD
+[2021-05-14 22:24:44,589: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol NUTUSD
+[2021-05-14 22:24:44,590: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ODEUSD
+[2021-05-14 22:24:44,590: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol OMGBTC
+[2021-05-14 22:24:44,590: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol OMGETH
+[2021-05-14 22:24:44,590: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol OMGUSD
+[2021-05-14 22:24:44,590: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol OMNBTC
+[2021-05-14 22:24:44,590: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol OMNUSD
+[2021-05-14 22:24:44,590: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ORSUSD
+[2021-05-14 22:24:44,590: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol OXYUSD
+[2021-05-14 22:24:44,590: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol OXYUST
+[2021-05-14 22:24:44,590: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol PASUSD
+[2021-05-14 22:24:44,590: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol PAXUSD
+[2021-05-14 22:24:44,591: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol PAXUST
+[2021-05-14 22:24:44,591: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol PLUUSD
+[2021-05-14 22:24:44,591: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol PNKETH
+[2021-05-14 22:24:44,591: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol PNKUSD
+[2021-05-14 22:24:44,591: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol POAUSD
+[2021-05-14 22:24:44,591: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol QSHUSD
+[2021-05-14 22:24:44,591: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol QTMBTC
+[2021-05-14 22:24:44,591: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol QTMUSD
+[2021-05-14 22:24:44,591: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol RBTBTC
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol RBTUSD
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol REPBTC
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol REPUSD
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol REQUSD
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol RINGX:USD
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol RRBUSD
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol RRBUST
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol RRTUSD
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SANBTC
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SANETH
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SANUSD
+[2021-05-14 22:24:44,592: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SNGUSD
+[2021-05-14 22:24:44,593: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SNTUSD
+[2021-05-14 22:24:44,593: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SNXUSD
+[2021-05-14 22:24:44,593: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SNXUST
+[2021-05-14 22:24:44,593: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SOLUSD
+[2021-05-14 22:24:44,593: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SOLUST
+[2021-05-14 22:24:44,593: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol STJUSD
+[2021-05-14 22:24:44,593: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SUKU:USD
+[2021-05-14 22:24:44,593: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SUKU:UST
+[2021-05-14 22:24:44,593: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SUNUSD
+[2021-05-14 22:24:44,593: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SUNUST
+[2021-05-14 22:24:44,593: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SUSHI:USD
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol SUSHI:UST
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol TESTBTC:TESTUSD
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol TESTBTC:TESTUSDT
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol TRXBTC
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol TRXETH
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol TRXEUR
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol TRXUSD
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol TSDUSD
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol TSDUST
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol UDCUSD
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol UDCUST
+[2021-05-14 22:24:44,594: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol UNIUSD
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol UNIUST
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol UOPUSD
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol UOPUST
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol UOSBTC
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol UOSUSD
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol USKUSD
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol UST:CNHT
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol USTUSD
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol UTKUSD
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol VEEUSD
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol VETBTC
+[2021-05-14 22:24:44,595: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol VETUSD
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol VSYBTC
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol VSYUSD
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol WAXUSD
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol WBTUSD
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XAUT:BTC
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XAUT:USD
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XAUT:UST
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XCHUSD
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XDCUSD
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XDCUST
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XLMBTC
+[2021-05-14 22:24:44,596: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XLMETH
+[2021-05-14 22:24:44,597: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XLMUSD
+[2021-05-14 22:24:44,597: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XLMUST
+[2021-05-14 22:24:44,597: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XMRBTC
+[2021-05-14 22:24:44,597: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XMRUSD
+[2021-05-14 22:24:44,597: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XMRUST
+[2021-05-14 22:24:44,597: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XRAUSD
+[2021-05-14 22:24:44,597: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XRPBTC
+[2021-05-14 22:24:44,597: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XRPUSD
+[2021-05-14 22:24:44,597: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XRPUST
+[2021-05-14 22:24:44,597: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XSNUSD
+[2021-05-14 22:24:44,597: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XTZBTC
+[2021-05-14 22:24:44,598: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XTZUSD
+[2021-05-14 22:24:44,598: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol XVGUSD
+[2021-05-14 22:24:44,598: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol YFIUSD
+[2021-05-14 22:24:44,598: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol YFIUST
+[2021-05-14 22:24:44,598: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol YGGUSD
+[2021-05-14 22:24:44,598: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol YYWUSD
+[2021-05-14 22:24:44,598: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ZBTUSD
+[2021-05-14 22:24:44,598: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ZCNUSD
+[2021-05-14 22:24:44,598: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ZECBTC
+[2021-05-14 22:24:44,598: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ZECUSD
+[2021-05-14 22:24:44,599: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ZILBTC
+[2021-05-14 22:24:44,599: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ZILUSD
+[2021-05-14 22:24:44,599: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ZRXBTC
+[2021-05-14 22:24:44,599: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ZRXETH
+[2021-05-14 22:24:44,599: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol ZRXUSD
+[2021-05-15 02:30:55,613: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-298' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,617: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-294' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,617: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-261' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,618: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-258' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,618: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-230' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,618: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-222' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,619: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-215' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,619: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-214' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,619: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-210' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,619: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-208' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,620: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-207' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'TypeError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+TypeError: 'float' object is not subscriptable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'TypeError'
+[2021-05-15 02:30:55,620: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-204' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,620: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-203' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,620: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-198' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,621: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-197' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,621: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-194' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,621: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-190' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,622: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-186' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,622: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-165' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,622: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-158' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,622: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-150' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,623: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-149' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,623: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-142' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,623: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-138' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,624: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-136' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,624: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-135' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,624: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-113' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,624: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-112' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=KeyError('quote_id')>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 120, in bitfinex_fetchOHLCV_symbol
+    quote_id = symbol_data[symbol]['quote_id']
+KeyError: 'quote_id'
+[2021-05-15 02:30:55,625: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-92' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,625: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-77' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,625: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-76' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,625: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-74' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,626: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-71' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,626: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-58' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,626: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-49' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'TypeError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+TypeError: 'float' object is not subscriptable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'TypeError'
+[2021-05-15 02:30:55,627: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-46' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,627: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-45' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,628: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-39' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,628: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-25' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'IndexError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'IndexError'
+[2021-05-15 02:30:55,628: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-8' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:103> exception=ProgrammingError("can't adapt type 'TypeError'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 137, in bitfinex_fetchOHLCV_symbol
+    if ohlcvs[-1][0] > start_date_mls:
+TypeError: 'float' object is not subscriptable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 149, in bitfinex_fetchOHLCV_symbol
+    psycopg2_cursor.execute(
+psycopg2.ProgrammingError: can't adapt type 'TypeError'
+[2021-05-15 02:30:55,632: INFO/ForkPoolWorker-7] Task celery_tasks.bitfinex_fetchOHLCV_task[835f8a5c-d6b9-4092-843a-e1634be17299] succeeded in 14771.603690891061s: None
