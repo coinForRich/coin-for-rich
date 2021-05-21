@@ -813,3 +813,86 @@ Traceback (most recent call last):
     psycopg2_cursor.execute(
 psycopg2.ProgrammingError: can't adapt type 'TypeError'
 [2021-05-15 02:30:55,632: INFO/ForkPoolWorker-7] Task celery_tasks.bitfinex_fetchOHLCV_task[835f8a5c-d6b9-4092-843a-e1634be17299] succeeded in 14771.603690891061s: None
+[2021-05-17 16:23:10,344: INFO/MainProcess] missed heartbeat from bittrexWorker@h
+[2021-05-17 16:23:21,449: INFO/MainProcess] missed heartbeat from bittrexWorker@h
+[2021-05-17 16:24:30,893: WARNING/MainProcess] Substantial drift from bittrexWorker@h may mean clocks are out of sync.  Current drift is
+77 seconds.  [orig: 2021-05-17 16:24:29.762849 recv: 2021-05-17 16:23:12.573338]
+
+[2021-05-17 16:26:36,407: INFO/MainProcess] missed heartbeat from bittrexWorker@h
+[2021-05-17 16:29:20,162: ERROR/MainProcess] Error cleaning up after event loop: RecoverableConnectionError(None, 'Socket was disconnected', None, '')
+Traceback (most recent call last):
+  File "/root/miniconda3/lib/python3.8/site-packages/celery/worker/loops.py", line 83, in asynloop
+    next(loop)
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 303, in create_loop
+    poll_timeout = fire_timers(propagate=propagate) if scheduled else 1
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 145, in fire_timers
+    entry()
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/timer.py", line 68, in __call__
+    return self.fun(*self.args, **self.kwargs)
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/timer.py", line 130, in _reschedules
+    return fun(*args, **kwargs)
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/connection.py", line 313, in heartbeat_check
+    return self.transport.heartbeat_check(self.connection, rate=rate)
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/transport/pyamqp.py", line 149, in heartbeat_check
+    return connection.heartbeat_tick(rate=rate)
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/connection.py", line 744, in heartbeat_tick
+    self.send_heartbeat()
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/connection.py", line 695, in send_heartbeat
+    self.frame_writer(8, 0, None, None, None)
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/method_framing.py", line 189, in write_frame
+    write(view[:offset])
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/transport.py", line 305, in write
+    self._write(s)
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/miniconda3/lib/python3.8/site-packages/celery/worker/loops.py", line 88, in asynloop
+    hub.reset()
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 112, in reset
+    self.close()
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 265, in close
+    item()
+  File "/root/miniconda3/lib/python3.8/site-packages/vine/promises.py", line 170, in __call__
+    return self.throw()
+  File "/root/miniconda3/lib/python3.8/site-packages/vine/promises.py", line 167, in __call__
+    retval = fun(*final_args, **final_kwargs)
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/transport/base.py", line 218, in _read
+    raise RecoverableConnectionError('Socket was disconnected')
+amqp.exceptions.RecoverableConnectionError: Socket was disconnected
+[2021-05-17 16:29:20,329: WARNING/MainProcess] consumer: Connection to broker lost. Trying to re-establish the connection...
+Traceback (most recent call last):
+  File "/root/miniconda3/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 318, in start
+    blueprint.start(self)
+  File "/root/miniconda3/lib/python3.8/site-packages/celery/bootsteps.py", line 119, in start
+    step.start(parent)
+  File "/root/miniconda3/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 599, in start
+    c.loop(*c.loop_args())
+  File "/root/miniconda3/lib/python3.8/site-packages/celery/worker/loops.py", line 83, in asynloop
+    next(loop)
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 303, in create_loop
+    poll_timeout = fire_timers(propagate=propagate) if scheduled else 1
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 145, in fire_timers
+    entry()
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/timer.py", line 68, in __call__
+    return self.fun(*self.args, **self.kwargs)
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/timer.py", line 130, in _reschedules
+    return fun(*args, **kwargs)
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/connection.py", line 313, in heartbeat_check
+    return self.transport.heartbeat_check(self.connection, rate=rate)
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/transport/pyamqp.py", line 149, in heartbeat_check
+    return connection.heartbeat_tick(rate=rate)
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/connection.py", line 744, in heartbeat_tick
+    self.send_heartbeat()
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/connection.py", line 695, in send_heartbeat
+    self.frame_writer(8, 0, None, None, None)
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/method_framing.py", line 189, in write_frame
+    write(view[:offset])
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/transport.py", line 305, in write
+    self._write(s)
+ConnectionResetError: [Errno 104] Connection reset by peer
+[2021-05-17 16:29:20,493: INFO/MainProcess] Connected to amqp://coin_user:**@127.0.0.1:5672/coin_fetcher
+[2021-05-17 16:29:20,536: INFO/MainProcess] mingle: searching for neighbors
+[2021-05-17 16:29:21,602: INFO/MainProcess] mingle: all alone
+[2021-05-17 20:41:11,515: INFO/MainProcess] missed heartbeat from bittrexWorker@h

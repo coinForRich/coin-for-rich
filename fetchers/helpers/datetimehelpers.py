@@ -32,3 +32,9 @@ def milliseconds_to_datetime(mls):
         `mls`: int (milliseconds)
     '''
     return datetime.datetime.fromtimestamp(mls/1000)
+
+def str_to_datetime(s, f):
+    '''
+    converts a string of format `f` to datetime obj
+    '''
+    return datetime.datetime.strptime(s, f)

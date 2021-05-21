@@ -13,5 +13,6 @@ result_backend = ""
 # Routing
 task_routes = {
     'celery_tasks.bittrex_fetchOHLCV_task': {'queue': 'bittrex'},
+    'celery_tasks.bittrex_fetchOHLCV_OnDemand_task': {'queue': 'bittrex'},
     'celery_tasks.bitfinex_fetchOHLCV_task': {'queue': 'bitfinex'}
 }   

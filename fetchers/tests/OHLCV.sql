@@ -22,10 +22,15 @@ CREATE TABLE ohlcvs (
 );
 -- Create index on first 3 columns
 CREATE UNIQUE INDEX ts_exch_sym ON ohlcvs (time, exchange, symbol);
--- Insert with duplicate policy
+-- Create index on the exchange column, time column, symbol column separately
+CREATE INDEX ohlcvs_time_idx ON ohlcvs (time);
+CREATE INDEX ohlcvs_exchange_idx ON ohlcvs (exchange);
+CREATE INDEX ohlcvs_symbol_idx ON ohlcvs (symbol);
+-- Insert with duplicate policy (psycopg2)
 INSERT INTO ohlcvs VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
 ON CONFLICT (time, exchange, symbol) DO NOTHING;
-
+-- Execute prepared INSERT statement (psycopg2)
+EXECUTE ohlcvs_rows_insert_stmt(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);
 
 -- Create OHLCV errors table
 CREATE TABLE ohlcvs_errors(

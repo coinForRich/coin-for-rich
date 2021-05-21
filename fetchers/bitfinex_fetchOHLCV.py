@@ -145,7 +145,6 @@ async def bitfinex_fetchOHLCV_symbol(symbol_data, symbol, start_date, time_frame
                         psycopg2_cursor.execute(
                             "INSERT INTO ohlcvs VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (time, exchange, symbol) DO NOTHING;", ohlcv
                         )
-                    psycopg2_conn.commit()
                 except Exception as exc:
                     exception_msg = f'Error while processing ohlcv response: {exc}'
                     error_tuple = make_error_tuple(fetch_start_time, symbol, milliseconds_to_datetime(start_date), time_frame, ohlcv_section, ohlcvs_resp.status_code, type(exc), exception_msg)
@@ -174,6 +173,7 @@ async def bitfinex_fetchOHLCV_symbol(symbol_data, symbol, start_date, time_frame
                 )
                 start_date_mls += 60000
                 pass
+            psycopg2_conn.commit()
 
 async def bitfinex_load_symboldata():
     '''
