@@ -21823,3 +21823,23 @@ AttributeError: 'str' object has no attribute 'timestamp'
 [2021-05-21 02:07:03,211: INFO/MainProcess] Received task: celery_tasks.bittrex_fetchOHLCV_OnDemand_task[7a336c36-fd32-4ea9-91ff-c43f28ff5252]  
 [2021-05-21 02:07:03,290: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTC-USD
 [2021-05-21 02:16:48,560: INFO/ForkPoolWorker-7] Task celery_tasks.bittrex_fetchOHLCV_OnDemand_task[7a336c36-fd32-4ea9-91ff-c43f28ff5252] succeeded in 585.3468980020843s: None
+[2021-05-21 16:30:10,358: WARNING/MainProcess] consumer: Connection to broker lost. Trying to re-establish the connection...
+Traceback (most recent call last):
+  File "/root/miniconda3/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 318, in start
+  File "/root/miniconda3/lib/python3.8/site-packages/celery/bootsteps.py", line 119, in start
+  File "/root/miniconda3/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 599, in start
+  File "/root/miniconda3/lib/python3.8/site-packages/celery/worker/loops.py", line 83, in asynloop
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 303, in create_loop
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 145, in fire_timers
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/timer.py", line 68, in __call__
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/asynchronous/timer.py", line 130, in _reschedules
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/connection.py", line 313, in heartbeat_check
+  File "/root/miniconda3/lib/python3.8/site-packages/kombu/transport/pyamqp.py", line 149, in heartbeat_check
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/connection.py", line 744, in heartbeat_tick
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/connection.py", line 695, in send_heartbeat
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/method_framing.py", line 189, in write_frame
+  File "/root/miniconda3/lib/python3.8/site-packages/amqp/transport.py", line 305, in write
+ConnectionResetError: [Errno 104] Connection reset by peer
+[2021-05-21 16:30:10,532: INFO/MainProcess] Connected to amqp://coin_user:**@127.0.0.1:5672/coin_fetcher
+[2021-05-21 16:30:10,577: INFO/MainProcess] mingle: searching for neighbors
+[2021-05-21 16:30:11,597: INFO/MainProcess] mingle: all alone
