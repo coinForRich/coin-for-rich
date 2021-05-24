@@ -6,8 +6,9 @@ import datetime
 import psycopg2
 import httpx
 from asyncio_throttle import Throttler
-from bfxapi import Client
 from fetchers.helpers.datetimehelpers import *
+from fetchers.helpers.dbhelpers import psql_copy_from_csv
+from fetchers.config.constants import *
 
 
 EXCHANGE_NAME = "bitfinex"
@@ -48,18 +49,20 @@ def make_ohlcv_url(time_frame, symbol, section, limit, start_date_mls, sort):
     symbol = make_tsymbol(symbol)
     return "https://api-pub.bitfinex.com/v2/candles/trade:{time_frame}:{symbol}/{section}?limit={limit}&start={start_date_mls}&sort={sort}".format(time_frame=time_frame, symbol=symbol, section=section, limit=limit, start_date_mls=start_date_mls, sort=sort)
 
-def parse_ohlcv(ohlcv, symbol, base_id, quote_id, fetch_start_time):
+def parse_ohlcvs(ohlcvs, symbol, base_id, quote_id, fetch_start_time):
     '''
-    returns parsed ohlcv in a tuple
+    returns rows of parsed ohlcv
     params:
-        `ohlcv`: list (ohlcv returned from OHLCV request)
+        `ohlcvs`: a list of ohlcv dicts (returned from request)
         `symbol`: string
         `base_id`: string
         `quote_id`: string
-        `fetch_start_time`: datetime obj - fetch starting time
+        `fetch_start_time`: datetime obj
     '''
 
-    return (milliseconds_to_datetime(ohlcv[0]),
+    return (
+        (   
+            milliseconds_to_datetime(ohlcv[0]),
             EXCHANGE_NAME,
             symbol,
             base_id,
@@ -70,6 +73,8 @@ def parse_ohlcv(ohlcv, symbol, base_id, quote_id, fetch_start_time):
             ohlcv[2],
             ohlcv[5],
             fetch_start_time
+        )
+        for ohlcv in ohlcvs
     )
 
 def make_error_tuple(fetch_start_time, symbol, start_date, time_frame, ohlcv_section, resp_status_code, exception_class, exception_msg):
@@ -114,7 +119,7 @@ async def bitfinex_fetchOHLCV_symbol(symbol_data, symbol, start_date, time_frame
         `httpx_client`: httpx Client object
         `psycopg2_conn`: connection object of psycopg2
         `psycopg2_cursor`: cursor object of psycopg2
-        `fetch_start_time`: datetime obj - fetch starting time
+        `fetch_start_time`: datetime obj - fetch starting time - the upper limit of the time range to fetch
         `throttler`: Throttler object from Throttler
     '''
     
@@ -124,7 +129,8 @@ async def bitfinex_fetchOHLCV_symbol(symbol_data, symbol, start_date, time_frame
     fetch_start_time_mls = datetime_to_milliseconds(fetch_start_time)
 
     while start_date_mls < fetch_start_time_mls:
-        if fetch_start_time_mls - start_date_mls > 60000:
+        # Fetch historical data if time difference between now and start date is > 60 secs
+        if datetime_to_milliseconds(datetime.datetime.now()) - start_date_mls > 60000:
             ohlcv_section = OHLCV_SECTION_HIST
         else:
             ohlcv_section = OHLCV_SECTION_LAST
@@ -136,15 +142,20 @@ async def bitfinex_fetchOHLCV_symbol(symbol_data, symbol, start_date, time_frame
                 ohlcvs_resp.raise_for_status()
                 ohlcvs = ohlcvs_resp.json()
                 try:
+                    # If the last date in the ohlcvs list is > start_date_mls,
+                    # replace start_date_mls with that, otherwise increment by 60 secs
                     if ohlcvs[-1][0] > start_date_mls:
                         start_date_mls = ohlcvs[-1][0]
                     else:
                         start_date_mls += 60000
-                    for ohlcv in ohlcvs[1:]:
-                        ohlcv = parse_ohlcv(ohlcv, symbol, base_id, quote_id, fetch_start_time)
-                        psycopg2_cursor.execute(
-                            "INSERT INTO ohlcvs VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (time, exchange, symbol) DO NOTHING;", ohlcv
-                        )
+                    rows = parse_ohlcvs(ohlcvs, symbol, base_id, quote_id, fetch_start_time)
+                    psql_copy_from_csv(psycopg2_cursor, rows, "ohlcvs")
+                                        
+                    # for ohlcv in ohlcvs[1:]:
+                    #     ohlcv = parse_ohlcv(ohlcv, symbol, base_id, quote_id, fetch_start_time)
+                    #     psycopg2_cursor.execute(
+                    #         "INSERT INTO ohlcvs VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (time, exchange, symbol) DO NOTHING;", ohlcv
+                    #     )
                 except Exception as exc:
                     exception_msg = f'Error while processing ohlcv response: {exc}'
                     error_tuple = make_error_tuple(fetch_start_time, symbol, milliseconds_to_datetime(start_date), time_frame, ohlcv_section, ohlcvs_resp.status_code, type(exc), exception_msg)
@@ -218,14 +229,8 @@ async def bitfinex_fetchOHLCV_all_symbols(start_date_dt):
     limits = httpx.Limits(max_connections=30)
     async with httpx.AsyncClient(timeout=None, limits=limits) as client:
         # Postgres connection
-        CONNECTION = "dbname=postgres user=postgres password=horus123 host=localhost port=15432"
-        conn = psycopg2.connect(CONNECTION)
+        conn = psycopg2.connect(DBCONNECTION)
         cur = conn.cursor()
-
-        # Bitfinex Client if use default fetchOHLCV_symbol
-        # bfx = Client(
-        #     logLevel='DEBUG',
-        # )
 
         # Async throttler
         throttler = Throttler(rate_limit=RATE_LIMIT_HITS_PER_MIN, period=RATE_LIMIT_SECS_PER_MIN)
@@ -254,13 +259,80 @@ async def bitfinex_fetchOHLCV_all_symbols(start_date_dt):
         await asyncio.wait(symbol_tasks)
         conn.close()
 
+async def bitfinex_fetchOHLCV_OnDemand(symbol, start_date_dt, end_date_dt):
+    '''
+    Function to get OHLCVs of a symbol on demand
+    params:
+        `symbol`: string, uppercase
+        `start_date_dt`: datetime obj (for start date)
+        `end_date_dt`: datetime obj (for end date)
+    '''
+
+    limits = httpx.Limits(max_connections=30)
+    async with httpx.AsyncClient(timeout=None, limits=limits) as client:
+        # Postgres connection
+        conn = psycopg2.connect(DBCONNECTION)
+        cur = conn.cursor()
+
+        # Async throttler
+        throttler = Throttler(rate_limit=RATE_LIMIT_HITS_PER_MIN, period=RATE_LIMIT_SECS_PER_MIN)
+        loop = asyncio.get_event_loop()
+        symbol_tasks = []
+
+        # Load symbol data
+        symbol_data = await bitfinex_load_symboldata()
+
+        print(f'=== Fetching OHLCVs for symbol {symbol}')
+        symbol_tasks.append(loop.create_task(bitfinex_fetchOHLCV_symbol(
+            symbol_data=symbol_data,
+            symbol=symbol,
+            start_date=start_date_dt,
+            time_frame=OHLCV_TIMEFRAME,
+            limit=OHLCV_LIMIT,
+            sort=1,
+            httpx_client=client,
+            psycopg2_conn=conn,
+            psycopg2_cursor=cur,
+            fetch_start_time=end_date_dt,
+            throttler=throttler
+        )))
+        await asyncio.wait(symbol_tasks)
+        conn.close()
+
 def run():
     asyncio.run(bitfinex_fetchOHLCV_all_symbols(datetime.datetime(2019, 1, 1)))
+
+def run_OnDemand(symbol, start_date_dt, end_date_dt):
+    asyncio.run(bitfinex_fetchOHLCV_OnDemand(symbol, start_date_dt, end_date_dt))
 
 
 if __name__ == "__main__":
     run()
 
+
+# def parse_ohlcv(ohlcv, symbol, base_id, quote_id, fetch_start_time):
+#     '''
+#     returns parsed ohlcv in a tuple
+#     params:
+#         `ohlcv`: list (ohlcv returned from OHLCV request)
+#         `symbol`: string
+#         `base_id`: string
+#         `quote_id`: string
+#         `fetch_start_time`: datetime obj - fetch starting time
+#     '''
+
+#     return (milliseconds_to_datetime(ohlcv[0]),
+#             EXCHANGE_NAME,
+#             symbol,
+#             base_id,
+#             quote_id,
+#             ohlcv[1],
+#             ohlcv[3],
+#             ohlcv[4],
+#             ohlcv[2],
+#             ohlcv[5],
+#             fetch_start_time
+#     )
 
 # async def bitfinex_fetchOHLCV_symbol_default(symbol_data, symbol, start_date, end_date, time_frame, limit, sort, bfx_client, psycopg2_conn, psycopg2_cursor, current_time, throttler):
 #     '''

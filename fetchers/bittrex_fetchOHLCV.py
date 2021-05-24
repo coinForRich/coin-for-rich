@@ -1,23 +1,21 @@
-### This script fetches bittrex 1-minute OHLCV data
+# This script fetches bittrex 1-minute OHLCV data
 
 import asyncio
-import csv
 import time
 import datetime
 import psycopg2
 import httpx
-from collections.abc import Mapping
-from io import StringIO
 from asyncio_throttle import Throttler
 from fetchers.helpers.datetimehelpers import datetime_to_seconds
+from fetchers.helpers.dbhelpers import psql_copy_from_csv
 from fetchers.bitfinex_fetchOHLCV import EXCHANGE_NAME
+from fetchers.config.constants import *
 
 
 # Bittrex returns:
 #   1-min or 5-min time windows in a period of 1 day
 #   1-hour time windows in a period of 31 days
 #   1-day time windows in a period of 366 days
-CONNECTION = "dbname=postgres user=postgres password=horus123 host=localhost port=15432"
 EXCHANGE_NAME = "bittrex"
 BASE_URL = "https://api.bittrex.com/v3"
 OHLCV_INTERVALS = ["MINUTE_1", "MINUTE_5", "HOUR_1", "DAY_1"]
@@ -45,33 +43,17 @@ def make_ohlcv_url(base_url, symbol, interval, historical, start_date):
             return f'{base_url}/markets/{symbol}/candles/{interval}/{historical}/{start_date.year}'
     return f'{base_url}/markets/{symbol}/candles/{interval}/recent'
 
-
-def parse_ohlcv(ohlcv, symbol, base_id, quote_id, fetch_start_time):
+def parse_ohlcvs(ohlcvs, symbol, base_id, quote_id, fetch_start_time):
     '''
-    returns parsed ohlcv in a tuple
+    returns rows of parsed ohlcv
     params:
-        `ohlcv`: dict (ohlcv returned from request)
+        `ohlcvs`: a list of ohlcv dicts (returned from request)
         `symbol`: string
         `base_id`: string
         `quote_id`: string
         `fetch_start_time`: datetime obj
-        ...
     '''
-
-    return (ohlcv['startsAt'],
-            EXCHANGE_NAME,
-            symbol,
-            base_id,
-            quote_id,
-            ohlcv['open'],
-            ohlcv['high'],
-            ohlcv['low'],
-            ohlcv['close'],
-            ohlcv['volume'],
-            fetch_start_time
-    )
-
-def parse_ohlcvs(ohlcvs, symbol, base_id, quote_id, fetch_start_time):
+    
     return (
         (   
             ohlcv['startsAt'],
@@ -126,16 +108,18 @@ async def bittrex_fetchOHLCV_symbol(symbol_data, symbol, start_date, interval, h
         `httpx_client`: httpx Client object
         `psycopg2_conn`: connection object of psycopg2
         `psycopg2_cursor`: cursor object of psycopg2
-        `fetch_start_time`: datetime obj - fetch starting time
+        `fetch_start_time`: datetime obj - fetch starting time - the upper limit of the time range to fetch
         `throttler`: Throttler object from Throttler
     '''
 
     base_id = symbol_data['baseCurrencySymbol'].upper()
     quote_id = symbol_data['quoteCurrencySymbol'].upper()
+    start_date_s = datetime_to_seconds(start_date)
+    fetch_start_time_s = datetime_to_seconds(fetch_start_time)
 
-    while datetime_to_seconds(start_date) < datetime_to_seconds(fetch_start_time):
-        # Fetch historical data if time difference between now and start_date is > 1 day
-        if (datetime_to_seconds(datetime.datetime.now()) - datetime_to_seconds(start_date)) > 86400:
+    while start_date_s < fetch_start_time_s:
+        # Fetch historical data if time difference between now and start date is > 1 day
+        if (datetime_to_seconds(datetime.datetime.now()) - start_date_s) > 86400:
             ohlcv_section = "historical"
         else:
             ohlcv_section = None
@@ -148,12 +132,7 @@ async def bittrex_fetchOHLCV_symbol(symbol_data, symbol, start_date, interval, h
                 ohlcvs = ohlcvs_resp.json()
                 try:
                     rows = parse_ohlcvs(ohlcvs, symbol, base_id, quote_id, fetch_start_time)
-                    buffer = StringIO()
-                    writer = csv.writer(buffer)
-                    writer.writerows(rows)
-                    buffer.seek(0)
-
-                    psycopg2_cursor.copy_from(buffer, "ohlcvs", sep=",")
+                    psql_copy_from_csv(psycopg2_cursor, rows, "ohlcvs")
 
                     # for ohlcv in ohlcvs:
                     #     ohlcv = parse_ohlcv(ohlcv, symbol, base_id, quote_id, fetch_start_time)
@@ -202,7 +181,7 @@ async def bittrex_fetchOHLCV_all_symbols(start_date_dt):
     limits = httpx.Limits(max_connections=50)
     async with httpx.AsyncClient(timeout=None, limits=limits) as client:
         # Postgres connection
-        conn = psycopg2.connect(CONNECTION)
+        conn = psycopg2.connect(DBCONNECTION)
         cur = conn.cursor()
 
         # Async throttler / semaphore
@@ -234,7 +213,7 @@ async def bittrex_fetchOHLCV_all_symbols(start_date_dt):
 
 async def bittrex_fetchOHLCV_symbol_OnDemand(symbol, start_date_dt, end_date_dt):
     '''
-    Function to get OHLCVs of a base-quote on demand
+    Function to get OHLCVs of a symbol on demand
     params:
         `symbol`: string, uppercase
         `start_date_dt`: datetime obj
@@ -244,7 +223,7 @@ async def bittrex_fetchOHLCV_symbol_OnDemand(symbol, start_date_dt, end_date_dt)
     limits = httpx.Limits(max_connections=50)
     async with httpx.AsyncClient(timeout=None, limits=limits) as client:
         # Postgres connection
-        conn = psycopg2.connect(CONNECTION)
+        conn = psycopg2.connect(DBCONNECTION)
         cur = conn.cursor()
 
         # Async throttler / semaphore
@@ -287,3 +266,28 @@ def run_OnDemand(symbol, start_date_dt, end_date_dt):
 
 if __name__ == "__main__":
     run()
+
+
+# def parse_ohlcv(ohlcv, symbol, base_id, quote_id, fetch_start_time):
+#     '''
+#     returns parsed ohlcv in a tuple
+#     params:
+#         `ohlcv`: dict (ohlcv returned from request)
+#         `symbol`: string
+#         `base_id`: string
+#         `quote_id`: string
+#         `fetch_start_time`: datetime obj
+#     '''
+
+#     return (ohlcv['startsAt'],
+#             EXCHANGE_NAME,
+#             symbol,
+#             base_id,
+#             quote_id,
+#             ohlcv['open'],
+#             ohlcv['high'],
+#             ohlcv['low'],
+#             ohlcv['close'],
+#             ohlcv['volume'],
+#             fetch_start_time
+#     )

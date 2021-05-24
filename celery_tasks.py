@@ -22,3 +22,10 @@ def bittrex_fetchOHLCV_OnDemand_task(symbol, start_date, end_date):
     start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
     end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
     bittrex_fetchOHLCV.run_OnDemand(symbol, start_date_dt, end_date_dt)
+
+@app.task
+def bitfinex_fetchOHLCV_OnDemand_task(symbol, start_date, end_date):
+    # The dates need to be de-serialized
+    start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
+    end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    bitfinex_fetchOHLCV.run_OnDemand(symbol, start_date_dt, end_date_dt)

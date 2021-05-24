@@ -896,3 +896,277 @@ ConnectionResetError: [Errno 104] Connection reset by peer
 [2021-05-17 16:29:20,536: INFO/MainProcess] mingle: searching for neighbors
 [2021-05-17 16:29:21,602: INFO/MainProcess] mingle: all alone
 [2021-05-17 20:41:11,515: INFO/MainProcess] missed heartbeat from bittrexWorker@h
+[2021-05-24 12:53:28,272: INFO/MainProcess] Connected to amqp://coin_user:**@127.0.0.1:5672/coin_fetcher
+[2021-05-24 12:53:28,286: INFO/MainProcess] mingle: searching for neighbors
+[2021-05-24 12:53:29,319: INFO/MainProcess] mingle: all alone
+[2021-05-24 12:53:29,340: INFO/MainProcess] bitfinexWorker@h ready.
+[2021-05-24 12:55:21,842: INFO/MainProcess] Connected to amqp://coin_user:**@127.0.0.1:5672/coin_fetcher
+[2021-05-24 12:55:21,860: INFO/MainProcess] mingle: searching for neighbors
+[2021-05-24 12:55:22,889: INFO/MainProcess] mingle: all alone
+[2021-05-24 12:55:22,907: INFO/MainProcess] bitfinexWorker@h ready.
+[2021-05-24 12:57:01,512: INFO/MainProcess] Connected to amqp://coin_user:**@127.0.0.1:5672/coin_fetcher
+[2021-05-24 12:57:01,527: INFO/MainProcess] mingle: searching for neighbors
+[2021-05-24 12:57:02,559: INFO/MainProcess] mingle: all alone
+[2021-05-24 12:57:02,580: INFO/MainProcess] bitfinexWorker@h ready.
+[2021-05-24 12:57:13,862: INFO/MainProcess] Task celery_tasks.bitfinex_fetchOHLCV_OnDemand_task[a083a60a-2d75-41d8-a0b7-ee2b9b94b085] received
+[2021-05-24 12:57:14,359: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTCUSD
+[2021-05-24 12:57:15,364: ERROR/ForkPoolWorker-7] Task exception was never retrieved
+future: <Task finished name='Task-8' coro=<bitfinex_fetchOHLCV_symbol() done, defined at /root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py:110> exception=TypeError("unsupported operand type(s) for /: 'datetime.datetime' and 'int'")>
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 152, in bitfinex_fetchOHLCV_symbol
+    psql_copy_from_csv(psycopg2_cursor, rows, "ohlcvs")
+  File "/root/coin-for-rich/fetchers/helpers/dbhelpers.py", line 12, in psql_copy_from_csv
+    cursor.copy_from(buffer, table, sep=",")
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "_hyper_2_200_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-05-15 00:00:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-05-15 00:00:00,bitfinex,BTCUSD,BTC,USD,9791,9815.8,9790.93443749,9815.8,7.00069536,2021-05-19 0..."
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/coin-for-rich/fetchers/bitfinex_fetchOHLCV.py", line 161, in bitfinex_fetchOHLCV_symbol
+    error_tuple = make_error_tuple(fetch_start_time, symbol, milliseconds_to_datetime(start_date), time_frame, ohlcv_section, ohlcvs_resp.status_code, type(exc), exception_msg)
+  File "/root/coin-for-rich/fetchers/helpers/datetimehelpers.py", line 34, in milliseconds_to_datetime
+    return datetime.datetime.fromtimestamp(mls/1000)
+TypeError: unsupported operand type(s) for /: 'datetime.datetime' and 'int'
+[2021-05-24 12:57:15,369: INFO/ForkPoolWorker-7] Task celery_tasks.bitfinex_fetchOHLCV_OnDemand_task[a083a60a-2d75-41d8-a0b7-ee2b9b94b085] succeeded in 1.5039401999674737s: None
+[2021-05-24 12:59:36,176: INFO/MainProcess] Connected to amqp://coin_user:**@127.0.0.1:5672/coin_fetcher
+[2021-05-24 12:59:36,194: INFO/MainProcess] mingle: searching for neighbors
+[2021-05-24 12:59:37,222: INFO/MainProcess] mingle: all alone
+[2021-05-24 12:59:37,239: INFO/MainProcess] bitfinexWorker@h ready.
+[2021-05-24 12:59:50,806: INFO/MainProcess] Task celery_tasks.bitfinex_fetchOHLCV_OnDemand_task[babab8e2-64d3-405b-9d8b-6c3282d2b6f5] received
+[2021-05-24 12:59:51,497: WARNING/ForkPoolWorker-7] === Fetching OHLCVs for symbol BTCUSD
+[2021-05-24 12:59:52,408: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_200_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-05-15 00:00:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-05-15 00:00:00,bitfinex,BTCUSD,BTC,USD,9791,9815.8,9790.93443749,9815.8,7.00069536,2021-05-19 0..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 12:59:53,242: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_201_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-05-21 06:28:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-05-21 06:28:00,bitfinex,BTCUSD,BTC,USD,9524.0965239,9524.0965239,9523.9,9524,0.70052153,2021-05..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 12:59:53,763: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_201_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-05-27 13:14:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-05-27 13:14:00,bitfinex,BTCUSD,BTC,USD,9170.2,9170.2344447,9170.2,9170.2,1.01106231,2021-05-19 ..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 12:59:54,551: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_202_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-06-02 19:43:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-06-02 19:43:00,bitfinex,BTCUSD,BTC,USD,9530.79470383,9530.79470383,9530.7,9530.79470383,0.2791,..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 12:59:55,369: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_203_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-06-09 03:14:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-06-09 03:14:00,bitfinex,BTCUSD,BTC,USD,9676.6,9679,9676.25028204,9676.25028204,0.1,2021-05-19 0..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 12:59:57,062: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_204_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-06-15 12:55:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-06-15 12:55:00,bitfinex,BTCUSD,BTC,USD,9098.08023858,9098.1,9098,9098,0.5238065199999999,2021-0..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 12:59:57,887: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_205_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-06-21 22:54:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-06-21 22:54:00,bitfinex,BTCUSD,BTC,USD,9310.6,9314.2,9310.6,9314.2,1.37014784,2021-05-19 00:00:..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 12:59:58,408: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_206_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-06-28 08:56:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-06-28 08:56:00,bitfinex,BTCUSD,BTC,USD,9072.1,9072.1,9072.1,9072.1,0.1616,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:00,173: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_207_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-07-05 00:26:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-07-05 00:26:00,bitfinex,BTCUSD,BTC,USD,9146,9146,9144,9144,0.63032398,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:00,944: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_208_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-07-11 12:31:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-07-11 12:31:00,bitfinex,BTCUSD,BTC,USD,9233.43136813,9233.43136813,9233.43136813,9233.43136813,..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:01,758: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_209_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-07-18 05:46:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-07-18 05:46:00,bitfinex,BTCUSD,BTC,USD,9143.1606733,9143.1606733,9143.1,9143.1,0.5,2021-05-19 0..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:02,669: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_210_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-07-24 23:44:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-07-24 23:44:00,bitfinex,BTCUSD,BTC,USD,9555.6,9555.6,9555.6,9555.6,0.030000000000000002,2021-05..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:03,579: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_211_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-07-31 06:48:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-07-31 06:48:00,bitfinex,BTCUSD,BTC,USD,11138.02501762,11139,11137.9246056,11139,0.1818000000000..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:04,462: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_212_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-08-06 13:35:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-08-06 13:35:00,bitfinex,BTCUSD,BTC,USD,11798,11829,11798,11826,86.37255133,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:04,991: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_213_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-08-13 01:44:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-08-13 01:44:00,bitfinex,BTCUSD,BTC,USD,11602,11607.45400313,11602,11607.45400313,1.2389934,2021..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:05,794: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_213_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-08-19 09:41:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-08-19 09:41:00,bitfinex,BTCUSD,BTC,USD,11823,11823,11822.49889263,11822.7378227,0.107901,2021-0..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:06,459: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_214_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-08-25 17:37:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-08-25 17:37:00,bitfinex,BTCUSD,BTC,USD,11324.2308478,11324.2308478,11300,11300,1.85697305,2021-..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:09,016: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_215_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-09-01 04:57:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-09-01 04:57:00,bitfinex,BTCUSD,BTC,USD,11720.91963204,11721,11720.31732589,11720.31732589,0.084..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:09,810: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_216_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-09-07 11:52:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-09-07 11:52:00,bitfinex,BTCUSD,BTC,USD,10049,10049,10044,10047,0.47857539,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:10,342: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_217_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-09-13 22:43:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-09-13 22:43:00,bitfinex,BTCUSD,BTC,USD,10301.88040246,10310.8815051,10301.88040246,10310.881505..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:11,290: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_218_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-09-20 08:20:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-09-20 08:20:00,bitfinex,BTCUSD,BTC,USD,10990,10993,10990,10992,1.09816735,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:12,111: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_219_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-09-26 20:08:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-09-26 20:08:00,bitfinex,BTCUSD,BTC,USD,10736.70585,10737,10736.22769094,10736.92558121,0.018001..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:12,633: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_220_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-10-03 10:45:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-10-03 10:45:00,bitfinex,BTCUSD,BTC,USD,10549.44767817,10549.44767817,10549.44767817,10549.44767..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:13,519: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_130_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-10-10 07:47:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-10-10 07:47:00,bitfinex,BTCUSD,BTC,USD,11379.9737094,11381,11379.9737094,11381,0.13585783,2021-..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:14,317: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_131_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-10-17 00:10:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-10-17 00:10:00,bitfinex,BTCUSD,BTC,USD,11326.28953226,11326.28953226,11320,11321.95498485,1.018..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:15,241: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_126_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-10-23 15:34:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-10-23 15:34:00,bitfinex,BTCUSD,BTC,USD,12951.00305026,12951.00305026,12951,12951,0.159400000000..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:16,020: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_127_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-10-30 00:29:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-10-30 00:29:00,bitfinex,BTCUSD,BTC,USD,13396,13404,13396,13400,0.58203653,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:16,874: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_128_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-11-05 08:13:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-11-05 08:13:00,bitfinex,BTCUSD,BTC,USD,14480.3288196,14483,14480.3288196,14480.3288196,2.199590..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:17,644: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_128_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-11-11 14:51:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-11-11 14:51:00,bitfinex,BTCUSD,BTC,USD,15659,15659,15650,15651,0.95714588,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:18,357: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_129_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-11-17 21:09:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-11-17 21:09:00,bitfinex,BTCUSD,BTC,USD,17648,17650,17645,17645.90718576,1.92840362,2021-05-19 0..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:19,171: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_224_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-11-24 03:09:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-11-24 03:09:00,bitfinex,BTCUSD,BTC,USD,18346.47209472,18356,18346.47209472,18355,0.39539454,202..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:19,965: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_225_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-11-30 09:10:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-11-30 09:10:00,bitfinex,BTCUSD,BTC,USD,18445,18456.28544955,18445,18454.4541,1.82269218,2021-05..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:20,537: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_226_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-12-06 16:07:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-12-06 16:07:00,bitfinex,BTCUSD,BTC,USD,19204,19221,19204,19219,3.16225516,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:21,073: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_184_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-12-13 00:08:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-12-13 00:08:00,bitfinex,BTCUSD,BTC,USD,18874,18875,18866,18869,0.65930769,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:21,586: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_185_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-12-19 07:35:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-12-19 07:35:00,bitfinex,BTCUSD,BTC,USD,23006,23013,23006,23013,0.10769999999999999,2021-05-19 0..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:22,372: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_186_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-12-25 13:49:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-12-25 13:49:00,bitfinex,BTCUSD,BTC,USD,24455,24457,24454,24457,10.21863111,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:23,229: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_187_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2020-12-31 19:51:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2020-12-31 19:51:00,bitfinex,BTCUSD,BTC,USD,28911,28932,28911,28925,5.39516992,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:25,725: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_188_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-01-07 01:54:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-01-07 01:54:00,bitfinex,BTCUSD,BTC,USD,36813,36887,36813,36887,9.6666276,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:26,229: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_188_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-01-13 07:53:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-01-13 07:53:00,bitfinex,BTCUSD,BTC,USD,35010,35213,35009,35166,215.55730516,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:26,741: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_189_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-01-19 13:53:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-01-19 13:53:00,bitfinex,BTCUSD,BTC,USD,37205,37215,37191,37210,1.12862368,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:27,495: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_190_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-01-25 19:53:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-01-25 19:53:00,bitfinex,BTCUSD,BTC,USD,33661,33702,33661,33695,0.33701605,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:28,414: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_221_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-02-01 01:53:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-02-01 01:53:00,bitfinex,BTCUSD,BTC,USD,33541,33541,33442,33452,2.26466398,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:29,215: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_222_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-02-07 07:56:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-02-07 07:56:00,bitfinex,BTCUSD,BTC,USD,39034,39040,39013,39040,1.31809482,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:30,904: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_223_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-02-13 13:55:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-02-13 13:55:00,bitfinex,BTCUSD,BTC,USD,46972,46972,46906.361703,46921,1.92542502,2021-05-19 00:..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:31,616: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_132_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-02-19 19:54:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-02-19 19:54:00,bitfinex,BTCUSD,BTC,USD,54693.15051024,54788,54679.82371918,54787,8.38281298,202..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:32,157: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_133_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-02-26 01:53:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-02-26 01:53:00,bitfinex,BTCUSD,BTC,USD,46340,46580,46340,46457,26.22836405,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:32,710: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_134_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-03-04 07:53:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-03-04 07:53:00,bitfinex,BTCUSD,BTC,USD,49655.47178592,49655.47178592,49600,49603,0.645704000000..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:33,609: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_134_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-03-10 13:56:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-03-10 13:56:00,bitfinex,BTCUSD,BTC,USD,56199.89178075,56255,56193,56243,4.5483833,2021-05-19 00..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:34,560: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_135_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-03-16 19:56:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-03-16 19:56:00,bitfinex,BTCUSD,BTC,USD,55707,55708,55707,55708,0.49474555000000003,2021-05-19 0..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:35,277: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_136_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-03-23 02:04:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-03-23 02:04:00,bitfinex,BTCUSD,BTC,USD,55005,55051,55004,55016,0.38218992,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:36,174: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_137_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-03-29 08:08:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-03-29 08:08:00,bitfinex,BTCUSD,BTC,USD,56100.28268726,56136,56100.28268726,56135,0.88234683,202..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:36,763: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_238_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-04-04 14:27:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-04-04 14:27:00,bitfinex,BTCUSD,BTC,USD,58165,58195,58165,58194,0.60513895,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:37,580: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_239_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-04-10 20:52:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-04-10 20:52:00,bitfinex,BTCUSD,BTC,USD,58838,59042,58709,58764.9356305,47.15309051,2021-05-19 0..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:38,367: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_240_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-04-17 03:00:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-04-17 03:00:00,bitfinex,BTCUSD,BTC,USD,62161.87425141,62225,62161.87425141,62224,2.50233673,202..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:40,062: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_241_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-04-23 08:59:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-04-23 08:59:00,bitfinex,BTCUSD,BTC,USD,48893.73011808,48896,48792,48845,24.63728268,2021-05-19 ..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:40,632: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_242_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-04-29 15:07:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-04-29 15:07:00,bitfinex,BTCUSD,BTC,USD,53690.82581448,53716,53690.82581448,53716,0.330097849999..."
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:41,438: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_242_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-05-05 21:16:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-05-05 21:16:00,bitfinex,BTCUSD,BTC,USD,56971,56971,56930,56939,2.47663491,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:42,185: WARNING/ForkPoolWorker-7] Exception duplicate key value violates unique constraint "_hyper_2_143_chunk_ts_exch_sym"
+DETAIL:  Key ("time", exchange, symbol)=(2021-05-12 03:18:00+00, bitfinex, BTCUSD) already exists.
+CONTEXT:  COPY ohlcvs, line 1: "2021-05-12 03:18:00,bitfinex,BTCUSD,BTC,USD,57152,57153,57110,57124,1.51963052,2021-05-19 00:00:00"
+ occurred when copying rows to ohlcvs
+[2021-05-24 13:00:43,079: INFO/ForkPoolWorker-7] Task celery_tasks.bitfinex_fetchOHLCV_OnDemand_task[babab8e2-64d3-405b-9d8b-6c3282d2b6f5] succeeded in 52.271195612847805s: None
