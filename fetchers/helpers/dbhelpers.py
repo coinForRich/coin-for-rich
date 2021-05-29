@@ -5,6 +5,15 @@ from io import StringIO
 
 
 def psql_copy_from_csv(cursor, rows, table):
+    '''
+    Psycopg2 copy from rows to table using StringIO and CSV
+    Do nothing when error occurs
+    params:
+        `cursor`: psycopg2 cursor obj
+        `rows`: tuples of tuples
+        `table`: string - table name
+    '''
+
     try:
         buffer = StringIO()
         writer = csv.writer(buffer)
