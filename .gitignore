@@ -2,5 +2,5 @@ __pycache__/
 *__pycache__/
 .vscode/
 .ipynb_checkpoints/
-logs/
+logs/*
 run/

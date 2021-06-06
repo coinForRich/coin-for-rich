@@ -15,5 +15,6 @@ task_routes = {
     'celery_tasks.bittrex_fetchOHLCV_task': {'queue': 'bittrex'},
     'celery_tasks.bittrex_fetchOHLCV_OnDemand_task': {'queue': 'bittrex'},
     'celery_tasks.bitfinex_fetchOHLCV_task': {'queue': 'bitfinex'},
-    'celery_tasks.bitfinex_fetchOHLCV_OnDemand_task': {'queue': 'bitfinex'}
+    'celery_tasks.bitfinex_fetchOHLCV_OnDemand_task': {'queue': 'bitfinex'},
+    'celery_tasks.get_and_fetch_all_task': {'queue': 'update_all'}
 }

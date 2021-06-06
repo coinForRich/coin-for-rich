@@ -1170,3 +1170,225 @@ DETAIL:  Key ("time", exchange, symbol)=(2021-05-12 03:18:00+00, bitfinex, BTCUS
 CONTEXT:  COPY ohlcvs, line 1: "2021-05-12 03:18:00,bitfinex,BTCUSD,BTC,USD,57152,57153,57110,57124,1.51963052,2021-05-19 00:00:00"
  occurred when copying rows to ohlcvs
 [2021-05-24 13:00:43,079: INFO/ForkPoolWorker-7] Task celery_tasks.bitfinex_fetchOHLCV_OnDemand_task[babab8e2-64d3-405b-9d8b-6c3282d2b6f5] succeeded in 52.271195612847805s: None
+[2021-06-02 21:46:02,806: ERROR/MainProcess] Error cleaning up after event loop: RecoverableConnectionError(None, 'Socket was disconnected', None, '')
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/loops.py", line 81, in asynloop
+    next(loop)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 361, in create_loop
+    cb(*cbargs)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 235, in on_readable
+    reader(loop)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 217, in _read
+    drain_events(timeout=0)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 523, in drain_events
+    while not self.blocking_read(timeout):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 528, in blocking_read
+    frame = self.transport.read_frame()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 299, in read_frame
+    frame_header = read(7, True)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 628, in _read
+    s = recv(n - len(rbuf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/loops.py", line 86, in asynloop
+    hub.reset()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 109, in reset
+    self.close()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 262, in close
+    item()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/vine/promises.py", line 160, in __call__
+    return self.throw()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/vine/promises.py", line 157, in __call__
+    retval = fun(*final_args, **final_kwargs)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 215, in _read
+    raise RecoverableConnectionError('Socket was disconnected')
+amqp.exceptions.RecoverableConnectionError: Socket was disconnected
+[2021-06-02 21:46:02,963: WARNING/MainProcess] consumer: Connection to broker lost. Trying to re-establish the connection...
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 326, in start
+    blueprint.start(self)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/bootsteps.py", line 116, in start
+    step.start(parent)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 618, in start
+    c.loop(*c.loop_args())
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/loops.py", line 81, in asynloop
+    next(loop)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 361, in create_loop
+    cb(*cbargs)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 235, in on_readable
+    reader(loop)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 217, in _read
+    drain_events(timeout=0)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 523, in drain_events
+    while not self.blocking_read(timeout):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 528, in blocking_read
+    frame = self.transport.read_frame()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 299, in read_frame
+    frame_header = read(7, True)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 628, in _read
+    s = recv(n - len(rbuf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+[2021-06-02 21:46:02,977: WARNING/MainProcess] /root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py:361: CPendingDeprecationWarning: 
+In Celery 5.1 we introduced an optional breaking change which
+on connection loss cancels all currently executed tasks with late acknowledgement enabled.
+These tasks cannot be acknowledged as the connection is gone, and the tasks are automatically redelivered back to the queue.
+You can enable this behavior using the worker_cancel_long_running_tasks_on_connection_loss setting.
+In Celery 5.1 it is set to False by default. The setting will be set to True by default in Celery 6.0.
+
+  warnings.warn(CANCEL_TASKS_BY_DEFAULT, CPendingDeprecationWarning)
+
+[2021-06-02 21:46:03,086: INFO/MainProcess] Connected to amqp://coin_user:**@127.0.0.1:5672/coin_fetcher
+[2021-06-02 21:46:03,136: INFO/MainProcess] mingle: searching for neighbors
+[2021-06-02 21:46:04,174: INFO/MainProcess] mingle: all alone
+[2021-06-02 21:50:18,059: ERROR/MainProcess] Error cleaning up after event loop: RecoverableConnectionError(None, 'Socket was disconnected', None, '')
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/loops.py", line 81, in asynloop
+    next(loop)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 361, in create_loop
+    cb(*cbargs)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 235, in on_readable
+    reader(loop)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 217, in _read
+    drain_events(timeout=0)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 523, in drain_events
+    while not self.blocking_read(timeout):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 528, in blocking_read
+    frame = self.transport.read_frame()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 299, in read_frame
+    frame_header = read(7, True)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 628, in _read
+    s = recv(n - len(rbuf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/loops.py", line 86, in asynloop
+    hub.reset()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 109, in reset
+    self.close()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 262, in close
+    item()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/vine/promises.py", line 160, in __call__
+    return self.throw()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/vine/promises.py", line 157, in __call__
+    retval = fun(*final_args, **final_kwargs)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 215, in _read
+    raise RecoverableConnectionError('Socket was disconnected')
+amqp.exceptions.RecoverableConnectionError: Socket was disconnected
+[2021-06-02 21:50:18,144: WARNING/MainProcess] consumer: Connection to broker lost. Trying to re-establish the connection...
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 326, in start
+    blueprint.start(self)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/bootsteps.py", line 116, in start
+    step.start(parent)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 618, in start
+    c.loop(*c.loop_args())
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/loops.py", line 81, in asynloop
+    next(loop)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 361, in create_loop
+    cb(*cbargs)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 235, in on_readable
+    reader(loop)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 217, in _read
+    drain_events(timeout=0)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 523, in drain_events
+    while not self.blocking_read(timeout):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 528, in blocking_read
+    frame = self.transport.read_frame()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 299, in read_frame
+    frame_header = read(7, True)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 628, in _read
+    s = recv(n - len(rbuf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+[2021-06-02 21:50:18,151: WARNING/MainProcess] /root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py:361: CPendingDeprecationWarning: 
+In Celery 5.1 we introduced an optional breaking change which
+on connection loss cancels all currently executed tasks with late acknowledgement enabled.
+These tasks cannot be acknowledged as the connection is gone, and the tasks are automatically redelivered back to the queue.
+You can enable this behavior using the worker_cancel_long_running_tasks_on_connection_loss setting.
+In Celery 5.1 it is set to False by default. The setting will be set to True by default in Celery 6.0.
+
+  warnings.warn(CANCEL_TASKS_BY_DEFAULT, CPendingDeprecationWarning)
+
+[2021-06-02 21:50:18,323: INFO/MainProcess] Connected to amqp://coin_user:**@127.0.0.1:5672/coin_fetcher
+[2021-06-02 21:50:18,390: INFO/MainProcess] mingle: searching for neighbors
+[2021-06-02 21:50:19,440: INFO/MainProcess] mingle: all alone
+[2021-06-02 21:55:34,955: WARNING/MainProcess] consumer: Connection to broker lost. Trying to re-establish the connection...
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 326, in start
+    blueprint.start(self)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/bootsteps.py", line 116, in start
+    step.start(parent)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 618, in start
+    c.loop(*c.loop_args())
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/loops.py", line 81, in asynloop
+    next(loop)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 298, in create_loop
+    item()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/vine/promises.py", line 160, in __call__
+    return self.throw()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/vine/promises.py", line 157, in __call__
+    retval = fun(*final_args, **final_kwargs)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 217, in _read
+    drain_events(timeout=0)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 523, in drain_events
+    while not self.blocking_read(timeout):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 528, in blocking_read
+    frame = self.transport.read_frame()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 299, in read_frame
+    frame_header = read(7, True)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 628, in _read
+    s = recv(n - len(rbuf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+[2021-06-02 21:55:35,056: WARNING/MainProcess] /root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py:361: CPendingDeprecationWarning: 
+In Celery 5.1 we introduced an optional breaking change which
+on connection loss cancels all currently executed tasks with late acknowledgement enabled.
+These tasks cannot be acknowledged as the connection is gone, and the tasks are automatically redelivered back to the queue.
+You can enable this behavior using the worker_cancel_long_running_tasks_on_connection_loss setting.
+In Celery 5.1 it is set to False by default. The setting will be set to True by default in Celery 6.0.
+
+  warnings.warn(CANCEL_TASKS_BY_DEFAULT, CPendingDeprecationWarning)
+
+[2021-06-02 21:55:35,206: INFO/MainProcess] Connected to amqp://coin_user:**@127.0.0.1:5672/coin_fetcher
+[2021-06-02 21:55:35,262: INFO/MainProcess] mingle: searching for neighbors
+[2021-06-02 21:55:36,309: INFO/MainProcess] mingle: all alone
+[2021-06-04 03:30:02,824: WARNING/MainProcess] consumer: Connection to broker lost. Trying to re-establish the connection...
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 326, in start
+    blueprint.start(self)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/bootsteps.py", line 116, in start
+    step.start(parent)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py", line 618, in start
+    c.loop(*c.loop_args())
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/loops.py", line 81, in asynloop
+    next(loop)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/asynchronous/hub.py", line 361, in create_loop
+    cb(*cbargs)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 235, in on_readable
+    reader(loop)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/kombu/transport/base.py", line 217, in _read
+    drain_events(timeout=0)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 523, in drain_events
+    while not self.blocking_read(timeout):
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/connection.py", line 528, in blocking_read
+    frame = self.transport.read_frame()
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 299, in read_frame
+    frame_header = read(7, True)
+  File "/root/miniconda3/envs/coin/lib/python3.8/site-packages/amqp/transport.py", line 628, in _read
+    s = recv(n - len(rbuf))
+ConnectionResetError: [Errno 104] Connection reset by peer
+[2021-06-04 03:30:02,837: WARNING/MainProcess] /root/miniconda3/envs/coin/lib/python3.8/site-packages/celery/worker/consumer/consumer.py:361: CPendingDeprecationWarning: 
+In Celery 5.1 we introduced an optional breaking change which
+on connection loss cancels all currently executed tasks with late acknowledgement enabled.
+These tasks cannot be acknowledged as the connection is gone, and the tasks are automatically redelivered back to the queue.
+You can enable this behavior using the worker_cancel_long_running_tasks_on_connection_loss setting.
+In Celery 5.1 it is set to False by default. The setting will be set to True by default in Celery 6.0.
+
+  warnings.warn(CANCEL_TASKS_BY_DEFAULT, CPendingDeprecationWarning)
+
+[2021-06-04 03:30:02,876: INFO/MainProcess] Connected to amqp://coin_user:**@127.0.0.1:5672/coin_fetcher
+[2021-06-04 03:30:02,897: INFO/MainProcess] mingle: searching for neighbors
+[2021-06-04 03:30:03,911: INFO/MainProcess] mingle: all alone

@@ -24,3 +24,7 @@ Populating postgres tables: https://www.postgresql.org/docs/current/populate.htm
 Postgresql table populating methods, benchmarked (*spoiler: copy is best*): https://naysan.ca/2020/05/09/pandas-to-postgresql-using-psycopg2-bulk-insert-performance-benchmark/
 ### **Celery**
 Stop Celery worker processes: https://stackoverflow.com/questions/29306337/how-to-stop-celery-worker-process/48462005
+### **Caching Using Redis**
+Caching using Redis, from Redis Lab: https://redislabs.com/blog/query-caching-redis/
+Postgresql and Redis caching, an experiment: https://medium.com/wultra-blog/achieving-high-performance-with-postgresql-and-redis-deddb7012b16
+Import CSV data into Redis: https://daten-und-bass.io/blog/import-csv-data-into-redis-with-a-single-cli-command/
