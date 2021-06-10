@@ -5,11 +5,11 @@ import time
 import datetime
 import psycopg2
 import httpx
+
 import backoff
 from asyncio_throttle import Throttler
 from fetchers.helpers.datetimehelpers import datetime_to_seconds
 from fetchers.helpers.dbhelpers import psql_copy_from_csv
-from fetchers.bitfinex_fetchOHLCV import EXCHANGE_NAME
 from fetchers.config.constants import *
 
 
@@ -46,9 +46,11 @@ def make_ohlcv_url(base_url, symbol, interval, historical, start_date):
 
 def onbackoff_ratelimit_handler(details):
     details['args'][2].rate_limit -= 1
+    print(f"Reducing throttler rate limit to {details['args'][2].rate_limit}")
 
 def onsuccessgiveup_ratelimit_handler(details):
     details['args'][2].rate_limit = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN'][EXCHANGE_NAME]
+    print(f"Setting throttler rate limit to {details['args'][2].rate_limit}")
 
 @backoff.on_predicate(backoff.fibo, lambda result: result[0] == 429, max_tries=12, on_backoff=onbackoff_ratelimit_handler, on_success=onsuccessgiveup_ratelimit_handler, on_giveup=onsuccessgiveup_ratelimit_handler)
 async def get_ohlcv_data(httpx_client, ohlcv_url, throttler):
@@ -131,13 +133,13 @@ def parse_ohlcvs(ohlcvs, symbol, base_id, quote_id):
 
     return (ohlcvs_table_insert, symexch_table_insert)
 
-def make_error_tuple(fetch_start_time, symbol, start_date, interval, ohlcv_section, resp_status_code, exception_class, exception_msg):
+def make_error_tuple(symbol, start_date, end_date, interval, ohlcv_section, resp_status_code, exception_class, exception_msg):
     '''
     returns an error tuple to put into errors db
     params:
-        `fetch_start_time`: datetime obj of fetch starting time
         `symbol`: string
         `start_date`: datetime obj of start date
+        `end_date`: datetime obj of end date
         `time_frame`: string
         `ohlcv_section`: string
         `resp_status_code`: int - response status code
@@ -146,7 +148,7 @@ def make_error_tuple(fetch_start_time, symbol, start_date, interval, ohlcv_secti
     '''
     
     return ("INSERT INTO ohlcvs_errors VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);",
-            (fetch_start_time,
+            (end_date,
             EXCHANGE_NAME,
             symbol,
             start_date,
@@ -157,18 +159,18 @@ def make_error_tuple(fetch_start_time, symbol, start_date, interval, ohlcv_secti
             exception_msg
     ))
 
-async def bittrex_fetchOHLCV_symbol(symbol_data, symbol, start_date, interval, httpx_client, psycopg2_conn, psycopg2_cursor, fetch_start_time, throttler):
+async def bittrex_fetchOHLCV_symbol(symbol_data, symbol, start_date, end_date, interval, httpx_client, psycopg2_conn, psycopg2_cursor, throttler):
     '''
     custom function that fetches OHLCV for a symbol from start_date
     params:
         `symbol_data`: dict (of symbol data)
         `symbol`: string
         `start_date`: datetime obj
+        `end_date`: datetime obj
         `interval`: string (for interval, e.g., "MINUTE_1")
         `httpx_client`: httpx Client object
         `psycopg2_conn`: connection object of psycopg2
         `psycopg2_cursor`: cursor object of psycopg2
-        `fetch_start_time`: datetime obj - fetch starting time - the upper limit of the time range to fetch
         `throttler`: Throttler object from Throttler
     '''
 
@@ -178,7 +180,7 @@ async def bittrex_fetchOHLCV_symbol(symbol_data, symbol, start_date, interval, h
     # Convert datetime with tzinfo to non-tzinfo
     start_date = start_date.replace(tzinfo=None)
 
-    while start_date < fetch_start_time:
+    while start_date < end_date:
         delta = datetime.datetime.now() - start_date
         # Fetch historical data if time difference between now and start date is > 1 day
         if delta.days > 1:
@@ -203,11 +205,11 @@ async def bittrex_fetchOHLCV_symbol(symbol_data, symbol, start_date, interval, h
                 except Exception as exc:
                     exc_type = type(exc)
                     exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc} with original response as: {ohlcvs}'
-                    error_tuple = make_error_tuple(fetch_start_time, symbol, start_date, interval, ohlcv_section, resp_status_code, exc_type, exception_msg)
+                    error_tuple = make_error_tuple(symbol, start_date, end_date, interval, ohlcv_section, resp_status_code, exc_type, exception_msg)
                     psycopg2_cursor.execute(error_tuple[0], error_tuple[1])
                     print(exception_msg)
             else:
-                error_tuple = make_error_tuple(fetch_start_time, symbol, start_date, interval, ohlcv_section, resp_status_code, exc_type, exception_msg)
+                error_tuple = make_error_tuple(symbol, start_date, end_date, interval, ohlcv_section, resp_status_code, exc_type, exception_msg)
                 psycopg2_cursor.execute(error_tuple[0], error_tuple[1])
                 print(exception_msg)
             
@@ -215,14 +217,15 @@ async def bittrex_fetchOHLCV_symbol(symbol_data, symbol, start_date, interval, h
             psycopg2_conn.commit()
             start_date += datetime.timedelta(days=DAYDELTAS[interval])            
 
-async def bittrex_fetchOHLCV_all_symbols(start_date_dt):
+async def bittrex_fetchOHLCV_all_symbols(start_date_dt, end_date_dt):
     '''
     Main function to fetch OHLCV for all trading symbols on Bittrex
     params:
         `start_date_dt`: datetime object (for starting date)
+        `end_date_dt`: datetime object (for ending date)
     '''
 
-    limits = httpx.Limits(max_connections=50)
+    limits = httpx.Limits(max_connections=HTTPX_MAX_CONCURRENT_CONNECTIONS)
     async with httpx.AsyncClient(timeout=None, limits=limits) as client:
         # Postgres connection
         conn = psycopg2.connect(DBCONNECTION)
@@ -237,19 +240,18 @@ async def bittrex_fetchOHLCV_all_symbols(start_date_dt):
         markets_url = f'{BASE_URL}/markets'
         markets_resp = await client.get(markets_url)
         market_data = markets_resp.json()
-        fetch_start_time = datetime.datetime.now()
 
-        for symbol_dict in market_data:
-            print(f"=== Fetching OHLCVs for symbol {symbol_dict['symbol']}")
+        for symbol_data in market_data:
+            print(f"=== Fetching OHLCVs for symbol {symbol_data['symbol']}")
             symbol_tasks.append(loop.create_task(bittrex_fetchOHLCV_symbol(
-                symbol_data=symbol_dict,
-                symbol=symbol_dict['symbol'],
+                symbol_data=symbol_data,
+                symbol=symbol_data['symbol'],
                 start_date=start_date_dt,
+                end_date=end_date_dt,
                 interval=OHLCV_INTERVAL,
                 httpx_client=client,
                 psycopg2_conn=conn,
                 psycopg2_cursor=cur,
-                fetch_start_time=fetch_start_time,
                 throttler=throttler
             )))
         await asyncio.wait(symbol_tasks)
@@ -294,26 +296,24 @@ async def bittrex_fetchOHLCV_symbol_OnDemand(symbol, start_date_dt, end_date_dt,
     symbol_tasks = []
 
     # Load market data
-    markets_url = f'{BASE_URL}/markets'
-    markets_resp = await client.get(markets_url)
-    market_data = markets_resp.json()
+    market_data = bittrex_loadAllSymbolsData()
 
     # Lookup symbol dict of this symbol
-    symbol_dict = None
+    symbol_data = None
     for sd in market_data:
         if sd['symbol'] == symbol:
-            symbol_dict = sd
+            symbol_data = sd
 
     print(f"=== Fetching OHLCVs for symbol {symbol}")
     symbol_tasks.append(loop.create_task(bittrex_fetchOHLCV_symbol(
-        symbol_data=symbol_dict,
+        symbol_data=symbol_data,
         symbol=symbol,
         start_date=start_date_dt,
+        end_date=end_date_dt,
         interval=OHLCV_INTERVAL,
         httpx_client=client,
         psycopg2_conn=conn,
         psycopg2_cursor=cur,
-        fetch_start_time=end_date_dt,
         throttler=throttler
     )))
     await asyncio.wait(symbol_tasks)
@@ -324,10 +324,55 @@ async def bittrex_fetchOHLCV_symbol_OnDemand(symbol, start_date_dt, end_date_dt,
     if self_httpx_c:
         await client.aclose()
 
-def run():
-    asyncio.run(bittrex_fetchOHLCV_all_symbols(datetime.datetime(2019, 9, 1)))
+def bittrex_loadAllSymbolsData():
+    '''
+    returns market data with all symbol names
+    '''
+
+    with httpx.Client(timeout=None) as client:
+        # Psycopg2
+        conn = psycopg2.connect(DBCONNECTION)
+
+        # Load market data
+        markets_url = f'{BASE_URL}/markets'
+        markets_resp = client.get(markets_url)
+        market_data = markets_resp.json()
+
+        # Load into PSQL
+        to_symexch = []
+        for symbol_data in market_data:
+            symbol = symbol_data['symbol']
+            base_id = symbol_data['baseCurrencySymbol'].upper()
+            quote_id = symbol_data['quoteCurrencySymbol'].upper()
+            to_symexch.append(
+                (
+                    EXCHANGE_NAME,
+                    base_id,
+                    quote_id,
+                    symbol
+                )
+            )
+        psql_copy_from_csv(conn, to_symexch, "symbol_exchange")
+        conn.commit()
+        conn.close()
+        return market_data
+
+def run(start_date_dt, end_date_dt):
+    '''
+    fetches OHLCVs for all symbols
+    '''
+
+    asyncio.run(bittrex_fetchOHLCV_all_symbols(start_date_dt, end_date_dt))
 
 def run_OnDemand(symbol, start_date_dt, end_date_dt):
+    '''
+    fetches OHLCVs for a symbol based from a start date to an end date
+    params:
+        `symbol`: string
+        `start_date_dt`: datetime obj
+        `end_date_dt`: datetime obj
+    '''
+
     asyncio.run(bittrex_fetchOHLCV_symbol_OnDemand(symbol, start_date_dt, end_date_dt))
 
 
@@ -335,26 +380,5 @@ if __name__ == "__main__":
     run()
 
 
-# def parse_ohlcv(ohlcv, symbol, base_id, quote_id, fetch_start_time):
-#     '''
-#     returns parsed ohlcv in a tuple
-#     params:
-#         `ohlcv`: dict (ohlcv returned from request)
-#         `symbol`: string
-#         `base_id`: string
-#         `quote_id`: string
-#         `fetch_start_time`: datetime obj
-#     '''
-
-#     return (ohlcv['startsAt'],
-#             EXCHANGE_NAME,
-#             symbol,
-#             base_id,
-#             quote_id,
-#             ohlcv['open'],
-#             ohlcv['high'],
-#             ohlcv['low'],
-#             ohlcv['close'],
-#             ohlcv['volume'],
-#             fetch_start_time
-#     )
+# Parse datetime from Redis
+# datetime.datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S%z")

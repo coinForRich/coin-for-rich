@@ -3,9 +3,9 @@
 
 from pathlib import PureWindowsPath
 from celery_main import app
-from fetchers import bitfinex_fetchOHLCV
-from fetchers import bittrex_fetchOHLCV
-from fetchers import update_OHLCVs
+from fetchers.rest import bitfinex_fetchOHLCV
+from fetchers.rest import bittrex_fetchOHLCV
+from fetchers.rest import update_OHLCVs
 from fetchers.helpers.datetimehelpers import str_to_datetime
 
 

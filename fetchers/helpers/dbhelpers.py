@@ -34,3 +34,18 @@ def psql_copy_from_csv(conn, rows, table, cursor=None):
         conn.rollback()
     if self_cursor:
         cursor.close()
+    
+def enqueue_ohlcvs_redis(redis_client, delimiter, key, exchange, symbol, start_date, end_date):
+    '''
+    enqueue values into Redis to begin fetching OHLCV data
+    params:
+        `redis_server`: Redis server obj
+        `delimiter`: string - delimiter for Redis
+        `key`: string, Redis key of the Redis queue
+        `exchange`: string
+        `symbol`: string
+        `start_date`: string resulted from strptime
+        `end_date`: string resulted from strptime
+    '''
+    value = f'{exchange}{delimiter}{symbol}{delimiter}{start_date}{delimiter}{end_date}'
+    redis_client.rpush(key, value)

@@ -2,25 +2,14 @@ import asyncio
 import psycopg2
 import datetime
 import httpx
+import redis
 from asyncio_throttle import Throttler
 from fetchers.config.constants import *
-from fetchers.bittrex_fetchOHLCV import bittrex_fetchOHLCV_symbol_OnDemand
-from fetchers.bitfinex_fetchOHLCV import bitfinex_fetchOHLCV_symbol_OnDemand
+from fetchers.config.queries import LATEST_SYMEXCH_QUERY, TS_GAPS_QUERY
+from common.helpers.dbhelpers import redis_pipe_sadd
+from fetchers.rest.bittrex_fetchOHLCV import bittrex_fetchOHLCV_symbol_OnDemand
+from fetchers.rest.bitfinex_fetchOHLCV import bitfinex_fetchOHLCV_symbol_OnDemand
 
-
-QUERY_LASTEST = '''
-select ohlcvss.exchange, symexch.symbol, ohlcvss.time
-from symbol_exchange symexch,
-   lateral (
-      select time, exchange, base_id, quote_id
-      from ohlcvs
-      where ohlcvs.exchange = symexch.exchange
-         and base_id = symexch.base_id
-         and quote_id = symexch.quote_id
-      order by base_id, quote_id, time desc
-      limit 1
-   ) ohlcvss;
-'''
 
 def gen_throttlers():
     return {
@@ -54,8 +43,11 @@ async def get_and_fetch_all(end_date_dt):
     tasks = []
     conn = psycopg2.connect(DBCONNECTION)
     cur = conn.cursor()
-    cur.execute(QUERY_LASTEST)
+    cur.execute(LATEST_SYMEXCH_QUERY)
     results = cur.fetchall()
+
+    #TODO: rewrite this function using Redis queue
+
     if not results:
         print("Error: no results found from ohlcvs table")
     else:
@@ -80,12 +72,50 @@ async def get_and_fetch_all(end_date_dt):
                     throttler=throttlers['bitfinex']
                 )))
         await asyncio.wait(tasks)
+    print(f'Fetching completed: symbol data until {end_date_dt}')
     conn.close()
 
 def run_get_and_fetch_all():
     end_date = datetime.datetime.now()
     asyncio.run(get_and_fetch_all(end_date))
 
+async def fillgaps_all():
+    with psycopg2.connect(DBCONNECTION) as conn:
+        cur = conn.cursor()
+        redis_client = redis.Redis(host=REDIS_HOST, decode_responses=True)
+        results_empty = False
+        while not results_empty:
+            cur.execute(TS_GAPS_QUERY)
+            results = cur.fetchall()
+            if results:
+                print("Found results from PSQL")
+                # loop over results and push into Redis queue
+                push_values = []
+                for result in results:
+                    start_date = result[0]['time']
+                    end_date = result[0]['next_time']
+                    exchange=result[0]['exchange']
+                    symbol=result[0]['symbol']
+                    push_values.append(
+                        f'{exchange}{REDIS_DELIMITER}{symbol}{REDIS_DELIMITER}{start_date}{REDIS_DELIMITER}{end_date}'
+                    )
+                if exchange == "bittrex":
+                    redis_pipe_sadd(redis_client, OHLCVS_BITTREX_REDIS_KEY, push_values)
+                    print(f'Length of bittrex Redis key: {redis_client.llen(OHLCVS_BITTREX_REDIS_KEY)}')
+                elif exchange == "bitfinex":
+                    redis_pipe_sadd(redis_client, OHLCVS_BITFINEX_REDIS_KEY, push_values)
+                    print(f'Length of bitfinex Redis key: {redis_client.llen(OHLCVS_BITFINEX_REDIS_KEY)}')
+            else:
+                results_empty = True
+                break
+            await asyncio.sleep(0.25)
+            
+def run_fillgaps_all():
+    # loop = asyncio.get_event_loop()
+    # tasks = []
+    asyncio.run(fillgaps_all())
+
 
 if __name__ == "__main__":
-    print("Nothing to see")
+    # print("Nothing to see")
+    run_fillgaps_all()
