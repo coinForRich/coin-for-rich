@@ -1,7 +1,7 @@
 -- For use with psycopg2
 -- Before using the queries...
--- psql -h localhost -p 15432 -U postgres -W -d postgres
--- password is horus123
+-- psql -h localhost -p 5432 -U postgres -W -d postgres
+-- password is in ENV file
 
 -- Create OHLCVS table
 CREATE TABLE ohlcvs (
@@ -15,14 +15,12 @@ CREATE TABLE ohlcvs (
    closing_price NUMERIC,
    volume NUMERIC
 );
--- Create index on first columns
+-- Create unique index on first columns
 CREATE UNIQUE INDEX ohlcvs_exch_base_quote_time_idx ON ohlcvs (exchange, base_id, quote_id, "time" ASC);
 -- Create index on the exchange column, time column, symbol column separately
 CREATE INDEX ohlcvs_time_idx ON ohlcvs ("time" ASC);
 CREATE INDEX ohlcvs_exch_time_idx ON ohlcvs (exchange, "time" ASC);
 CREATE INDEX ohlcvs_base_quote_time_idx ON ohlcvs (base_id, quote_id, "time" ASC);
--- CREATE INDEX ohlcvs_baseid_time_idx ON ohlcvs (base_id, time asc);
--- CREATE INDEX ohlcvs_quoteid_time_idx ON ohlcvs (quote_id, time asc);
 
 -- Insert with duplicate policy (psycopg2)
 INSERT INTO ohlcvs VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
@@ -30,12 +28,12 @@ ON CONFLICT (time, exchange, symbol) DO NOTHING;
 -- Execute prepared INSERT statement (psycopg2)
 EXECUTE ohlcvs_rows_insert_stmt(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);
 
--- Create OHLCV errors table
+-- Create OHLCV errors table for fetching errors
 CREATE TABLE ohlcvs_errors (
-   fetch_start_time TIMESTAMPTZ NOT NULL,
    exchange VARCHAR(100) NOT NULL,
    symbol VARCHAR(20) NOT NULL,
    start_date TIMESTAMPTZ NOT NULL,
+   end_date TIMESTAMPTZ NOT NULL,
    time_frame VARCHAR(10) NOT NULL,
    ohlcv_section VARCHAR(30),
    resp_status_code SMALLINT,

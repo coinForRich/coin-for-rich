@@ -148,16 +148,18 @@ def make_error_tuple(symbol, start_date, end_date, interval, ohlcv_section, resp
     '''
     
     return ("INSERT INTO ohlcvs_errors VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);",
-            (end_date,
-            EXCHANGE_NAME,
-            symbol,
-            start_date,
-            interval,
-            ohlcv_section,
-            resp_status_code,
-            str(exception_class),
-            exception_msg
-    ))
+            (
+                EXCHANGE_NAME,
+                symbol,
+                start_date,
+                end_date,
+                interval,
+                ohlcv_section,
+                resp_status_code,
+                str(exception_class),
+                exception_msg
+            )
+    )
 
 async def bittrex_fetchOHLCV_symbol(symbol_data, symbol, start_date, end_date, interval, httpx_client, psycopg2_conn, psycopg2_cursor, throttler):
     '''

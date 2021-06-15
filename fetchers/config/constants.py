@@ -1,8 +1,15 @@
 # This module contains constants
 
+import os
+from dotenv import load_dotenv 
+
+# Load env vars
+load_dotenv()
+
 # Postgres
-DBCONNECTION = "dbname=postgres user=postgres password=horus123 host=localhost port=15432"
-REDIS_HOST = "localhost"
+DBCONNECTION = f"dbname=postgres user=postgres password={os.getenv('POSTGRES_PASSWORD')} host=localhost port=5432"
+OHLCVS_TABLE = "ohlcvs"
+SYMBOL_EXCHANGE_TABLE = "symbol_exchange"
 
 # HTTPX/REST
 THROTTLER_RATE_LIMITS = {
@@ -15,7 +22,7 @@ THROTTLER_RATE_LIMITS = {
 HTTPX_MAX_CONCURRENT_CONNECTIONS = 32
 
 # Redis
+REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 REDIS_DELIMITER = ";;"
-OHLCVS_BITTREX_REDIS_KEY = "ohlcvs_bittrex" # This will be a list in Redis
-OHLCVS_BITFINEX_REDIS_KEY = "ohlcvs_bitfinex"
+OHLCVS_BITTREX_TOFETCH_REDIS_KEY = "ohlcvs_bittrex_tofetch"   # This will be a set in Redis
