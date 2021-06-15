@@ -34,6 +34,7 @@ def psql_copy_from_csv(conn, rows, table, cursor=None):
         conn.rollback()
     if self_cursor:
         cursor.close()
+    return 1
     
 def enqueue_ohlcvs_redis(redis_client, delimiter, key, exchange, symbol, start_date, end_date):
     '''

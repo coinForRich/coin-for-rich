@@ -1,5 +1,10 @@
 # This module contains queries
 
+POPULATE_SYMEXCH_QUERY = '''
+INSERT INTO symbol_exchange VALUES (%s,%s,%s,%s)
+ON CONFLICT (exchange, base_id, quote_id) DO NOTHING;
+'''
+
 LATEST_SYMEXCH_QUERY = '''
 select ohlcvss.exchange, symexch.symbol, ohlcvss.time
 from symbol_exchange symexch,

@@ -21,10 +21,9 @@ CREATE UNIQUE INDEX ohlcvs_exch_base_quote_time_idx ON ohlcvs (exchange, base_id
 CREATE INDEX ohlcvs_time_idx ON ohlcvs ("time" ASC);
 CREATE INDEX ohlcvs_exch_time_idx ON ohlcvs (exchange, "time" ASC);
 CREATE INDEX ohlcvs_base_quote_time_idx ON ohlcvs (base_id, quote_id, "time" ASC);
-
 -- Insert with duplicate policy (psycopg2)
-INSERT INTO ohlcvs VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-ON CONFLICT (time, exchange, symbol) DO NOTHING;
+INSERT INTO ohlcvs VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+ON CONFLICT (exchange, base_id, quote_id, "time") DO NOTHING;
 -- Execute prepared INSERT statement (psycopg2)
 EXECUTE ohlcvs_rows_insert_stmt(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);
 
@@ -55,6 +54,9 @@ CREATE UNIQUE INDEX exch_base_quote_idx ON symbol_exchange (exchange, base_id, q
 CREATE INDEX symexch_exch_idx ON  symbol_exchange (exchange);
 CREATE INDEX symexch_base_idx ON symbol_exchange (base_id);
 CREATE INDEX symexch_quote_idx ON symbol_exchange (quote_id);
+-- Insert with duplicate policy (psycopg2)
+INSERT INTO symbol_exchange VALUES (%s,%s,%s,%s)
+ON CONFLICT (exchange, base_id, quote_id) DO NOTHING;
 
 
 ---- QUERY CASES ----

@@ -1,6 +1,7 @@
 # This module runs Celery tasks
 
 
+import datetime
 from celery_tasks import *
 
 
@@ -9,4 +10,7 @@ if __name__ == "__main__":
     
     # bitfinex_fetchOHLCV_OnDemand_task.delay(symbol="BTCUSD", start_date=datetime.datetime(2020, 5, 15), end_date=datetime.datetime(2021, 5, 19))
 
-    get_and_fetch_all_task.delay()
+    bitfinex_fetch_ohlcvs_all_symbols.delay(
+        start_date=datetime.datetime(2020, 1, 1),
+        end_date=datetime.datetime(2020, 12, 31)
+    )

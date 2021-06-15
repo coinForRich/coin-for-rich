@@ -1,6 +1,7 @@
 # This module contains constants
 
 import os
+import signal
 from dotenv import load_dotenv 
 
 # Load env vars
@@ -26,3 +27,6 @@ REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 REDIS_DELIMITER = ";;"
 OHLCVS_BITTREX_TOFETCH_REDIS_KEY = "ohlcvs_bittrex_tofetch"   # This will be a set in Redis
+
+# Asyncio signals
+ASYNC_SIGNALS = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
