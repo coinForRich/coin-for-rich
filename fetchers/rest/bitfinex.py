@@ -51,7 +51,7 @@ class BitfinexOHLCVFetcher:
         # Load market data
         self.load_symbol_data()
 
-        # Feeding status
+        # Redis initial feeding status
         self.feeding = False
 
     def load_symbol_data(self):
@@ -363,8 +363,7 @@ class BitfinexOHLCVFetcher:
                                 ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id, ohlcv_section)
                                 # Copy to PSQL if parsed successfully
                                 if ohlcvs_parsed:
-                                    print(f'Parsed, first row is like this: {ohlcvs_parsed[0]}')
-                                    # psql_copy_from_csv(self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE)
+                                    psql_copy_from_csv(self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE)
                                     # Get the latest date in OHLCVS list
                                     if ohlcv_section == OHLCV_SECTION_HIST:
                                         ohlcvs_last_date = ohlcvs[-1][0]
@@ -397,7 +396,6 @@ class BitfinexOHLCVFetcher:
                 # Also feed more params to to-fetch set outside the throttler
                 if start_date_mls < end_date_mls:
                     print("Redis: Adding more params to to-fetch with new start_date")
-                    print("Start and end dates: ", start_date_mls, end_date_mls)
                     self.sadd_tofetch_redis(
                         symbol, start_date_mls, end_date_mls, time_frame, limit, sort
                     )

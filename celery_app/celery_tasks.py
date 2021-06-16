@@ -1,6 +1,6 @@
 # This module contains Celery tasks
 
-from celery_main import app
+from celery_app.celery_main import app
 from fetchers.rest.bitfinex import BitfinexOHLCVFetcher
 from fetchers.rest import bittrex_fetchOHLCV
 from fetchers.rest import update_OHLCVs
@@ -14,7 +14,8 @@ def bitfinex_fetch_ohlcvs_all_symbols(start_date, end_date):
     end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
 
     bitfinex_fetcher = BitfinexOHLCVFetcher()
-    bitfinex_fetcher.fetch_ohlcvs_all_symbols(start_date_dt, end_date_dt)
+    bitfinex_fetcher.run_fetch_ohlcvs_all(start_date_dt, end_date_dt)
+    bitfinex_fetcher.close_connections()
 
 # @app.task
 # def bitfinex_fetchOHLCV_OnDemand_task(symbol, start_date, end_date):

@@ -7,14 +7,13 @@ from common.config.constants import REDIS_HOST
 broker_url = f'redis://{REDIS_HOST}:6379'
 
 # List of modules to import when the Celery worker starts
-include = ['celery_tasks']
+include = ['celery_app.celery_tasks']
 
 # Using the database to store task state
-# TODO: choose result backend
 result_backend = f'redis://{REDIS_HOST}:6379'
 
 # Routing
 task_routes = {
     # 'celery_tasks.bittrex_fetchOHLCV_task': {'queue': 'bittrex'},
-    'celery_tasks.bitfinex_fetch_ohlcvs_all_symbols': {'queue': 'bitfinex'}
+    'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_all_symbols': {'queue': 'bitfinex'}
 }
