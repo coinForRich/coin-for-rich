@@ -1,7 +1,7 @@
 # This module contains Celery tasks
 
 from celery_main import app
-from fetchers.rest.bitfinex_fetchOHLCV import BitfinexOHLCVFetcher
+from fetchers.rest.bitfinex import BitfinexOHLCVFetcher
 from fetchers.rest import bittrex_fetchOHLCV
 from fetchers.rest import update_OHLCVs
 from fetchers.helpers.datetimehelpers import str_to_datetime

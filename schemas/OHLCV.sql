@@ -51,7 +51,7 @@ CREATE TABLE symbol_exchange (
 );
 -- Create index on first 3 columns
 CREATE UNIQUE INDEX exch_base_quote_idx ON symbol_exchange (exchange, base_id, quote_id);
-CREATE INDEX symexch_exch_idx ON  symbol_exchange (exchange);
+CREATE INDEX symexch_exch_idx ON symbol_exchange (exchange);
 CREATE INDEX symexch_base_idx ON symbol_exchange (base_id);
 CREATE INDEX symexch_quote_idx ON symbol_exchange (quote_id);
 -- Insert with duplicate policy (psycopg2)

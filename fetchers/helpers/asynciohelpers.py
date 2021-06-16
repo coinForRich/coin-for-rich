@@ -2,6 +2,7 @@
 
 import asyncio
 import backoff
+import traceback
 from fetchers.config.constants import THROTTLER_RATE_LIMITS, ASYNC_SIGNALS
 
 
@@ -34,6 +35,9 @@ def aio_handle_exception(loop, context):
     # context["message"] will always be there; but context["exception"] may not
     msg = context.get("exception", context["message"])
     print(f"Caught exception: {msg}")
+    print("Printing traceback...")
+    traceback.print_exc()
+    traceback.print_stack()
     print("Shutting down...")
     asyncio.create_task(aio_shutdown(loop))
 

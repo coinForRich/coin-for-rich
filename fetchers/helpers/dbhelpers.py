@@ -1,7 +1,7 @@
 # This module contains db helpers
 
 import csv
-import json
+import psycopg2
 from io import StringIO
 
 
@@ -16,11 +16,10 @@ def psql_copy_from_csv(conn, rows, table, cursor=None):
         `cursor`: psycopg2 cursor obj
     '''
 
-    self_cursor = False
+    own_cursor = False
     if not cursor:
-        self_cursor = True
+        own_cursor = True
         cursor = conn.cursor()
-
     try:
         buffer = StringIO()
         writer = csv.writer(buffer)
@@ -28,25 +27,8 @@ def psql_copy_from_csv(conn, rows, table, cursor=None):
         buffer.seek(0)
         cursor.copy_from(buffer, table, sep=",")
         conn.commit()
-        print(f'Rows successfully copied to table {table}')
-    except Exception as exc:
-        print(f'EXCEPTION: Exception {exc} occurred when copying rows to {table}')
+        print(f'Successfully copied rows to table {table}')
+    except psycopg2.IntegrityError:
         conn.rollback()
-    if self_cursor:
+    if own_cursor:
         cursor.close()
-    return 1
-    
-def enqueue_ohlcvs_redis(redis_client, delimiter, key, exchange, symbol, start_date, end_date):
-    '''
-    enqueue values into Redis to begin fetching OHLCV data
-    params:
-        `redis_server`: Redis server obj
-        `delimiter`: string - delimiter for Redis
-        `key`: string, Redis key of the Redis queue
-        `exchange`: string
-        `symbol`: string
-        `start_date`: string resulted from strptime
-        `end_date`: string resulted from strptime
-    '''
-    value = f'{exchange}{delimiter}{symbol}{delimiter}{start_date}{delimiter}{end_date}'
-    redis_client.rpush(key, value)
