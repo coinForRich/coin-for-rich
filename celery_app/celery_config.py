@@ -1,16 +1,16 @@
 # This module contains settings for Celery app
 
-from common.config.constants import REDIS_HOST
+from common.config.constants import CELERY_REDIS_URL
 
 # Broker settings, trying Redis
 # broker_url = "amqp://coin_user:yummyicecream@localhost:5672/coin_fetcher"
-broker_url = f'redis://{REDIS_HOST}:6379'
+broker_url = CELERY_REDIS_URL
 
 # List of modules to import when the Celery worker starts
 include = ['celery_app.celery_tasks']
 
 # Using the database to store task state
-result_backend = f'redis://{REDIS_HOST}:6379'
+result_backend = CELERY_REDIS_URL
 
 # Routing
 task_routes = {

@@ -36,8 +36,7 @@ def aio_handle_exception(loop, context):
     msg = context.get("exception", context["message"])
     print(f"Caught exception: {msg}")
     print("Printing traceback...")
-    traceback.print_exc()
-    traceback.print_stack()
+    # traceback.print_stack()
     print("Shutting down...")
     asyncio.create_task(aio_shutdown(loop))
 

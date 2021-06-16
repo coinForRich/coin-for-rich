@@ -36,5 +36,17 @@ def milliseconds_to_datetime(mls):
 def str_to_datetime(s, f):
     '''
     converts a string of format `f` to datetime obj
+    params:
+        `s`: string - representing datetime
+        `f`: string - time format
     '''
     return datetime.datetime.strptime(s, f)
+
+def datetime_to_str(dt, f):
+    '''
+    converts a datetime object into a string of format `f`
+    params:
+        `dt`: datetime obj
+        `f`: string - time format
+    '''
+    return dt.strftime(f)
