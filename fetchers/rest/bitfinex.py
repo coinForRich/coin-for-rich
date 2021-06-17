@@ -206,7 +206,8 @@ class BitfinexOHLCVFetcher:
             `exception_msg`: string
         '''
 
-        # Convert start_date and end_date to datetime obj if needed
+        # Convert start_date and end_date to datetime obj if needed;
+        # Because timestamps in Bitfinex are in mls
         if not isinstance(start_date, datetime.datetime):
             start_date = milliseconds_to_datetime(start_date)
         if not isinstance(end_date, datetime.datetime):
@@ -273,7 +274,9 @@ class BitfinexOHLCVFetcher:
             'BTCUSD;;1000000;;2000000;;1m;;hist;;9000;;1
         '''
         
-        if datetime_to_milliseconds(datetime.datetime.now()) - start_date_mls > 60000:
+        # Fetch historical data if time difference between now and start date is > 60k mls
+        delta = datetime_to_milliseconds(datetime.datetime.now()) - start_date_mls
+        if delta > 60000:
             ohlcv_section = OHLCV_SECTION_HIST
         else:
             ohlcv_section = OHLCV_SECTION_LAST
@@ -327,9 +330,8 @@ class BitfinexOHLCVFetcher:
         # Keep looping if either:
         # - self.feeding or
         # - there are elements in to-fetch set or fetching set
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=None, limits=self.httpx_limits) as client:
             self.async_httpx_client = client
-
             while self.feeding or \
                 (self.redis_client.scard(OHLCVS_BITFINEX_TOFETCH_REDIS) > 0 \
                     or self.redis_client.scard(OHLCVS_BITFINEX_FETCHING_REDIS) > 0):
@@ -384,7 +386,6 @@ class BitfinexOHLCVFetcher:
                                 else:
                                     start_date_mls += 60000
                             except Exception as exc:
-                                resp_status_code = ohlcv_result[0]
                                 exc_type = type(exc)
                                 exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc} with original response as: {ohlcvs}'
                                 error_tuple = self.make_error_tuple(symbol, start_date_mls, end_date_mls, time_frame, ohlcv_section, resp_status_code, exc_type, exception_msg)
@@ -410,11 +411,11 @@ class BitfinexOHLCVFetcher:
     
     async def fetch_ohlcvs_symbols(self, symbols, start_date_dt, end_date_dt):
         '''
-        Function to get OHLCVs of a symbol on demand
+        Function to get OHLCVs of symbols
         params:
             `symbol`: list of symbol string
-            `start_date_dt`: datetime obj (for start date)
-            `end_date_dt`: datetime obj (for end date)
+            `start_date_dt`: datetime obj - for start date
+            `end_date_dt`: datetime obj - for end date
         '''
 
         # Asyncio tasks and exception handler
@@ -445,7 +446,7 @@ class BitfinexOHLCVFetcher:
     
     async def fetch_ohlcvs_all_symbols(self, start_date_dt, end_date_dt):
         '''
-        Main function to fetch OHLCV for all trading symbols on Bitfinex
+        Function to fetch OHLCVS for all trading symbols on Bitfinex
         params:
             `start_date_dt`: datetime object (for starting date)
             `end_date_dt`: datetime object (for ending date)
@@ -463,11 +464,10 @@ class BitfinexOHLCVFetcher:
             for symbol, bq in self.symbol_data.items()
         ]
         psql_copy_from_csv(self.psql_conn, rows, SYMBOL_EXCHANGE_TABLE)
-        print(f"Fetched and copied symbol data into PSQL table {SYMBOL_EXCHANGE_TABLE}")
 
     def run_fetch_ohlcvs(self, symbols, start_date_dt, end_date_dt):
         '''
-        Runs the fetching OHLCVS
+        Runs fetching OHLCVS
         '''
 
         asyncio.run(self.fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt))
@@ -485,7 +485,3 @@ class BitfinexOHLCVFetcher:
         '''
 
         self.psql_conn.close()
-
-
-if __name__ == "__main__":
-    print("nada")

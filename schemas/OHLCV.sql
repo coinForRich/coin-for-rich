@@ -40,7 +40,7 @@ CREATE TABLE ohlcvs_errors (
    exception_message TEXT
 );
 -- Create index on first 3 columns
-CREATE INDEX fetch_sym_st ON ohlcvs_errors (fetch_start_time, exchange, symbol, start_date);
+CREATE UNIQUE INDEX ohlcvs_errors_idx ON ohlcvs_errors (exception_class, resp_status_code, exchange, symbol, start_date, end_date, time_frame, ohlcv_section);
 
 -- Create symbol_exchange table with symbols and exchange information
 CREATE TABLE symbol_exchange (

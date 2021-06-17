@@ -2,8 +2,8 @@
 
 from celery_app.celery_main import app
 from fetchers.rest.bitfinex import BitfinexOHLCVFetcher
-from fetchers.rest import bittrex_fetchOHLCV
-from fetchers.rest import update_OHLCVs
+from fetchers.rest.bittrex import BittrexOHLCVFetcher
+from fetchers.rest.updater import *
 from fetchers.helpers.datetimehelpers import str_to_datetime
 
 
@@ -14,6 +14,16 @@ def bitfinex_fetch_ohlcvs_all_symbols(start_date, end_date):
     end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
 
     bitfinex_fetcher = BitfinexOHLCVFetcher()
+    bitfinex_fetcher.run_fetch_ohlcvs_all(start_date_dt, end_date_dt)
+    bitfinex_fetcher.close_connections()
+
+@app.task
+def bittrex_fetch_ohlcvs_all_symbols(start_date, end_date):
+    # The dates need to be de-serialized
+    start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
+    end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+
+    bitfinex_fetcher = BittrexOHLCVFetcher()
     bitfinex_fetcher.run_fetch_ohlcvs_all(start_date_dt, end_date_dt)
     bitfinex_fetcher.close_connections()
 
