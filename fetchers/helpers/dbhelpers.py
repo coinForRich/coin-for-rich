@@ -27,7 +27,7 @@ def psql_copy_from_csv(conn, rows, table, cursor=None):
         buffer.seek(0)
         cursor.copy_from(buffer, table, sep=",")
         conn.commit()
-        print(f'Successfully copied rows to table {table}')
+        print(f'PSQL Copy: Successfully copied rows to table {table}')
     except psycopg2.IntegrityError:
         conn.rollback()
     if own_cursor:

@@ -7,8 +7,8 @@
 CREATE TABLE ohlcvs (
    time TIMESTAMPTZ NOT NULL,
    exchange VARCHAR(100) NOT NULL,
-   base_id VARCHAR(10) NOT NULL,
-   quote_id VARCHAR(10) NOT NULL,
+   base_id VARCHAR(20) NOT NULL,
+   quote_id VARCHAR(20) NOT NULL,
    opening_price NUMERIC,
    highest_price NUMERIC,
    lowest_price NUMERIC,
@@ -45,9 +45,9 @@ CREATE UNIQUE INDEX ohlcvs_errors_idx ON ohlcvs_errors (exception_class, resp_st
 -- Create symbol_exchange table with symbols and exchange information
 CREATE TABLE symbol_exchange (
    exchange VARCHAR(100) NOT NULL,
-   base_id VARCHAR(10) NOT NULL,
-   quote_id VARCHAR(10) NOT NULL,
-   symbol VARCHAR(20) NOT NULL
+   base_id VARCHAR(20) NOT NULL,
+   quote_id VARCHAR(20) NOT NULL,
+   symbol VARCHAR(40) NOT NULL
 );
 -- Create index on first 3 columns
 CREATE UNIQUE INDEX exch_base_quote_idx ON symbol_exchange (exchange, base_id, quote_id);

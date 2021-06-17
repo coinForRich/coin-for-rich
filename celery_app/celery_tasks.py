@@ -1,5 +1,6 @@
 # This module contains Celery tasks
 
+import json
 from celery_app.celery_main import app
 from fetchers.rest.bitfinex import BitfinexOHLCVFetcher
 from fetchers.rest.bittrex import BittrexOHLCVFetcher
@@ -12,8 +13,8 @@ def bitfinex_fetch_ohlcvs_all_symbols(start_date, end_date):
     # The dates need to be de-serialized
     start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
     end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
-
     bitfinex_fetcher = BitfinexOHLCVFetcher()
+    bitfinex_fetcher.fetch_symbol_data()
     bitfinex_fetcher.run_fetch_ohlcvs_all(start_date_dt, end_date_dt)
     bitfinex_fetcher.close_connections()
 
@@ -22,24 +23,50 @@ def bittrex_fetch_ohlcvs_all_symbols(start_date, end_date):
     # The dates need to be de-serialized
     start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
     end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    bittrex_fetcher = BittrexOHLCVFetcher()
+    bittrex_fetcher.fetch_symbol_data()
+    bittrex_fetcher.run_fetch_ohlcvs_all(start_date_dt, end_date_dt)
+    bittrex_fetcher.close_connections()
 
-    bitfinex_fetcher = BittrexOHLCVFetcher()
-    bitfinex_fetcher.run_fetch_ohlcvs_all(start_date_dt, end_date_dt)
-    bitfinex_fetcher.close_connections()
+@app.task
+def bitfinex_fetch_ohlcvs_symbols(symbols, start_date, end_date):
+    '''
+    fetches ohlcvs from Bitfinex for a list of symbols
+    params (all params are str because Celery serializes args):
+        `symbols`: list of symbols
+        `start_date`: datetime
+        `end_date`: datetime
+    '''
 
-# @app.task
-# def bitfinex_fetchOHLCV_OnDemand_task(symbol, start_date, end_date):
-#     # The dates need to be de-serialized
-#     start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-#     end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
-#     bitfinex_fetchOHLCV.run_OnDemand(symbol, start_date_dt, end_date_dt)
+    # Symbols need to be de-serialized
+    if isinstance(symbols, str):
+        symbols = json.loads(symbols)
+    # The dates need to be de-serialized
+    start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
+    end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    bitfinex_fetcher = BitfinexOHLCVFetcher()
+    bitfinex_fetcher.fetch_symbol_data()
+    bitfinex_fetcher.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt)
 
-# @app.task
-# def bittrex_fetchOHLCV_OnDemand_task(symbol, start_date, end_date):
-#     # The dates need to be de-serialized
-#     start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-#     end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
-#     bittrex_fetchOHLCV.run_OnDemand(symbol, start_date_dt, end_date_dt)
+@app.task
+def bittrex_fetch_ohlcvs_symbols(symbols, start_date, end_date):
+    '''
+    fetches ohlcvs from Bittrex for a list of symbols
+    params (all params are str because Celery serializes args):
+        `symbols`: list of symbols
+        `start_date`: datetime
+        `end_date`: datetime
+    '''
+
+    # Symbols need to be de-serialized
+    if isinstance(symbols, str):
+        symbols = json.loads(symbols)
+    # The dates need to be de-serialized
+    start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
+    end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    bittrex_fetcher = BittrexOHLCVFetcher()
+    bittrex_fetcher.fetch_symbol_data()
+    bittrex_fetcher.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt)
 
 # @app.task
 # def get_and_fetch_all_task():

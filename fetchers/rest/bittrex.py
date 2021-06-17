@@ -24,6 +24,7 @@ MARKET_URL = "https://api.bittrex.com/v3/markets"
 OHLCV_INTERVALS = ["MINUTE_1", "MINUTE_5", "HOUR_1", "DAY_1"]
 DAYDELTAS = {"MINUTE_1": 1, "MINUTE_5": 1, "HOUR_1": 31, "DAY_1": 366}
 OHLCV_INTERVAL = "MINUTE_1"
+OHLCV_SECTION_HIST = "historical"
 RATE_LIMIT_HITS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN']['bittrex']
 RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
 OHLCVS_BITTREX_TOFETCH_REDIS = "ohlcvs_bittrex_tofetch"
@@ -50,7 +51,6 @@ class BittrexOHLCVFetcher:
         self.psql_cur = self.psql_conn.cursor()
 
         # Redis client, startdate mls Redis key
-        print(f'Redis password: {REDIS_PASSWORD}')
         self.redis_client = redis.Redis(
             host=REDIS_HOST,
             username="default",
@@ -97,25 +97,44 @@ class BittrexOHLCVFetcher:
                 }
 
     @classmethod
-    def make_ohlcv_url(cls, symbol, interval, historical, start_date):
+    def make_ohlcv_url(cls, symbol, interval, start_date):
         '''
-        returns OHLCV url: string
+        returns tuple of string of OHLCV url and historical
         params:
             `symbol`: string - symbol
             `interval`: string - interval type (see INTERVALS)
-            `historical`: string - whether it's historical data
             `start_date`: datetime object
         example: https://api.bittrex.com/v3/markets/1INCH-USD/candles/MINUTE_1/historical/2019/01/01
         '''
+        
+        # Has to check for hist or recent of OHLCV historical param
+        # Fetch historical data if time difference between now and start date is > 1 day
+        delta = datetime.datetime.now() - start_date
+        if delta.days > 1:
+            historical = OHLCV_SECTION_HIST
+        else:
+            historical = 0
 
-        if historical == "historical":
+        if historical == OHLCV_SECTION_HIST:
             if interval == "MINUTE_1" or interval == "MINUTE_5":
-                return f'{BASE_URL}/markets/{symbol}/candles/{interval}/{historical}/{start_date.year}/{start_date.month}/{start_date.day}'
+                return (
+                    f'{BASE_URL}/markets/{symbol}/candles/{interval}/{historical}/{start_date.year}/{start_date.month}/{start_date.day}',
+                    historical
+                )
             elif interval == "HOUR_1":
-                return f'{BASE_URL}/markets/{symbol}/candles/{interval}/{historical}/{start_date.year}/{start_date.month}'
+                return (
+                    f'{BASE_URL}/markets/{symbol}/candles/{interval}/{historical}/{start_date.year}/{start_date.month}',
+                    historical
+                )
             elif interval == "DAY_1":
-                return f'{BASE_URL}/markets/{symbol}/candles/{interval}/{historical}/{start_date.year}'
-        return f"{BASE_URL}/markets/{symbol}/candles/{interval}/recent"
+                return (
+                    f'{BASE_URL}/markets/{symbol}/candles/{interval}/{historical}/{start_date.year}',
+                    historical
+                )
+        return (
+            f"{BASE_URL}/markets/{symbol}/candles/{interval}/recent",
+            historical
+        )
 
     @classmethod
     def parse_ohlcvs(cls, ohlcvs, base_id, quote_id):
@@ -223,23 +242,16 @@ class BittrexOHLCVFetcher:
             `end_date`: datetime obj
             `interval`: string - interval type (e.g., MINUTE_1)
         e.g.:
-            'BTC-USD;;MINUTE_1;;historical;;2021-06-16T00:00:00;;2021-06-17T00:00:00'
+            'BTC-USD;;MINUTE_1;;2021-06-16T00:00:00;;2021-06-17T00:00:00'
         '''
-        
-        # Fetch historical data if time difference between now and start date is > 1 day
-        delta = datetime.datetime.now() - start_date
-        if delta.days > 1:
-            historical = "historical"
-        else:
-            historical = 0
-        
+
         # Needs to serialize datetime obj to str
         start_date_str = datetime_to_str(start_date, DATETIME_STR_FORMAT)
         end_date_str = datetime_to_str(end_date, DATETIME_STR_FORMAT)
 
         self.redis_client.sadd(
             OHLCVS_BITTREX_TOFETCH_REDIS,
-            f'{symbol}{REDIS_DELIMITER}{interval}{REDIS_DELIMITER}{historical}{REDIS_DELIMITER}{start_date_str}{REDIS_DELIMITER}{end_date_str}'
+            f'{symbol}{REDIS_DELIMITER}{interval}{REDIS_DELIMITER}{start_date_str}{REDIS_DELIMITER}{end_date_str}'
         )
 
     async def feed_ohlcvs_redis(self, symbol, start_date, end_date, interval):
@@ -256,7 +268,7 @@ class BittrexOHLCVFetcher:
             - key: OHLCVS_BITTREX_TOFETCH_REDIS
             - value: symbol;;interval;;historical;;start_date_str;;end_date_str
         e.g.:
-            'BTC-USD;;MINUTE_1;;historical;;2021-06-16T00:00:00;;2021-06-17T00:00:00'
+            'BTC-USD;;MINUTE_1;;2021-06-16T00:00:00;;2021-06-17T00:00:00'
         '''
 
         # Set feeding status
@@ -287,8 +299,8 @@ class BittrexOHLCVFetcher:
         async with httpx.AsyncClient(timeout=None, limits=self.httpx_limits) as client:
             self.async_httpx_client = client
             while self.feeding or \
-                (self.redis_client.scard(OHLCVS_BITTREX_TOFETCH_REDIS) > 0 \
-                    or self.redis_client.scard(OHLCVS_BITTREX_FETCHING_REDIS) > 0):
+                self.redis_client.scard(OHLCVS_BITTREX_TOFETCH_REDIS) > 0 \
+                    or self.redis_client.scard(OHLCVS_BITTREX_FETCHING_REDIS) > 0:
                     async with self.async_throttler:
                         # Pop 1 from to-fetch Redis set
                         # Send it to fetching Redis set
@@ -299,18 +311,17 @@ class BittrexOHLCVFetcher:
                             params_split = params.split(REDIS_DELIMITER)
                             symbol = params_split[0]
                             interval = params_split[1]
-                            historical = params_split[2]
-                            start_date_str = params_split[3]
+                            start_date_str = params_split[2]
                             start_date_dt = str_to_datetime(start_date_str, DATETIME_STR_FORMAT)
-                            end_date_str = params_split[4]
+                            end_date_str = params_split[3]
                             end_date_dt = str_to_datetime(end_date_str, DATETIME_STR_FORMAT)
 
                             # Construct url and fetch
                             base_id = self.symbol_data[symbol]['base_id']
                             quote_id = self.symbol_data[symbol]['quote_id']
 
-                            ohlcv_url = self.make_ohlcv_url(
-                                symbol, interval, historical, start_date_dt
+                            ohlcv_url, historical = self.make_ohlcv_url(
+                                symbol, interval, start_date_dt
                             )
                             ohlcv_result = await self.get_ohlcv_data(
                                 ohlcv_url, throttler=self.async_throttler, exchange_name=EXCHANGE_NAME
@@ -326,18 +337,17 @@ class BittrexOHLCVFetcher:
                                 try:
                                     ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id)
                                     if ohlcvs_parsed:
-                                        # psql_copy_from_csv(self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE)
-                                        print(f"Parsed ohlcvs, first row is like this {ohlcvs_parsed[0]}")
+                                        psql_copy_from_csv(self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE)
                                 except Exception as exc:
                                     exc_type = type(exc)
-                                    exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc} with original response as: {ohlcvs}'
-                                    error_tuple = self.make_error_tuple(symbol, start_date_dt, end_date_dt, interval, historical, resp_status_code, exc_type, exception_msg)
-                                    # psql_copy_from_csv(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE)
+                                    exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
                                     print(exception_msg)
+                                    error_tuple = self.make_error_tuple(symbol, start_date_dt, end_date_dt, interval, historical, resp_status_code, exc_type, exception_msg)
+                                    psql_copy_from_csv(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE)
                             else:
-                                error_tuple = self.make_error_tuple(symbol, start_date_dt, end_date_dt, interval, historical, resp_status_code, exc_type, exception_msg)
-                                # psql_copy_from_csv(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE)
                                 print(exception_msg)
+                                error_tuple = self.make_error_tuple(symbol, start_date_dt, end_date_dt, interval, historical, resp_status_code, exc_type, exception_msg)
+                                psql_copy_from_csv(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE)
                     
                     # Commit and remove params from fetching set
                     self.psql_conn.commit()
@@ -356,6 +366,10 @@ class BittrexOHLCVFetcher:
         loop = asyncio.get_event_loop()
         tasks = []
         aio_set_exception_handler(loop)
+
+        # Set feeding status so the consume
+        # function does not close immediately
+        self.feeding = True
 
         # Create feeding task for each symbol
         for symbol in symbols:
