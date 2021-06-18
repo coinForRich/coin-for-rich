@@ -12,9 +12,11 @@ def onbackoff(details):
     handler for backoff - on backoff event
     '''
 
+    # Minimum throttler rate limit is 1
     throttler = details['kwargs']['throttler']
-    throttler.rate_limit -= 1
-    print(f"Reducing throttler rate limit to {throttler.rate_limit}")
+    throttler.period *= 2
+
+    print(f"Reducing throttler rate limit to: 1 request per {round(throttler.period, 2)} seconds")
 
 def onsuccessgiveup(details):
     '''
@@ -23,8 +25,10 @@ def onsuccessgiveup(details):
 
     throttler = details['kwargs']['throttler']
     exchange_name = details['kwargs']['exchange_name']
-    throttler.rate_limit = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN'][exchange_name]
-    print(f"Setting throttler rate limit to {throttler.rate_limit}")
+    throttler.period = \
+        THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN'] / \
+        THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN'][exchange_name]
+    print(f"Setting throttler rate limit to: 1 request per {round(throttler.period, 2)} seconds")
 
 # Asyncio exception handler for async tasks
 def aio_handle_exception(loop, context):
@@ -32,7 +36,8 @@ def aio_handle_exception(loop, context):
     Asyncio exception handler
     '''
 
-    # context["message"] will always be there; but context["exception"] may not
+    # context["message"] will always be there;
+    # but context["exception"] may not
     msg = context.get("exception", context["message"])
     print(f"Caught exception: {msg}")
     # print("Printing traceback...")

@@ -6,6 +6,7 @@ import psycopg2
 import httpx
 import backoff
 import redis
+import time
 from asyncio_throttle import Throttler
 from fetchers.helpers.datetimehelpers import *
 from fetchers.helpers.dbhelpers import psql_copy_from_csv
@@ -22,7 +23,7 @@ OHLCV_TIMEFRAME = "1m"
 OHLCV_SECTION_HIST = "hist"
 OHLCV_SECTION_LAST = "last"
 OHLCV_LIMIT = 9500
-RATE_LIMIT_HITS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN']['bitfinex']
+RATE_LIMIT_HITS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN'][EXCHANGE_NAME]
 RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
 OHLCVS_BITFINEX_TOFETCH_REDIS = "ohlcvs_bitfinex_tofetch"
 OHLCVS_BITFINEX_FETCHING_REDIS = "ohlcvs_bitfinex_fetching"
@@ -34,12 +35,15 @@ class BitfinexOHLCVFetcher:
         self.exchange_name = EXCHANGE_NAME
 
         # HTTPX client
-        self.httpx_limits = httpx.Limits(max_connections=HTTPX_MAX_CONCURRENT_CONNECTIONS)
+        self.httpx_limits = httpx.Limits(
+            max_connections=HTTPX_MAX_CONCURRENT_CONNECTIONS[EXCHANGE_NAME]
+        )
         # self.async_httpx_client = httpx.AsyncClient(timeout=None, limits=httpx_limits)
 
         # Async throttler
         self.async_throttler = Throttler(
-            rate_limit=RATE_LIMIT_HITS_PER_MIN, period=RATE_LIMIT_SECS_PER_MIN
+            rate_limit = 1,
+            period = RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
         )
 
         # Postgres connection
@@ -145,11 +149,25 @@ class BitfinexOHLCVFetcher:
         symbol = cls.make_tsymbol(symbol)
         ohlcv_url = f"{BASE_CANDLE_URL}/trade:{time_frame}:{symbol}/{ohlcv_section}?limit={limit}&start={start_date_mls}&end={end_date_mls}&sort={sort}"
 
-        return (
-            ohlcv_url,
-            ohlcv_section
-        )
+        return (ohlcv_url, ohlcv_section)
     
+    @classmethod
+    def make_tofetch_params(cls, symbol, start_date_mls, end_date_mls, time_frame, limit, sort):
+        '''
+        Makes to-fetch params for Redis set
+        params:
+            `symbol`: symbol string
+            `start_date_mls`: datetime in millisecs
+            `end_date_mls`: datetime in millisecs
+            `time_frame`: string
+            `limit`: int
+            `sort`: int (1 or -1)
+        e.g.:
+            'BTCUSD;;1000000;;2000000;;1m;;9000;;1
+        '''
+
+        return f'{symbol}{REDIS_DELIMITER}{start_date_mls}{REDIS_DELIMITER}{end_date_mls}{REDIS_DELIMITER}{time_frame}{REDIS_DELIMITER}{limit}{REDIS_DELIMITER}{sort}'
+
     @classmethod
     def parse_ohlcvs(cls, ohlcvs, base_id, quote_id, ohlcv_section):
         '''
@@ -173,28 +191,16 @@ class BitfinexOHLCVFetcher:
                     ohlcvs_table_insert.append(
                         (
                             milliseconds_to_datetime(ohlcv[0]),
-                            EXCHANGE_NAME,
-                            base_id,
-                            quote_id,
-                            ohlcv[1],
-                            ohlcv[3],
-                            ohlcv[4],
-                            ohlcv[2],
-                            ohlcv[5]
+                            EXCHANGE_NAME, base_id, quote_id,
+                            ohlcv[1], ohlcv[3], ohlcv[4], ohlcv[2], ohlcv[5]
                         )
                     )
             else:
                 ohlcvs_table_insert.append(
                     (
                             milliseconds_to_datetime(ohlcvs[0]),
-                            EXCHANGE_NAME,
-                            base_id,
-                            quote_id,
-                            ohlcvs[1],
-                            ohlcvs[3],
-                            ohlcvs[4],
-                            ohlcvs[2],
-                            ohlcvs[5]
+                            EXCHANGE_NAME, base_id, quote_id,
+                            ohlcvs[1], ohlcvs[3], ohlcvs[4], ohlcvs[2], ohlcvs[5]
                         )
                 )
             return ohlcvs_table_insert
@@ -229,7 +235,7 @@ class BitfinexOHLCVFetcher:
             resp_status_code,str(exception_class),exception_msg)
         ]
 
-    @backoff.on_predicate(backoff.fibo, lambda result: result[0] == 429, max_tries=12, on_backoff=onbackoff, on_success=onsuccessgiveup, on_giveup=onsuccessgiveup)
+    @backoff.on_predicate(backoff.expo, lambda result: result[0] == 429, max_tries=12, on_backoff=onbackoff, on_success=onsuccessgiveup, on_giveup=onsuccessgiveup)
     async def get_ohlcv_data(self, ohlcv_url, throttler=None, exchange_name=None):
         '''
         gets ohlcv data based on url
@@ -246,85 +252,143 @@ class BitfinexOHLCVFetcher:
             `exchange_name`: string - this exchange's name
         '''
 
-        try:
-            ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
-            ohlcvs_resp.raise_for_status()
-            return (
-                ohlcvs_resp.status_code,
-                ohlcvs_resp.json(),
-                None,
-                None
-            )
-        except httpx.HTTPStatusError as exc:
-            resp_status_code = exc.response.status_code
-            return (
-                resp_status_code,
-                None,
-                type(exc),
-                f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
-            )
-        except httpx.RequestError as exc:
-            return (
-                None,
-                None,
-                type(exc),
-                f'EXCEPTION: Request error while requesting {exc.request.url}'
-            )
+        async with self.async_throttler:
+            try:
+                ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
+                ohlcvs_resp.raise_for_status()
+                return (
+                    ohlcvs_resp.status_code,
+                    ohlcvs_resp.json(),
+                    None,
+                    None
+                )
+            except httpx.HTTPStatusError as exc:
+                resp_status_code = exc.response.status_code
+                return (
+                    resp_status_code,
+                    None,
+                    type(exc),
+                    f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
+                )
+            except httpx.RequestError as exc:
+                return (
+                    None,
+                    None,
+                    type(exc),
+                    f'EXCEPTION: Request error while requesting {exc.request.url}'
+                )
+            except Exception as exc:
+                print(f"Get_ohlcv_data: EXCEPTION: {exc}")
 
-    def sadd_tofetch_redis(self, symbol, start_date_mls, end_date_mls, time_frame, limit, sort):
+    async def get_and_parse_ohlcv(self, params):
         '''
-        Adds params to Redis to-fetch set
+        Gets and parses ohlcvs from consumed params
         params:
-            `symbol`: symbol string
-            `start_date_mls`: datetime in millisecs
-            `end_date_mls`: datetime in millisecs
-            `time_frame`: string
-            `limit`: int
-            `sort`: int (1 or -1)
-        e.g.:
-            'BTCUSD;;1000000;;2000000;;1m;;9000;;1
+            `params`: params consumed from Redis to-fetch set
         '''
-        
-        self.redis_client.sadd(
-            OHLCVS_BITFINEX_TOFETCH_REDIS,
-            f'{symbol}{REDIS_DELIMITER}{start_date_mls}{REDIS_DELIMITER}{end_date_mls}{REDIS_DELIMITER}{time_frame}{REDIS_DELIMITER}{limit}{REDIS_DELIMITER}{sort}'
+          
+        # Extract params
+        params_split = params.split(REDIS_DELIMITER)
+        symbol = params_split[0]
+        start_date_mls = int(params_split[1])
+        end_date_mls = int(params_split[2])
+        time_frame = params_split[3]
+        limit = params_split[4]
+        sort = params_split[5]
+
+        # Construct url and fetch
+        base_id = self.symbol_data[symbol]['base_id']
+        quote_id = self.symbol_data[symbol]['quote_id']
+
+        ohlcv_url, ohlcv_section = self.make_ohlcv_url(
+            time_frame, symbol, limit, start_date_mls, end_date_mls, sort
         )
+        ohlcv_result = await self.get_ohlcv_data(
+            ohlcv_url, throttler=self.async_throttler, exchange_name=EXCHANGE_NAME
+        )
+        resp_status_code = ohlcv_result[0]
+        ohlcvs = ohlcv_result[1]
+        exc_type = ohlcv_result[2]
+        exception_msg = ohlcv_result[3]
 
-    async def feed_ohlcvs_redis(self, symbol, start_date, end_date, time_frame, limit, sort):
+        # If exc_type is None (meaning no exception), process;
+        #   Else, process the error
+        # Why increment start_date_mls by 60000 * OHLCV_LIMIT:
+        #   Because in each request we fetch at least `OHLCV_LIMIT`
+        #   transaction-minutes. Thus, the next transaction-minute must
+        #   be at least 60000 * OHLCV_LIMIT milliseconds away
+        if exc_type is None:
+            try:
+                # Copy to PSQL if parsed successfully
+                # Get the latest date in OHLCVS list,
+                #   if latest date > start_date, update start_date
+                ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id, ohlcv_section)
+                if ohlcvs_parsed:
+                    psql_copy_from_csv(self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE)
+                    ohlcvs_last_date = datetime_to_milliseconds(ohlcvs_parsed[-1][0])
+                    if ohlcvs_last_date > start_date_mls:
+                        start_date_mls = ohlcvs_last_date
+                    else:
+                        start_date_mls += (60000 * OHLCV_LIMIT)
+                else:
+                    start_date_mls += (60000 * OHLCV_LIMIT)
+            except Exception as exc:
+                exc_type = type(exc)
+                exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
+                print(exception_msg)
+                error_tuple = self.make_error_tuple(symbol, start_date_mls, end_date_mls, time_frame, ohlcv_section, resp_status_code, exc_type, exception_msg)
+                psql_copy_from_csv(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE)
+                start_date_mls += (60000 * OHLCV_LIMIT)
+        else:
+            print(exception_msg)
+            error_tuple = self.make_error_tuple(symbol, start_date_mls, end_date_mls, time_frame, ohlcv_section, resp_status_code, exc_type, exception_msg)
+            psql_copy_from_csv(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE)
+            start_date_mls += (60000 * OHLCV_LIMIT)
+        
+        # PSQL Commit
+        self.psql_conn.commit()
+
+        # Also make more params for to-fetch set
+        if start_date_mls < end_date_mls:
+            return self.make_tofetch_params(
+                symbol, start_date_mls, end_date_mls, time_frame, limit, sort
+            )
+        else:
+            return None
+
+    async def init_tofetch_redis(self, symbols, start_date, end_date, time_frame, limit, sort):
         '''
-        Initially creates OHLCV parameters and feeds to a Redis set to begin fetching;
-        This Redis set and params are exclusively for this exchange
-        This method serves as a "prime" for fetching
+        Initializes feeding params to Redis to-fetch set
         params:
-            `symbol`: symbol string
+            `symbols`: iterable of symbols
             `start_date`: datetime obj
             `end_date`: datetime obj
             `time_frame`: string
             `limit`: int
             `sort`: int (1 or -1)
-        feeds the following information:
-            - key: OHLCVS_BITFINEX_TOFETCH_REDIS
-            - value: symbol;;start_date_mls;;end_date_mls;;time_frame;;limit;;sort
         e.g.:
             'BTCUSD;;1000000;;2000000;;1m;;9000;;1
+        feeds the following information:
+        - key: OHLCVS_BITFINEX_TOFETCH_REDIS
+        - value: symbol;;start_date_mls;;end_date_mls;;time_frame;;limit;;sort
         '''
-
         # Set feeding status
-        self.feeding = True
-
         # Convert datetime with tzinfo to non-tzinfo, if any
+        self.feeding = True
         start_date = start_date.replace(tzinfo=None)
         end_date = end_date.replace(tzinfo=None)
-
-        # Initial feed params to Redis set
         start_date_mls = datetime_to_milliseconds(start_date)
         end_date_mls = datetime_to_milliseconds(end_date)
-        self.sadd_tofetch_redis(
-            symbol, start_date_mls, end_date_mls, time_frame, limit, sort
-        )
-        
-        # Reset feeding status
+
+        # The maximum list of symbols is short enough to feed
+        #   to Redis in a batch (~300 symbols total as of June 2021)
+        # Finally reset feeding status
+        params_list = [
+            self.make_tofetch_params(symbol, start_date_mls, end_date_mls, time_frame, limit, sort) for symbol in symbols
+        ]
+        self.redis_client.sadd(OHLCVS_BITFINEX_TOFETCH_REDIS, *params_list)
         self.feeding = False
+        print("Redis: Successfully initialized feeding params")
 
     async def consume_ohlcvs_redis(self):
         '''
@@ -332,89 +396,41 @@ class BitfinexOHLCVFetcher:
         Also continuously feeds itself with new params if start_date < end_date
         '''
 
-        # Keep looping if either:
+        # Only create http client when consuming, hence the context manager
+        # Keep looping and processing in batch if either:
         # - self.feeding or
         # - there are elements in to-fetch set or fetching set
         async with httpx.AsyncClient(timeout=None, limits=self.httpx_limits) as client:
             self.async_httpx_client = client
             while self.feeding or \
                 self.redis_client.scard(OHLCVS_BITFINEX_TOFETCH_REDIS) > 0 \
-                    or self.redis_client.scard(OHLCVS_BITFINEX_FETCHING_REDIS) > 0:
-                async with self.async_throttler:
-                    # Pop 1 from Redis set to fetch
-                    # Send it to Redis fetching set
-                    params = self.redis_client.spop(OHLCVS_BITFINEX_TOFETCH_REDIS)
-                    if params:
-                        self.redis_client.sadd(OHLCVS_BITFINEX_FETCHING_REDIS, params)
-                        # Extract params
-                        params_split = params.split(REDIS_DELIMITER)
-                        symbol = params_split[0]
-                        start_date_mls = int(params_split[1])
-                        end_date_mls = int(params_split[2])
-                        time_frame = params_split[3]
-                        limit = params_split[4]
-                        sort = params_split[5]
-
-                        # Construct url and fetch
-                        base_id = self.symbol_data[symbol]['base_id']
-                        quote_id = self.symbol_data[symbol]['quote_id']
-
-                        ohlcv_url, ohlcv_section = self.make_ohlcv_url(
-                            time_frame, symbol, limit, start_date_mls, end_date_mls, sort
+                or self.redis_client.scard(OHLCVS_BITFINEX_FETCHING_REDIS) > 0:
+                # Pop a batch of size `rate_limit` from Redis to-fetch set,
+                #   send it to Redis fetching set
+                # Add params in params list to Redis fetching set
+                # New to-fetch params with new start dates will be results
+                #   of `get_parse_tasks`
+                #   Add these params to Redis to-fetch set, if not None
+                # Finally, remove params list from Redis fetching set
+                params_list = self.redis_client.spop(
+                    OHLCVS_BITFINEX_TOFETCH_REDIS, RATE_LIMIT_HITS_PER_MIN
+                )
+                if params_list:
+                    self.redis_client.sadd(OHLCVS_BITFINEX_FETCHING_REDIS, *params_list)
+                    get_parse_tasks = []
+                    for params in params_list:
+                        get_parse_tasks.append(self.get_and_parse_ohlcv(params))
+                    task_results = await asyncio.gather(*get_parse_tasks)
+                    new_tofetch_params_notnone = [
+                        params for params in task_results \
+                        if params is not None
+                    ]
+                    if new_tofetch_params_notnone:
+                        print("Redis: Adding more params to to-fetch with new start dates")
+                        self.redis_client.sadd(
+                            OHLCVS_BITFINEX_TOFETCH_REDIS, *new_tofetch_params_notnone
                         )
-                        ohlcv_result = await self.get_ohlcv_data(
-                            ohlcv_url, throttler=self.async_throttler, exchange_name=EXCHANGE_NAME
-                        )
-                        resp_status_code = ohlcv_result[0]
-                        ohlcvs = ohlcv_result[1]
-                        exc_type = ohlcv_result[2]
-                        exception_msg = ohlcv_result[3]
-
-                        # If exc_type is None (meaning no exception), process;
-                        # Else, process the error
-                        # Why increment start_date_mls by 60000 * OHLCV_LIMIT:
-                        # Because in each request we fetch at least `OHLCV_LIMIT`
-                        # transaction-minutes. Thus, the next transaction-minute must
-                        # be at least 60000 * OHLCV_LIMIT milliseconds away
-                        if exc_type is None:
-                            try:
-                                ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id, ohlcv_section)
-                                # Copy to PSQL if parsed successfully
-                                if ohlcvs_parsed:
-                                    psql_copy_from_csv(self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE)
-                                    # Get the latest date in OHLCVS list, if this last date
-                                    # > start_date, update start_date
-                                    # ohlcvs_last_date will be datetime obj
-                                    ohlcvs_last_date = ohlcvs_parsed[-1][0]
-                                    if datetime_to_milliseconds(ohlcvs_last_date) > start_date_mls:
-                                        start_date_mls = datetime_to_milliseconds(ohlcvs_last_date)
-                                    else:
-                                        start_date_mls += (60000 * OHLCV_LIMIT)
-                                else:
-                                    start_date_mls += (60000 * OHLCV_LIMIT)
-                            except Exception as exc:
-                                exc_type = type(exc)
-                                exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
-                                print(exception_msg)
-                                error_tuple = self.make_error_tuple(symbol, start_date_mls, end_date_mls, time_frame, ohlcv_section, resp_status_code, exc_type, exception_msg)
-                                psql_copy_from_csv(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE)
-                                start_date_mls += (60000 * OHLCV_LIMIT)
-                        else:
-                            print(exception_msg)
-                            error_tuple = self.make_error_tuple(symbol, start_date_mls, end_date_mls, time_frame, ohlcv_section, resp_status_code, exc_type, exception_msg)
-                            psql_copy_from_csv(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE)
-                            start_date_mls += (60000 * OHLCV_LIMIT)
-                        
-                        # Commit and remove params from fetching set
-                        self.psql_conn.commit()
-                        self.redis_client.srem(OHLCVS_BITFINEX_FETCHING_REDIS, params)
-                
-                # Also feed more params to to-fetch set outside the throttler
-                if start_date_mls < end_date_mls:
-                    print("Redis: Adding more params to to-fetch with new start_date")
-                    self.sadd_tofetch_redis(
-                        symbol, start_date_mls, end_date_mls, time_frame, limit, sort
-                    )
+                    self.redis_client.srem(OHLCVS_BITFINEX_FETCHING_REDIS, *params_list)
     
     async def fetch_ohlcvs_symbols(self, symbols, start_date_dt, end_date_dt):
         '''
@@ -425,48 +441,16 @@ class BitfinexOHLCVFetcher:
             `end_date_dt`: datetime obj - for end date
         '''
 
-        # Asyncio tasks and exception handler
-        loop = asyncio.get_event_loop()
-        tasks = []
-        aio_set_exception_handler(loop)
-
         # Set feeding status so the consume
         # function does not close immediately
         self.feeding = True
 
-        # Create feeding task for each symbol
-        for symbol in symbols:
-            print(f'=== Fetching OHLCVs for symbol {symbol}')
-            tasks.append(
-                loop.create_task(
-                    self.feed_ohlcvs_redis(
-                        symbol=symbol,
-                        start_date=start_date_dt,
-                        end_date=end_date_dt,
-                        time_frame=OHLCV_TIMEFRAME,
-                        limit=OHLCV_LIMIT,
-                        sort=1
-                    )
-                )
-            )
-        # Create consuming task
-        tasks.append(loop.create_task(self.consume_ohlcvs_redis()))
-        
-        # Await tasks and set fetching to False
-        await asyncio.wait(tasks)
-    
-    async def fetch_ohlcvs_all_symbols(self, start_date_dt, end_date_dt):
-        '''
-        Function to fetch OHLCVS for all trading symbols on Bitfinex
-        params:
-            `start_date_dt`: datetime object (for starting date)
-            `end_date_dt`: datetime object (for ending date)
-        '''
-
-        # Run tasks and set fetching to False
-        symbols = self.symbol_data.keys()
+        # Asyncio gather 2 tasks:
+        # - Init to-fetch
+        # - Consume from Redis to-fetch
         await asyncio.gather(
-            self.fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt)
+            self.init_tofetch_redis(symbols, start_date_dt, end_date_dt, time_frame=OHLCV_TIMEFRAME, limit=OHLCV_LIMIT, sort=1),
+            self.consume_ohlcvs_redis()
         )
     
     def fetch_symbol_data(self):
@@ -479,16 +463,44 @@ class BitfinexOHLCVFetcher:
     def run_fetch_ohlcvs(self, symbols, start_date_dt, end_date_dt):
         '''
         Runs fetching OHLCVS
+        params:
+            `symbol`: list of symbol string
+            `start_date_dt`: datetime obj - for start date
+            `end_date_dt`: datetime obj - for end date
         '''
 
-        asyncio.run(self.fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt))
+        loop = asyncio.get_event_loop()
+        aio_set_exception_handler(loop)
+        try:
+            print("Run_fetch_ohlcvs: Fetching OHLCVS for indicated symbols")
+            loop.run_until_complete(
+                self.fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt)
+            )
+        finally:
+            print("Run_fetch_ohlcvs: Finished fetching OHLCVS for indicated symbols")
+            loop.close()
 
     def run_fetch_ohlcvs_all(self, start_date_dt, end_date_dt):
         '''
         Runs the fetching OHLCVS for all symbols
         '''
 
-        asyncio.run(self.fetch_ohlcvs_all_symbols(start_date_dt, end_date_dt))
+        # Have to fetch symbol data first to
+        # make sure it's up-to-date
+        self.fetch_symbol_data()
+        symbols = self.symbol_data.keys()
+
+        # Asyncio
+        loop = asyncio.get_event_loop()
+        aio_set_exception_handler(loop)
+        try:
+            print("Run_fetch_ohlcvs_all: Fetching OHLCVS for all symbols")
+            loop.run_until_complete(
+                self.fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt)
+            )
+        finally:
+            print("Run_fetch_ohlcvs_all: Finished fetching OHLCVS for indicated symbols")
+            loop.close()
 
     def close_connections(self):
         '''

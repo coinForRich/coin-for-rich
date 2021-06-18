@@ -25,7 +25,7 @@ OHLCV_INTERVALS = ["MINUTE_1", "MINUTE_5", "HOUR_1", "DAY_1"]
 DAYDELTAS = {"MINUTE_1": 1, "MINUTE_5": 1, "HOUR_1": 31, "DAY_1": 366}
 OHLCV_INTERVAL = "MINUTE_1"
 OHLCV_SECTION_HIST = "historical"
-RATE_LIMIT_HITS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN']['bittrex']
+RATE_LIMIT_HITS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN'][EXCHANGE_NAME]
 RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
 OHLCVS_BITTREX_TOFETCH_REDIS = "ohlcvs_bittrex_tofetch"
 OHLCVS_BITTREX_FETCHING_REDIS = "ohlcvs_bittrex_fetching"
@@ -37,7 +37,9 @@ class BittrexOHLCVFetcher:
         self.exchange_name = EXCHANGE_NAME
 
         # HTTPX client
-        self.httpx_limits = httpx.Limits(max_connections=HTTPX_MAX_CONCURRENT_CONNECTIONS)
+        self.httpx_limits = httpx.Limits(
+            max_connections=HTTPX_MAX_CONCURRENT_CONNECTIONS[EXCHANGE_NAME]
+        )
         # self.async_httpx_client = httpx.AsyncClient(timeout=None, limits=httpx_limits)
 
         # Async throttler
@@ -286,7 +288,6 @@ class BittrexOHLCVFetcher:
 
         # Reset feeding status
         self.feeding = False
-    
 
     async def consume_ohlcvs_redis(self):
         '''
@@ -387,7 +388,7 @@ class BittrexOHLCVFetcher:
         # Create consuming task
         tasks.append(loop.create_task(self.consume_ohlcvs_redis()))
 
-        # Await tasks and set fetching to False
+        # Await tasks
         await asyncio.wait(tasks)
 
     async def fetch_ohlcvs_all_symbols(self, start_date_dt, end_date_dt):

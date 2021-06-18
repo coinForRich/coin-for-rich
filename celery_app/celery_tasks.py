@@ -14,7 +14,6 @@ def bitfinex_fetch_ohlcvs_all_symbols(start_date, end_date):
     start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
     end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
     bitfinex_fetcher = BitfinexOHLCVFetcher()
-    bitfinex_fetcher.fetch_symbol_data()
     bitfinex_fetcher.run_fetch_ohlcvs_all(start_date_dt, end_date_dt)
     bitfinex_fetcher.close_connections()
 
