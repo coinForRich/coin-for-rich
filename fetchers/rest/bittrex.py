@@ -8,9 +8,10 @@ import backoff
 import redis
 from asyncio_throttle import Throttler
 from fetchers.helpers.datetimehelpers import *
-from fetchers.helpers.dbhelpers import psql_copy_from_csv
+from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.helpers.asynciohelpers import *
 from fetchers.config.constants import *
+from fetchers.config.queries import PSQL_INSERT_IGNOREDUP_QUERY
 from common.config.constants import *
 
 
@@ -256,13 +257,28 @@ class BittrexOHLCVFetcher:
             f'{symbol}{REDIS_DELIMITER}{interval}{REDIS_DELIMITER}{start_date_str}{REDIS_DELIMITER}{end_date_str}'
         )
 
-    async def feed_ohlcvs_redis(self, symbol, start_date, end_date, interval):
+    @classmethod
+    def make_tofetch_params(cls, symbol, start_date, end_date, interval):
+        '''
+        Makes to-fetch params for Redis set
+        :params:
+            `symbol`: symbol string
+            `start_date`: datetime obj
+            `end_date`: datetime obj
+            `interval`: string - interval type (e.g., MINUTE_1)
+        e.g.:
+            'BTC-USD;;MINUTE_1;;2021-06-16T00:00:00;;2021-06-17T00:00:00'
+        '''
+
+        return ""
+    
+    async def feed_ohlcvs_redis(self, symbols, start_date, end_date, interval):
         '''
         Initially creates OHLCV parameters and feeds to a Redis set to begin fetching;
         This Redis set and params are exclusively for this exchange
         This method serves as a "prime" for fetching
         params:
-            `symbol`: symbol string
+            `symbols`: list of symbols
             `start_date`: datetime obj
             `end_date`: datetime obj
             `interval`: string
@@ -282,9 +298,14 @@ class BittrexOHLCVFetcher:
 
         # Initial feed params to Redis set
         # Keep looping until start_date = end_date
-        while start_date < end_date:
-            self.sadd_tofetch_redis(symbol, start_date, end_date, interval)
-            start_date += datetime.timedelta(days=DAYDELTAS[interval])
+        # while start_date < end_date:
+        #     self.sadd_tofetch_redis(symbol, start_date, end_date, interval)
+        #     start_date += datetime.timedelta(days=DAYDELTAS[interval])
+        
+        for date in list_days_fromto(start_date, end_date):
+            params_list = [
+                self.make_tofetch_params(symbol, date, end_date, interval) for symbol in symbols
+            ]
 
         # Reset feeding status
         self.feeding = False
@@ -338,17 +359,17 @@ class BittrexOHLCVFetcher:
                                 try:
                                     ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id)
                                     if ohlcvs_parsed:
-                                        psql_copy_from_csv(self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE)
+                                        psql_bulk_insert(self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY)
                                 except Exception as exc:
                                     exc_type = type(exc)
                                     exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
                                     print(exception_msg)
                                     error_tuple = self.make_error_tuple(symbol, start_date_dt, end_date_dt, interval, historical, resp_status_code, exc_type, exception_msg)
-                                    psql_copy_from_csv(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE)
+                                    psql_bulk_insert(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY)
                             else:
                                 print(exception_msg)
                                 error_tuple = self.make_error_tuple(symbol, start_date_dt, end_date_dt, interval, historical, resp_status_code, exc_type, exception_msg)
-                                psql_copy_from_csv(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE)
+                                psql_bulk_insert(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY)
                     
                     # Commit and remove params from fetching set
                     self.psql_conn.commit()
@@ -410,7 +431,7 @@ class BittrexOHLCVFetcher:
             (EXCHANGE_NAME, bq['base_id'], bq['quote_id'], symbol) \
             for symbol, bq in self.symbol_data.items()
         ]
-        psql_copy_from_csv(self.psql_conn, rows, SYMBOL_EXCHANGE_TABLE)
+        psql_bulk_insert(self.psql_conn, rows, SYMBOL_EXCHANGE_TABLE, PSQL_INSERT_IGNOREDUP_QUERY)
 
     def run_fetch_ohlcvs(self, symbols, start_date_dt, end_date_dt):
         '''

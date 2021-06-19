@@ -1,9 +1,7 @@
-# This module contains queries
+# This module contains queries related to fetching
 
-POPULATE_SYMEXCH_QUERY = '''
-INSERT INTO symbol_exchange VALUES (%s,%s,%s,%s)
-ON CONFLICT (exchange, base_id, quote_id) DO NOTHING;
-'''
+# Generic insert query that ignores unique constraints
+PSQL_INSERT_IGNOREDUP_QUERY = "INSERT INTO {table} VALUES %s ON CONFLICT DO NOTHING;"
 
 LATEST_SYMEXCH_QUERY = '''
 select ohlcvss.exchange, symexch.symbol, ohlcvss.time

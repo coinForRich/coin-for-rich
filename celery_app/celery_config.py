@@ -15,6 +15,7 @@ result_backend = CELERY_REDIS_URL
 task_routes = {
     'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_all_symbols': {'queue': 'bitfinex'},
     'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_symbols': {'queue': 'bitfinex'},
+    'celery_app.celery_tasks.bitfinex_resume_fetch': {'queue': 'bitfinex'},
     'celery_app.celery_tasks.bittrex_fetch_ohlcvs_all_symbols': {'queue': 'bittrex'},
     'celery_app.celery_tasks.bittrex_fetch_ohlcvs_symbols': {'queue': 'bittrex'}
 }

@@ -18,16 +18,6 @@ def bitfinex_fetch_ohlcvs_all_symbols(start_date, end_date):
     bitfinex_fetcher.close_connections()
 
 @app.task
-def bittrex_fetch_ohlcvs_all_symbols(start_date, end_date):
-    # The dates need to be de-serialized
-    start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-    end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
-    bittrex_fetcher = BittrexOHLCVFetcher()
-    bittrex_fetcher.fetch_symbol_data()
-    bittrex_fetcher.run_fetch_ohlcvs_all(start_date_dt, end_date_dt)
-    bittrex_fetcher.close_connections()
-
-@app.task
 def bitfinex_fetch_ohlcvs_symbols(symbols, start_date, end_date):
     '''
     fetches ohlcvs from Bitfinex for a list of symbols
@@ -46,6 +36,22 @@ def bitfinex_fetch_ohlcvs_symbols(symbols, start_date, end_date):
     bitfinex_fetcher = BitfinexOHLCVFetcher()
     bitfinex_fetcher.fetch_symbol_data()
     bitfinex_fetcher.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt)
+
+@app.task
+def bitfinex_resume_fetch():
+    bitfinex_fetcher = BitfinexOHLCVFetcher()
+    bitfinex_fetcher.run_resume_fetch()
+    bitfinex_fetcher.close_connections()
+
+@app.task
+def bittrex_fetch_ohlcvs_all_symbols(start_date, end_date):
+    # The dates need to be de-serialized
+    start_date_dt = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
+    end_date_dt = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    bittrex_fetcher = BittrexOHLCVFetcher()
+    bittrex_fetcher.fetch_symbol_data()
+    bittrex_fetcher.run_fetch_ohlcvs_all(start_date_dt, end_date_dt)
+    bittrex_fetcher.close_connections()
 
 @app.task
 def bittrex_fetch_ohlcvs_symbols(symbols, start_date, end_date):

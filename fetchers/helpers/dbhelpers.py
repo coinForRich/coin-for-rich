@@ -2,33 +2,43 @@
 
 import csv
 import psycopg2
+from psycopg2 import sql, extras
 from io import StringIO
 
 
-def psql_copy_from_csv(conn, rows, table, cursor=None):
+def psql_bulk_insert(conn, rows, table, insert_query, cursor=None):
     '''
-    Psycopg2 copy from rows to table using StringIO and CSV
-    Do nothing when error occurs
-    params:
-        `conn`: psycopg2 conn obj (required)
+    Bulk inserts rows to `table` using StringIO and CSV
+    Ignores unique constraint error
+    :params:
+        `conn`: psycopg2 conn obj
         `rows`: iterable of tuples
         `table`: string - table name
-        `cursor`: psycopg2 cursor obj
+        `insert_query`: string - insert query to `table`,
+            in case the copy method fails
+        `cursor`: psycopg2 cursor obj (optional)
     '''
 
-    own_cursor = False
     if not cursor:
-        own_cursor = True
         cursor = conn.cursor()
     try:
         buffer = StringIO()
         writer = csv.writer(buffer)
         writer.writerows(rows)
         buffer.seek(0)
-        cursor.copy_from(buffer, table, sep=",")
+        cursor.copy_from(buffer, table, sep=",", null="")
         conn.commit()
-        print(f'PSQL Copy: Successfully copied rows to table {table}')
+        print(f'PSQL Bulk Insert: Successfully copied rows to table {table}')
     except psycopg2.IntegrityError:
         conn.rollback()
-    if own_cursor:
+        insert_query = sql.SQL(insert_query).format(
+                table=sql.Identifier(table)
+        )
+        extras.execute_values(cursor, insert_query, rows)
+        conn.commit()
+        print(f'PSQL Bulk Insert: Successfully inserted rows to table {table}')
+    except Exception as exc:
+        print(f'PSQL Bulk Insert: EXCEPTION: {exc}')
+        conn.rollback()
+    if cursor:
         cursor.close()
