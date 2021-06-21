@@ -10,13 +10,15 @@ configs = dotenv_values(".env")
 THROTTLER_RATE_LIMITS = {
     'RATE_LIMIT_HITS_PER_MIN': {
         'bittrex': 55,
-        'bitfinex': 85
+        'bitfinex': 85,
+        'binance': 1200
     },
     'RATE_LIMIT_SECS_PER_MIN': 60
 }
 HTTPX_MAX_CONCURRENT_CONNECTIONS = {
     'bittrex': 55,
-    'bitfinex': 85
+    'bitfinex': 85,
+    'binance': 32
 }
 
 # Asyncio signals

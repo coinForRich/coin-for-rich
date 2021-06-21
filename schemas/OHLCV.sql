@@ -32,6 +32,7 @@ where exists (
   select 1 from ohlcvs
   where exchange = oh.exchange and base_id = oh.base_id
    and quote_id = oh.quote_id  and "time" = oh."time"
+   and ohlcvs.ctid > oh.ctid
 );
 
 -- Create OHLCV errors table for fetching errors

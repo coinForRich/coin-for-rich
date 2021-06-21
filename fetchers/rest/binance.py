@@ -1,4 +1,4 @@
-### This script fetches bitfinex 1-minute OHLCV data
+### This script fetches binance 1-minute OHLCV data
 
 import asyncio
 import datetime
@@ -16,20 +16,84 @@ from fetchers.config.queries import PSQL_INSERT_IGNOREDUP_QUERY
 from common.config.constants import *
 
 
-EXCHANGE_NAME = "bitfinex"
-BASE_CANDLE_URL = "https://api-pub.bitfinex.com/v2/candles"
-PAIR_EXCHANGE_URL = "https://api-pub.bitfinex.com/v2/conf/pub:list:pair:exchange"
-LIST_CURRENCY_URL = "https://api-pub.bitfinex.com/v2/conf/pub:list:currency"
+URL = "https://api.binance.com/api/v3/klines?symbol=BTCTUSD&interval=1m&startTime=1357020000000&limit=1000"
+URL_EXCH_INFO = "https://api.binance.com/api/v3/exchangeInfo"
+
+EXCHANGE_NAME = "binance"
+BASE_CANDLE_URL = "https://api.binance.com/api/v3/klines"
+EXCHANGE_INFO_URL = "https://api.binance.com/api/v3/exchangeInfo"
 OHLCV_TIMEFRAME = "1m"
-OHLCV_SECTION_HIST = "hist"
-OHLCV_SECTION_LAST = "last"
-OHLCV_LIMIT = 9500
+OHLCV_LIMIT = 1000
+DEFAULT_WEIGHT_LIMIT = 1200
 RATE_LIMIT_HITS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN'][EXCHANGE_NAME]
 RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
-OHLCVS_BITFINEX_TOFETCH_REDIS = "ohlcvs_bitfinex_tofetch"
-OHLCVS_BITFINEX_FETCHING_REDIS = "ohlcvs_bitfinex_fetching"
+OHLCVS_binance_TOFETCH_REDIS = "ohlcvs_binance_tofetch"
+OHLCVS_binance_FETCHING_REDIS = "ohlcvs_binance_fetching"
+OHLCVS_STARTDATEMLS_REDIS = "binance_startdate_mls"
+binance_BACKOFFSTT_REDIS = "binance_backoffstt"
+binance_BACKOFFURL_REDIS = "binance_backoffurl"
 
-class BitfinexOHLCVFetcher:
+
+class RequestWeightManager:
+    def __init__(
+        self,
+        weight_limit=DEFAULT_WEIGHT_LIMIT,
+        duration=RATE_LIMIT_SECS_PER_MIN
+    ):
+        self.full_weight_limit = weight_limit
+        self.duration = duration
+        self.weight_limit = weight_limit
+        self.timestamp = None
+
+        # Weights of different requests
+        self.rw_1 = 1
+        self.rw_10 = 10
+    
+    def reset_weight_limit(self, time):
+        if time - self.timestamp > self.duration:
+            self.weight_limit = self.full_weight_limit
+
+    def reset(self):
+        print(f"Current weight limit is {self.weight_limit}")
+        now = time.monotonic()
+        if not self.timestamp:
+            self.timestamp = now
+        elif now - self.timestamp > self.duration:
+            self.reset_weight_limit(now)
+            self.timestamp = now
+
+    async def weight_one(self):
+        '''
+        To be inserted at the very beginning of a request function
+        that costs 1 weight units
+        '''
+
+        while True:
+            self.reset()
+            if self.weight_limit >= self.rw_1:
+                self.weight_limit -= self.rw_1
+                break
+            else:
+                now = time.monotonic()
+                await asyncio.sleep(self.duration - (now - self.timestamp))
+    
+    async def weight_ten(self):
+        '''
+        To be inserted at the very beginning of a request function
+        that costs 10 weight units
+        '''
+
+        while True:
+            self.reset()
+            if self.weight_limit >= self.rw_10:
+                self.weight_limit -= self.rw_10
+                break
+            else:
+                now = time.monotonic()
+                await asyncio.sleep(self.duration - (now - self.timestamp))
+
+    
+class BinanceOHLCVFetcher:
     def __init__(self):
         # Exchange info
         self.exchange_name = EXCHANGE_NAME
@@ -45,6 +109,9 @@ class BitfinexOHLCVFetcher:
             rate_limit = 1,
             period = RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
         )
+
+        # Request weight manager
+        self.rw_man = RequestWeightManager()
 
         # Postgres connection
         # TODO: Not sure if this is needed
@@ -69,9 +136,9 @@ class BitfinexOHLCVFetcher:
         '''
         loads market data into a dict of this form:
             {
-                '1INCH:USD': {
-                    'base_id': "1INCH",
-                    'quote_id': "USD"
+                'ETHBTC': {
+                    'base_id': "ETH",
+                    'quote_id': "BTC"
                 },
                 'some_other_symbol': {
                     'base_id': "ABC",
@@ -82,51 +149,23 @@ class BitfinexOHLCVFetcher:
         saves it in self.symbol_data
         '''
 
-        self.symbol_data = {}
         # Only needs a temporary httpx client
         # This code can block (non-async) as it's needed for future fetching
+        # Only processes trading symbols
+        self.symbol_data = {}
         with httpx.Client(timeout=None) as client:
-            pair_ex_resp = client.get(PAIR_EXCHANGE_URL)
-            list_cur_resp = client.get(LIST_CURRENCY_URL)
-            if pair_ex_resp:
-                pair_ex = pair_ex_resp.json()[0]
-            if list_cur_resp:
-                list_cur = list_cur_resp.json()[0]
-            for symbol in sorted(pair_ex):
-                # e.g., 1INCH:USD
-                # And some extra work to extract base_id and quote_id
-                self.symbol_data[symbol] = {}
-                bq_candidates = []
-                for currency in list_cur:
-                    if "" in symbol.split(currency):
-                        bq_candidates.append(currency)
-                bq_candidates = sorted(bq_candidates, key=lambda x: len(x), reverse=False)
-                first = bq_candidates.pop()
-                first_split = symbol.split(first)
-                if "" in first_split:
-                    if first_split.index("") == 0:
-                        self.symbol_data[symbol]['base_id'] = first
-                        for second in bq_candidates:
-                            if "" in first_split[-1].split(second):
-                                self.symbol_data[symbol]['quote_id'] = second
-                    else:
-                        self.symbol_data[symbol]['quote_id'] = first
-                        for second in bq_candidates:
-                            if "" in first_split[0].split(second):
-                                self.symbol_data[symbol]['base_id'] = second
-    
-    @classmethod
-    def make_tsymbol(cls, symbol):
-        '''
-        returns appropriate trade symbol for bitfinex
-        params:
-            `symbol`: string (trading symbol, e.g., BTSE:USD)
-        '''
-        
-        return f't{symbol}'
+            exch_info_resp = client.get(EXCHANGE_INFO_URL)
+            if exch_info_resp:
+                symbol_info = exch_info_resp.json()['symbol']
+            for symbol_dict in symbol_info:
+                if symbol_dict['status'] == "TRADING":
+                    self.symbol_data[symbol_dict['symbol']] = {
+                        'base_id': symbol_dict['baseAsset'],
+                        'quote_id': symbol_dict['quoteAsset']
+                    }
 
     @classmethod
-    def make_ohlcv_url(cls, time_frame, symbol, limit, start_date_mls, end_date_mls, sort):
+    def make_ohlcv_url(cls, interval, symbol, limit, start_date_mls):
         '''
         returns tuple of OHLCV url and OHLCV section
         params:
@@ -134,10 +173,8 @@ class BitfinexOHLCVFetcher:
             `symbol`: string - trading symbol, e.g., BTSE:USD
             `limit`: int - number limit of results fetched
             `start_date_mls`: int - datetime obj converted into milliseconds
-            `end_date_mls`: int - datetime obj converted into milliseconds
-            `sort`: int (1 or -1)
 
-        example: https://api-pub.bitfinex.com/v2/candles/trade:1m:tBTSE:USD/hist?limit=10000&start=1577836800000&sort=1
+        example: "https://api.binance.com/api/v3/klines?symbol=BTCTUSD&interval=1m&startTime=1357020000000&limit=1000"
         '''
 
         # Has to check for hist or last of OHLCV section
@@ -150,6 +187,7 @@ class BitfinexOHLCVFetcher:
         
         symbol = cls.make_tsymbol(symbol)
         ohlcv_url = f"{BASE_CANDLE_URL}/trade:{time_frame}:{symbol}/{ohlcv_section}?limit={limit}&start={start_date_mls}&end={end_date_mls}&sort={sort}"
+        ohlcv_url = f"{BASE_CANDLE_URL}?symbol={symbol}&interval={interval}&startTime={start_date_mls}&limit={limit}"
 
         return (ohlcv_url, ohlcv_section)
     
@@ -226,7 +264,7 @@ class BitfinexOHLCVFetcher:
         '''
 
         # Convert start_date and end_date to datetime obj if needed;
-        # Because timestamps in Bitfinex are in mls
+        # Because timestamps in binance are in mls
         if not isinstance(start_date, datetime.datetime):
             start_date = milliseconds_to_datetime(start_date)
         if not isinstance(end_date, datetime.datetime):
@@ -408,7 +446,7 @@ class BitfinexOHLCVFetcher:
         e.g.:
             'BTCUSD;;1000000;;2000000;;1m;;9000;;1
         feeds the following information:
-        - key: OHLCVS_BITFINEX_TOFETCH_REDIS
+        - key: OHLCVS_binance_TOFETCH_REDIS
         - value: symbol;;start_date_mls;;end_date_mls;;time_frame;;limit;;sort
         '''
         # Set feeding status
@@ -425,7 +463,7 @@ class BitfinexOHLCVFetcher:
         params_list = [
             self.make_tofetch_params(symbol, start_date_mls, end_date_mls, time_frame, limit, sort) for symbol in symbols
         ]
-        self.redis_client.sadd(OHLCVS_BITFINEX_TOFETCH_REDIS, *params_list)
+        self.redis_client.sadd(OHLCVS_binance_TOFETCH_REDIS, *params_list)
         self.feeding = False
         print("Redis: Successfully initialized feeding params")
 
@@ -446,19 +484,19 @@ class BitfinexOHLCVFetcher:
         self.backoff_time = None
         
         fetching_params = self.redis_client.spop(
-            OHLCVS_BITFINEX_FETCHING_REDIS,
-            self.redis_client.scard(OHLCVS_BITFINEX_FETCHING_REDIS)
+            OHLCVS_binance_FETCHING_REDIS,
+            self.redis_client.scard(OHLCVS_binance_FETCHING_REDIS)
         )
         if fetching_params:
             self.redis_client.sadd(
-                OHLCVS_BITFINEX_TOFETCH_REDIS, *fetching_params
+                OHLCVS_binance_TOFETCH_REDIS, *fetching_params
             )
 
         async with httpx.AsyncClient(timeout=None, limits=self.httpx_limits) as client:
             self.async_httpx_client = client
             while self.feeding or \
-                self.redis_client.scard(OHLCVS_BITFINEX_TOFETCH_REDIS) > 0 \
-                or self.redis_client.scard(OHLCVS_BITFINEX_FETCHING_REDIS) > 0:
+                self.redis_client.scard(OHLCVS_binance_TOFETCH_REDIS) > 0 \
+                or self.redis_client.scard(OHLCVS_binance_FETCHING_REDIS) > 0:
                 # Pop a batch of size `rate_limit` from Redis to-fetch set,
                 #   send it to Redis fetching set
                 # Add params in params list to Redis fetching set
@@ -467,10 +505,10 @@ class BitfinexOHLCVFetcher:
                 #   Add these params to Redis to-fetch set, if not None
                 # Finally, remove params list from Redis fetching set
                 params_list = self.redis_client.spop(
-                    OHLCVS_BITFINEX_TOFETCH_REDIS, RATE_LIMIT_HITS_PER_MIN
+                    OHLCVS_binance_TOFETCH_REDIS, RATE_LIMIT_HITS_PER_MIN
                 )
                 if params_list:
-                    self.redis_client.sadd(OHLCVS_BITFINEX_FETCHING_REDIS, *params_list)
+                    self.redis_client.sadd(OHLCVS_binance_FETCHING_REDIS, *params_list)
                     get_parse_tasks = []
                     for params in params_list:
                         get_parse_tasks.append(self.get_and_parse_ohlcv(params))
@@ -482,9 +520,9 @@ class BitfinexOHLCVFetcher:
                     if new_tofetch_params_notnone:
                         print("Redis: Adding more params to to-fetch with new start dates")
                         self.redis_client.sadd(
-                            OHLCVS_BITFINEX_TOFETCH_REDIS, *new_tofetch_params_notnone
+                            OHLCVS_binance_TOFETCH_REDIS, *new_tofetch_params_notnone
                         )
-                    self.redis_client.srem(OHLCVS_BITFINEX_FETCHING_REDIS, *params_list)
+                    self.redis_client.srem(OHLCVS_binance_FETCHING_REDIS, *params_list)
     
     async def fetch_ohlcvs_symbols(self, symbols, start_date_dt, end_date_dt):
         '''

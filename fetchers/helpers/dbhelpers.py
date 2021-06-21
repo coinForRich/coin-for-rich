@@ -10,6 +10,7 @@ def psql_bulk_insert(conn, rows, table, insert_query, cursor=None):
     '''
     Bulk inserts rows to `table` using StringIO and CSV
     Ignores unique constraint error
+    Also uses `page_size` of 1000 for inserting
     :params:
         `conn`: psycopg2 conn obj
         `rows`: iterable of tuples
@@ -34,7 +35,7 @@ def psql_bulk_insert(conn, rows, table, insert_query, cursor=None):
         insert_query = sql.SQL(insert_query).format(
                 table=sql.Identifier(table)
         )
-        extras.execute_values(cursor, insert_query, rows)
+        extras.execute_values(cursor, insert_query, rows, page_size=1000)
         conn.commit()
         print(f'PSQL Bulk Insert: Successfully inserted rows to table {table}')
     except Exception as exc:
