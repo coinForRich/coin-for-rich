@@ -16,6 +16,9 @@ task_routes = {
     'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_all_symbols': {'queue': 'bitfinex'},
     'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_symbols': {'queue': 'bitfinex'},
     'celery_app.celery_tasks.bitfinex_resume_fetch': {'queue': 'bitfinex'},
+    'celery_app.celery_tasks.binance_fetch_ohlcvs_all_symbols': {'queue': 'binance'},
+    'celery_app.celery_tasks.binance_fetch_ohlcvs_symbols': {'queue': 'binance'},
+    'celery_app.celery_tasks.binance_resume_fetch': {'queue': 'binance'},
     'celery_app.celery_tasks.bittrex_fetch_ohlcvs_all_symbols': {'queue': 'bittrex'},
     'celery_app.celery_tasks.bittrex_fetch_ohlcvs_symbols': {'queue': 'bittrex'}
 }

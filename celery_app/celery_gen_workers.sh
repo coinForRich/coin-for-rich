@@ -10,4 +10,6 @@ celery -A celery_app.celery_main worker -Q bitfinex -c 4 -n bitfinexWorker@h -l 
 
 celery -A celery_app.celery_main worker -Q bittrex -c 4 -n bittrexWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log"
 
+celery -A celery_app.celery_main worker -Q binance -c 4 -n binanceWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log"
+
 celery -A celery_app.celery_main worker -Q update_all -c 4 -n updateWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log"

@@ -156,7 +156,7 @@ class BitfinexOHLCVFetcher:
     @classmethod
     def make_tofetch_params(cls, symbol, start_date_mls, end_date_mls, time_frame, limit, sort):
         '''
-
+        makes tofetch params to feed into Redis to-fetch set
         params:
             `symbol`: symbol string
             `start_date_mls`: datetime in millisecs
@@ -263,54 +263,32 @@ class BitfinexOHLCVFetcher:
             `exchange_name`: string - this exchange's name
         '''
         
-        # Check common backoff status to collectively backoff
-        #   or check if this ohlcv_url is the one that initialized
-        #   the backoff status
-        # If there's no 429 or ohlcv_url is the original one, continue request
-        #   Else, return tuple with 429 in response status code to backoff
-        if self.backoff_stt != 429 or ohlcv_url == self.backoff_url:
-            async with self.async_throttler:
-                try:
-                    ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
-                    ohlcvs_resp.raise_for_status()
-                    self.backoff_stt = None
-                    self.backoff_url = None
-                    self.backoff_time = None
-                    return (
-                        ohlcvs_resp.status_code,
-                        ohlcvs_resp.json(),
-                        None,
-                        None
-                    )
-                except httpx.HTTPStatusError as exc:
-                    resp_status_code = exc.response.status_code
-                    if resp_status_code == 429:
-                        self.backoff_stt = resp_status_code
-                        self.backoff_url = ohlcv_url
-                        self.backoff_time = time.time()
-                    return (
-                        resp_status_code,
-                        None,
-                        type(exc),
-                        f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
-                    )
-                except httpx.RequestError as exc:
-                    self.backoff_stt = None
-                    self.backoff_url = None
-                    self.backoff_time = None
-                    return (
-                        None,
-                        None,
-                        type(exc),
-                        f'EXCEPTION: Request error while requesting {exc.request.url}'
-                    )
-                except Exception as exc:
-                    self.backoff_stt = None
-                    self.backoff_url = None
-                    self.backoff_time = None
-                    print(f"Get_ohlcv_data: EXCEPTION: {exc}")
-        else:
-            return (429,[],None,None)
+        async with self.async_throttler:
+            try:
+                ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
+                ohlcvs_resp.raise_for_status()
+                self.reset_backoff()
+                return (
+                    ohlcvs_resp.status_code,
+                    ohlcvs_resp.json(),
+                    None,
+                    None
+                )
+            except httpx.HTTPStatusError as exc:
+                resp_status_code = exc.response.status_code
+                return (
+                    resp_status_code,
+                    None,
+                    type(exc),
+                    f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
+                )
+            except Exception as exc:
+                return (
+                    None,
+                    None,
+                    type(exc),
+                    f'EXCEPTION: Request error while requesting {exc.request.url}'
+                )
 
     async def get_and_parse_ohlcv(self, params):
         '''
@@ -434,17 +412,11 @@ class BitfinexOHLCVFetcher:
         Consumes OHLCV parameters from the to-fetch Redis set
         '''
 
-        # Reset all self-backoff attributes
         # Move all params from fetching set to to-fetch set
         # Only create http client when consuming, hence the context manager
         # Keep looping and processing in batch if either:
         # - self.feeding or
         # - there are elements in to-fetch set or fetching set
-
-        self.backoff_stt = None
-        self.backoff_url = None
-        self.backoff_time = None
-        
         fetching_params = self.redis_client.spop(
             OHLCVS_BITFINEX_FETCHING_REDIS,
             self.redis_client.scard(OHLCVS_BITFINEX_FETCHING_REDIS)
@@ -453,7 +425,6 @@ class BitfinexOHLCVFetcher:
             self.redis_client.sadd(
                 OHLCVS_BITFINEX_TOFETCH_REDIS, *fetching_params
             )
-
         async with httpx.AsyncClient(timeout=None, limits=self.httpx_limits) as client:
             self.async_httpx_client = client
             while self.feeding or \
@@ -503,7 +474,9 @@ class BitfinexOHLCVFetcher:
         # - Init to-fetch
         # - Consume from Redis to-fetch
         await asyncio.gather(
-            self.init_tofetch_redis(symbols, start_date_dt, end_date_dt, time_frame=OHLCV_TIMEFRAME, limit=OHLCV_LIMIT, sort=1),
+            self.init_tofetch_redis(
+                symbols, start_date_dt, end_date_dt, OHLCV_TIMEFRAME, OHLCV_LIMIT, 1
+            ),
             self.consume_ohlcvs_redis()
         )
     
