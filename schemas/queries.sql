@@ -73,6 +73,25 @@ from ohlcvs
         and ohlcvs."time" < lte."time"
 limit 100000;
 
+-- (0d) Get OHLC from ohlcvs table based on
+--    exchange and symbol, using "time" column
+--    as seconds since EPOCH
+-- Can be used to load data for charts
+with bq as (
+   select exchange, base_id, quote_id
+   from symbol_exchange
+   where exchange='bitfinex' and symbol='ETHBTC'
+)
+select extract(epoch from oh.time) as "time",
+   oh.opening_price as "open",
+   oh.highest_price as "high",
+   oh.lowest_price as "low",
+   oh.closing_price as "close"
+from ohlcvs oh
+   inner join bq on oh.exchange=bq.exchange
+      and oh.base_id=bq.base_id and oh.quote_id=bq.quote_id
+limit 10000;
+
 -- (1) Chart queries but not aggregated
 -- (1a) A typical query for chart showcase
 explain (analyze)

@@ -13,13 +13,13 @@ from web.utils.websocketutils import WSConnectionManager, WSSender
 app = FastAPI()
 app.mount("/scripts", StaticFiles(directory="web/scripts"), name="scripts")
 templates = Jinja2Templates(directory="web/templates")
+ws_manager = WSConnectionManager()
 redis_client = redis.Redis(
     host=REDIS_HOST,
     username="default",
     password=REDIS_PASSWORD,
     decode_responses=True
 )
-ws_manager = WSConnectionManager()
 
 @app.get("/")
 async def root():
@@ -45,7 +45,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         redis_client,
                         WS_SERVE_REDIS_KEY.format(
                             exchange = exchange,
-                            symbol = symbol)
+                            symbol = symbol
+                        )
                     )
                 except Exception as exc:
                     print(f'EXCEPTION: {exc}')

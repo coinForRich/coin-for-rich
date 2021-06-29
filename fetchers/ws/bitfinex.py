@@ -102,7 +102,7 @@ class BitfinexOHLCVWebsocket:
         # bitfinex_fetcher.fetch_symbol_data()
         # symbols = bitfinex_fetcher.get_mutual_basequote()
         # bitfinex_fetcher.close_connections()
-        symbols = ['BTCUSD', 'ETHUSD', 'XRPUSD', 'LTCUSD']
+        symbols = ['ETHBTC', 'BTCEUR']
         await asyncio.gather(self.subscribe(symbols))
     
     def run_mutual_basequote(self):
