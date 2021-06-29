@@ -23,3 +23,7 @@ HTTPX_MAX_CONCURRENT_CONNECTIONS = {
 
 # Asyncio signals
 ASYNC_SIGNALS = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
+
+# Websocket Redis keys
+WS_SUB_REDIS_KEY = "ws_sub_{exchange}_{symbol}"
+WS_SERVE_REDIS_KEY = "ws_serve_{exchange}_{symbol}"

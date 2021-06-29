@@ -3,7 +3,7 @@
 -- psql -h localhost -p 5432 -U postgres -W -d postgres
 -- password is in ENV file
 
--- Create OHLCVS table
+-- Create OHLCVS table and hyptertable
 CREATE TABLE ohlcvs (
    time TIMESTAMPTZ NOT NULL,
    exchange VARCHAR(100) NOT NULL,
@@ -15,6 +15,7 @@ CREATE TABLE ohlcvs (
    closing_price NUMERIC,
    volume NUMERIC
 );
+SELECT create_hypertable('ohlcvs', 'time');
 -- Create unique index on first columns
 CREATE UNIQUE INDEX ohlcvs_exch_base_quote_time_idx ON ohlcvs (exchange, base_id, quote_id, "time" ASC);
 -- Create index on the exchange column, time column, symbol column separately
@@ -70,7 +71,19 @@ ON CONFLICT (exchange, base_id, quote_id) DO NOTHING;
 -- The condition on COUNT() can change as more exchanges are added
 -- This view is temporarily used to choose which symbols to fetch
 --    ohlcvs data, because storage is limited
-CREATE MATERIALIZED VIEW common_basequote AS
+CREATE MATERIALIZED VIEW common_basequote_30 AS
    SELECT base_id, quote_id
    FROM symbol_exchange
-   GROUP BY base_id, quote_id HAVING COUNT(*) > 2;
+   GROUP BY base_id, quote_id HAVING COUNT(*) > 2
+   ORDER BY base_id ASC, quote_id ASC
+   LIMIT 30;
+-- Delete from ohlcvs rows where base and quote not found
+--    in the common_basequote_30 view
+DELETE
+FROM ohlcvs
+WHERE NOT EXISTS
+   (SELECT *
+   FROM common_basequote_30 cb
+   WHERE cb.base_id = ohlcvs.base_id
+      AND cb.quote_id = ohlcvs.quote_id
+   );

@@ -79,9 +79,9 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-CALL refresh_continuous_aggregate('ohlcvs_summary_daily', NULL, '2021-02-10');
+CALL refresh_continuous_aggregate('ohlcvs_summary_daily', NULL, '2021-06-26');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_daily',
    start_offset => INTERVAL '3 days',
    end_offset   => INTERVAL '1 day',
-   schedule_interval => INTERVAL '4 hours');
+   schedule_interval => INTERVAL '1 day');

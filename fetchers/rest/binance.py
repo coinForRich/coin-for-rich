@@ -9,12 +9,13 @@ import redis
 import time
 import random
 from asyncio_throttle import Throttler
+from common.config.constants import *
 from fetchers.helpers.datetimehelpers import *
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.helpers.asynciohelpers import *
 from fetchers.config.constants import *
-from fetchers.config.queries import PSQL_INSERT_IGNOREDUP_QUERY
-from common.config.constants import *
+from fetchers.config.queries import PSQL_INSERT_IGNOREDUP_QUERY,\
+                                    MUTUAL_BASE_QUOTE_QUERY
 
 
 URL = "https://api.binance.com/api/v3/klines?symbol=BTCTUSD&interval=1m&startTime=1357020000000&limit=1000"
@@ -519,13 +520,12 @@ class BinanceOHLCVFetcher:
                 )
                 if params_list:
                     self.redis_client.sadd(OHLCVS_BINANCE_FETCHING_REDIS, *params_list)
-                    get_parse_tasks = []
-                    for params in params_list:
-                        get_parse_tasks.append(self.get_and_parse_ohlcv(params))
+                    get_parse_tasks = [
+                        self.get_and_parse_ohlcv(params) for params in params_list
+                    ]
                     task_results = await asyncio.gather(*get_parse_tasks)
                     new_tofetch_params_notnone = [
-                        params for params in task_results \
-                        if params is not None
+                        params for params in task_results if params is not None
                     ]
                     if new_tofetch_params_notnone:
                         print("Redis: Adding more params to to-fetch with new start dates")
@@ -634,6 +634,23 @@ class BinanceOHLCVFetcher:
         finally:
             print("Run_resume_fetch: Finished fetching OHLCVS")
             loop.close()
+
+    def run_fetch_ohlcvs_mutual_basequote(self, start_date_dt, end_date_dt):
+        '''
+        Runs the fetching of the 30 common base-quote symbols
+        :params:
+            `start_date_dt`: datetime obj
+            `end_date_dt`: datetime obj
+        '''
+        # Have to fetch symbol data first to
+        # make sure it's up-to-date
+        self.fetch_symbol_data()
+
+        self.psql_cur.execute(MUTUAL_BASE_QUOTE_QUERY, (EXCHANGE_NAME,))
+        results = self.psql_cur.fetchall()
+        symbols = [result[0] for result in results]
+        self.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt)
+        print("Run_fetch_ohlcvs_all: Finished fetching OHLCVS for common symbols")
 
     def close_connections(self):
         '''
