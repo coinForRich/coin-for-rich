@@ -70,9 +70,9 @@ class BitfinexOHLCVWebsocket:
                             low = respj[1][4]
                             close = respj[1][2]
                             volume = respj[1][5]
-                            val = f'{timestamp}{REDIS_DELIMITER}{open}{REDIS_DELIMITER}{high}{REDIS_DELIMITER}{low}{REDIS_DELIMITER}{close}{REDIS_DELIMITER}{volume}'
+                            sub_val = f'{timestamp}{REDIS_DELIMITER}{open}{REDIS_DELIMITER}{high}{REDIS_DELIMITER}{low}{REDIS_DELIMITER}{close}{REDIS_DELIMITER}{volume}'
 
-                            # Setting Redis data for updating ohlcv db
+                            # Setting Redis data for updating ohlcv psql db
                             #   and serving real-time chart
                             ws_sub_redis_key = WS_SUB_REDIS_KEY.format(
                                 exchange = EXCHANGE_NAME,
@@ -80,9 +80,20 @@ class BitfinexOHLCVWebsocket:
                             ws_serve_redis_key = WS_SERVE_REDIS_KEY.format(
                                 exchange = EXCHANGE_NAME,
                                 symbol = symbol)
-                            self.redis_client.hset(ws_sub_redis_key, timestamp, val)
+                            self.redis_client.hset(ws_sub_redis_key, timestamp, sub_val)
                             self.redis_client.delete(ws_serve_redis_key)
-                            self.redis_client.rpush(ws_serve_redis_key, val)
+                            # self.redis_client.rpush(ws_serve_redis_key, val)
+                            self.redis_client.hset(
+                                ws_serve_redis_key,
+                                mapping = {
+                                    'time': timestamp,
+                                    'open': open,
+                                    'high': high,
+                                    'low': low,
+                                    'close': close,
+                                    'volume': volume
+                                }
+                            )
                 except Exception as exc:
                     print(f'{exc}')
 

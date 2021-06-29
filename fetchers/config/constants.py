@@ -25,5 +25,7 @@ HTTPX_MAX_CONCURRENT_CONNECTIONS = {
 ASYNC_SIGNALS = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
 
 # Websocket Redis keys
+# Sub is for storing temp subscribed ws data to update psql db later
+# Serve is for serving real time data to our web service
 WS_SUB_REDIS_KEY = "ws_sub_{exchange}_{symbol}"
 WS_SERVE_REDIS_KEY = "ws_serve_{exchange}_{symbol}"
