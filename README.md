@@ -1,7 +1,7 @@
 # README
 
 ## How to use
-It's best to use services in Docker
+It's best to use Postgresql and Redis in Docker
 ### Setup a Postgresql/Timescaledb database
 Remember to bind-mount data volume to make it persistent
 ```
@@ -15,13 +15,14 @@ docker run -d --name coin-redis -p 6379:6379 -v /root/coin_data/_redisdata:/data
 ### NodeJS packages
 Non-docker:
 https://github.com/nodesource/distributions/blob/master/README.md#deb
+
 Docker:
 ```
 docker run --rm  --name coin-nodejs -v "$PWD":/usr/src/app -w /usr/src/app  node:14.17.1 npm <command>
 ```
 ### Setup Celery
 
-### Run them all together**
+### Run them all together
 
 ## Best practices learned
 ### SSH keys and logins

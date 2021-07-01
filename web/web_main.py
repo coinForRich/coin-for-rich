@@ -11,8 +11,8 @@ from web.utils.websocketutils import WSConnectionManager, WSSender
 
 
 app = FastAPI()
-app.mount("/scripts", StaticFiles(directory="web/scripts"), name="scripts")
-templates = Jinja2Templates(directory="web/templates")
+app.mount("/src", StaticFiles(directory="web/src"), name="src")
+templates = Jinja2Templates(directory="web/dist")
 ws_manager = WSConnectionManager()
 redis_client = redis.Redis(
     host=REDIS_HOST,

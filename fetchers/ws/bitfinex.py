@@ -7,6 +7,7 @@ import websockets
 from common.config.constants import *
 from fetchers.config.constants import WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY
 from fetchers.rest.bitfinex import BitfinexOHLCVFetcher, EXCHANGE_NAME
+from fetchers.utils.exceptions import UnsuccessfulConnection
 
 
 URI = "wss://api-pub.bitfinex.com/ws/2"
@@ -57,9 +58,12 @@ class BitfinexOHLCVWebsocket:
                     # If resp is list, make sure its length is 6
                     #   and use the mappings to find symbol and push to Redis
                     if isinstance(respj, dict):
-                        if 'key' in respj:
-                            symbol = self.tsymbol_mapping[respj['key']]
-                            self.chanid_mapping[respj['chanId']] = symbol
+                        if 'event' in respj:
+                            if respj['event'] != "subscribed":
+                                raise UnsuccessfulConnection
+                            else:
+                                symbol = self.tsymbol_mapping[respj['key']]
+                                self.chanid_mapping[respj['chanId']] = symbol
                     if isinstance(respj, list):
                         if len(respj[1]) == 6:
                             print(f'Response : {respj}')
@@ -74,6 +78,8 @@ class BitfinexOHLCVWebsocket:
 
                             # Setting Redis data for updating ohlcv psql db
                             #   and serving real-time chart
+                            # This Redis update ohlcv psql db procedure
+                            #   may be changed with a pipeline from fastAPI...
                             ws_sub_redis_key = WS_SUB_REDIS_KEY.format(
                                 exchange = EXCHANGE_NAME,
                                 symbol = symbol)
@@ -82,7 +88,6 @@ class BitfinexOHLCVWebsocket:
                                 symbol = symbol)
                             self.redis_client.hset(ws_sub_redis_key, timestamp, sub_val)
                             self.redis_client.delete(ws_serve_redis_key)
-                            # self.redis_client.rpush(ws_serve_redis_key, val)
                             self.redis_client.hset(
                                 ws_serve_redis_key,
                                 mapping = {

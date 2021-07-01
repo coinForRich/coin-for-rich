@@ -1,0 +1,2 @@
+class UnsuccessfulConnection:
+    pass
