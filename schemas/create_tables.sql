@@ -15,13 +15,21 @@ CREATE TABLE ohlcvs (
    closing_price NUMERIC,
    volume NUMERIC
 );
+-- Create timescaledb hypertable
 SELECT create_hypertable('ohlcvs', 'time');
--- Create unique index on first columns
-CREATE UNIQUE INDEX ohlcvs_exch_base_quote_time_idx ON ohlcvs (exchange, base_id, quote_id, "time" ASC);
+-- Create primary key constraint
+ALTER TABLE ohlcvs
+ADD PRIMARY KEY (exchange, base_id, quote_id, "time");
 -- Create index on the exchange column, time column, symbol column separately
 CREATE INDEX ohlcvs_time_idx ON ohlcvs ("time" ASC);
 CREATE INDEX ohlcvs_exch_time_idx ON ohlcvs (exchange, "time" ASC);
 CREATE INDEX ohlcvs_base_quote_time_idx ON ohlcvs (base_id, quote_id, "time" ASC);
+-- Create foreign key constraint
+ALTER TABLE ohlcvs 
+ADD CONSTRAINT exch_base_quote_fkey 
+FOREIGN KEY (exchange, base_id, quote_id)
+REFERENCES symbol_exchange (exchange, base_id, quote_id)
+ON DELETE CASCADE;
 -- Insert with duplicate policy (psycopg2)
 INSERT INTO ohlcvs VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
 ON CONFLICT (exchange, base_id, quote_id, "time") DO NOTHING;
@@ -43,13 +51,14 @@ CREATE TABLE ohlcvs_errors (
    start_date TIMESTAMPTZ NOT NULL,
    end_date TIMESTAMPTZ NOT NULL,
    time_frame VARCHAR(10) NOT NULL,
+   exception_class TEXT NOT NULL,
    ohlcv_section VARCHAR(30),
    resp_status_code SMALLINT,
-   exception_class TEXT,
    exception_message TEXT
 );
--- Create index on first 3 columns
-CREATE UNIQUE INDEX ohlcvs_errors_idx ON ohlcvs_errors (exception_class, resp_status_code, exchange, symbol, start_date, end_date, time_frame, ohlcv_section);
+-- Create primary key constraint
+ALTER TABLE ohlcvs_errors
+ADD PRIMARY KEY (exception_class, exchange, symbol, start_date, end_date, time_frame);
 
 -- Create symbol_exchange table with symbols and exchange information
 CREATE TABLE symbol_exchange (
@@ -58,8 +67,10 @@ CREATE TABLE symbol_exchange (
    quote_id VARCHAR(20) NOT NULL,
    symbol VARCHAR(40) NOT NULL
 );
--- Create index on first 3 columns
-CREATE UNIQUE INDEX exch_base_quote_idx ON symbol_exchange (exchange, base_id, quote_id);
+-- Create primary key constraint
+ALTER TABLE symbol_exchange
+ADD PRIMARY KEY (exchange, base_id, quote_id);
+-- Create indices
 CREATE INDEX symexch_exch_idx ON symbol_exchange (exchange);
 CREATE INDEX symexch_base_idx ON symbol_exchange (base_id);
 CREATE INDEX symexch_quote_idx ON symbol_exchange (quote_id);
