@@ -23,3 +23,7 @@ REDIS_DELIMITER = ";;"
 
 # Celery
 CELERY_REDIS_URL = f"redis://default:{REDIS_PASSWORD}@{REDIS_HOST}:6379/0"
+
+# Default datetime string format
+DEFAULT_DATETIME_STR_QUERY = "%Y-%m-%dT%H:%M:%S"
+DEFAULT_DATETIME_STR_RESULT = "%Y-%m-%dT%H:%M:%S%z"

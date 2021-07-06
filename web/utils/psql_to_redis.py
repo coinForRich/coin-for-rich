@@ -15,7 +15,7 @@ psql_cur = psql_conn.cursor()
 query = '''
 select row_to_json(t)
     from (
-        select "time" as "time", opening_price, highest_price
+        select "time" as "time", "open", "high"
         lowest_price, closing_price, volume
         from ohlcvs
         where exchange='bitfinex'

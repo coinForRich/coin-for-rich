@@ -9,12 +9,15 @@ import redis
 import time
 from asyncio_throttle import Throttler
 from common.config.constants import *
-from fetchers.helpers.datetimehelpers import *
+from common.helpers.datetimehelpers import (
+    datetime_to_milliseconds, milliseconds_to_datetime
+)
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.helpers.asynciohelpers import *
 from fetchers.config.constants import *
-from fetchers.config.queries import PSQL_INSERT_IGNOREDUP_QUERY,\
-                                    MUTUAL_BASE_QUOTE_QUERY
+from fetchers.config.queries import (
+    PSQL_INSERT_IGNOREDUP_QUERY, MUTUAL_BASE_QUOTE_QUERY
+)
 
 
 EXCHANGE_NAME = "bitfinex"

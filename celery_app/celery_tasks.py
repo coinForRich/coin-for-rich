@@ -6,7 +6,7 @@ from fetchers.rest.bitfinex import BitfinexOHLCVFetcher
 from fetchers.rest.bittrex import BittrexOHLCVFetcher
 from fetchers.rest.binance import BinanceOHLCVFetcher
 from fetchers.rest.updater import *
-from fetchers.helpers.datetimehelpers import str_to_datetime
+from common.helpers.datetimehelpers import str_to_datetime
 
 
 # Bitfinex

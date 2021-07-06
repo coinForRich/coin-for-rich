@@ -9,10 +9,10 @@ CREATE TABLE ohlcvs (
    exchange VARCHAR(100) NOT NULL,
    base_id VARCHAR(20) NOT NULL,
    quote_id VARCHAR(20) NOT NULL,
-   opening_price NUMERIC,
-   highest_price NUMERIC,
-   lowest_price NUMERIC,
-   closing_price NUMERIC,
+   open NUMERIC,
+   high NUMERIC,
+   low NUMERIC,
+   close NUMERIC,
    volume NUMERIC
 );
 -- Create timescaledb hypertable
@@ -43,6 +43,9 @@ where exists (
    and quote_id = oh.quote_id  and "time" = oh."time"
    and ohlcvs.ctid > oh.ctid
 );
+-- Rename columns
+ALTER TABLE ohlcvs
+RENAME closing_price TO "close";
 
 -- Create OHLCV errors table for fetching errors
 CREATE TABLE ohlcvs_errors (

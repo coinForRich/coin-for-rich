@@ -1,5 +1,6 @@
 import json
 
+
 def redis_pipe_rpush(redis_client, key, vals, serialize=False):
     '''
     Redis serialize (optional) and rpush using pipeline
@@ -16,4 +17,3 @@ def redis_pipe_rpush(redis_client, key, vals, serialize=False):
         else:
             pipe.rpush(key, val)
     pipe.execute()
-    

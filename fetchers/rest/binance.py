@@ -10,12 +10,15 @@ import time
 import random
 from asyncio_throttle import Throttler
 from common.config.constants import *
-from fetchers.helpers.datetimehelpers import *
+from common.helpers.datetimehelpers import (
+    milliseconds_to_datetime, datetime_to_milliseconds
+)
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.helpers.asynciohelpers import *
 from fetchers.config.constants import *
-from fetchers.config.queries import PSQL_INSERT_IGNOREDUP_QUERY,\
-                                    MUTUAL_BASE_QUOTE_QUERY
+from fetchers.config.queries import (
+    PSQL_INSERT_IGNOREDUP_QUERY, MUTUAL_BASE_QUOTE_QUERY
+)
 
 
 URL = "https://api.binance.com/api/v3/klines?symbol=BTCTUSD&interval=1m&startTime=1357020000000&limit=1000"

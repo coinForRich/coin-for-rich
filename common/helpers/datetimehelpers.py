@@ -61,7 +61,7 @@ def datetime_to_str(dt, f):
 
 def milliseconds_to_str(mls, f):
     '''
-    converts  a millisecond timestamp into string of format `f`
+    converts a millisecond timestamp into string of format `f`
     :params:
         `mls`: int (milliseconds)
         `f`: string - time format
@@ -69,6 +69,25 @@ def milliseconds_to_str(mls, f):
 
     return datetime_to_str(milliseconds_to_datetime(mls), f)
 
+def str_to_milliseconds(s, f):
+    '''
+    converts a string of format `f` to milliseconds
+    :params:
+        `s`: datetime string
+        `f`: string - time format
+    '''
+
+    return datetime_to_milliseconds(str_to_datetime(s, f))
+
+def str_to_seconds(s, f):
+    '''
+    converts a string of format `f` to seconds
+    :params:
+        `s`: datetime string
+        `f`: string - time format
+    '''
+
+    return seconds(str_to_milliseconds(s, f))
 
 def list_days_fromto(start_date, end_date):
     '''
