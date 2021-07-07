@@ -5,7 +5,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from common.helpers.datetimehelpers import seconds
 
 
-class WSConnectionManager:
+class WSServerConnectionManager:
     '''
     Websocket connection manager
     '''
@@ -42,7 +42,7 @@ class AsyncLoopThread(Thread):
         self.loop.run_forever()
         return self.loop
 
-class WSSender:
+class WSServerSender:
     '''
     Websocket sender for clients that subscribe to our web
     '''
@@ -58,12 +58,11 @@ class WSSender:
         Coroutine that serves OHLC from Redis hash
         :params:
             `ws`: fastAPI WebSocket obj
-            `ws_manager`: WSConnectionManager obj
+            `ws_manager`: WSServerConnectionManager obj
             `redis_client`: Redis client
             `rkey`: Redis key
         '''
-        
-        # TODO: make sure ws client is open
+
         while ws in ws_manager.active_connections:
             data = redis_client.hgetall(rkey)
             if data:

@@ -9,7 +9,6 @@ from io import StringIO
 def psql_bulk_insert(conn, rows, table, insert_query, cursor=None):
     '''
     Bulk inserts rows to `table` using StringIO and CSV
-    Ignores unique constraint error
     Also uses `page_size` of 1000 for inserting
     :params:
         `conn`: psycopg2 conn obj

@@ -1,8 +1,11 @@
-from sqlalchemy import (Column, DateTime, ForeignKeyConstraint, Index, Numeric,
-    SmallInteger, String, Table, Text)
+from sqlalchemy import (
+    Column, DateTime, ForeignKeyConstraint, Index, Numeric,
+    SmallInteger, String, Table, Text
+)
 from sqlalchemy.orm import relationship
-from common.config.constants import (OHLCVS_TABLE,
-    OHLCVS_ERRORS_TABLE, SYMBOL_EXCHANGE_TABLE)
+from common.config.constants import (
+    OHLCVS_TABLE, OHLCVS_ERRORS_TABLE, SYMBOL_EXCHANGE_TABLE
+)
 from web.database import Base, metadata
 
 

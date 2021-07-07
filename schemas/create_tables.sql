@@ -1,7 +1,7 @@
 -- For use with psycopg2
 -- Before using the queries...
 -- psql -h localhost -p 5432 -U postgres -W -d postgres
--- password is in ENV file
+-- password is in .env file
 
 -- Create OHLCVS table and hyptertable
 CREATE TABLE ohlcvs (

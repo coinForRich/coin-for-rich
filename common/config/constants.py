@@ -1,4 +1,4 @@
-# This module contains constants
+# This module contains constants for all apps
 
 from dotenv import dotenv_values 
 
@@ -9,8 +9,10 @@ configs = dotenv_values(".env")
 HOST = configs.get('COMMON_HOST')
 
 # Postgres
+POSTGRES_USER = "postgres"
 POSTGRES_PASSWORD = configs.get('POSTGRES_PASSWORD')
-DBCONNECTION = f"dbname=postgres user=postgres password={POSTGRES_PASSWORD} host={HOST} port=5432"
+POSTGRES_DB = "postgres"
+DBCONNECTION = f"dbname={POSTGRES_DB} user={POSTGRES_USER} password={POSTGRES_PASSWORD} host={HOST} port=5432"
 OHLCVS_TABLE = "ohlcvs"
 OHLCVS_ERRORS_TABLE = "ohlcvs_errors"
 SYMBOL_EXCHANGE_TABLE = "symbol_exchange"
@@ -24,6 +26,6 @@ REDIS_DELIMITER = ";;"
 # Celery
 CELERY_REDIS_URL = f"redis://default:{REDIS_PASSWORD}@{REDIS_HOST}:6379/0"
 
-# Default datetime string format
+# Default datetime string format when dealing with PSQL
 DEFAULT_DATETIME_STR_QUERY = "%Y-%m-%dT%H:%M:%S"
 DEFAULT_DATETIME_STR_RESULT = "%Y-%m-%dT%H:%M:%S%z"
