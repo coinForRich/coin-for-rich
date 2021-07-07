@@ -97,7 +97,8 @@ async def read_ohlcv(
     )
     
     if not ohlcv:
-        raise HTTPException(status_code=404, detail="OHLCV not found")
+        # raise HTTPException(status_code=404, detail="OHLCV not found")
+        return None
     ends = time.time()
     print(f"Read ohlcv endpoint elapsed: {ends - starts} seconds")
     return ohlcv

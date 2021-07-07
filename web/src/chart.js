@@ -1,66 +1,12 @@
-function dateToTimestamp(date) {
-    return new Date(Date.UTC(date.year, date.month - 1, date.day, 0, 0, 0, 0));
-}
+var exchange = document.getElementById("exchange").textContent
+var base_id = document.getElementById("base_id").textContent
+var quote_id = document.getElementById("quote_id").textContent
+var start = 1609480800000
+var end = 1612159200000
+console.log(exchange, base_id, quote_id, start, end)
 
-// Returns timestamp `step_amt * steps` away from `milliseconds`
-function getTimestampSteps(milliseconds, step_amt, steps) {
-    const ret = milliseconds + step_amt * steps
-    return ret
-}
-
-// Draw candle series, merge data if there's new and existing data
-function drawCandleSeries(candle_data) {
-    if (candle_data !== null) {
-        try {
-            try {
-                saveDataFromEndpoint(candle_data)
-            }
-            catch(err){
-                console.log(err)
-            }
-            try {
-            candleSeries.setData(data)
-            }
-            catch(err){
-                console.log(err)
-            }
-        }
-        catch(err) {
-            console.log(err)
-        }
-    }
-}
-
-// Save response data from endpoint to var
-function saveDataFromEndpoint(resp_data) {
-    if (resp_data !== null) {
-        if (data == null) {
-            data = resp_data
-            console.log("new data")
-            console.log(data)
-        }
-        else {
-            console.log("new data: ")
-            console.log(resp_data)
-            data = [...resp_data, ...data]
-            console.log("data has been merged with new data: ")
-            console.log(data)
-        }
-    }
-}
-
-// Read data from ohlcv endpoint and save
-async function readOHLC(exchange, base_id, quote_id, start, end) {
-    let ohlcv_endpoint = 
-        `http://${window.location.host}/ohlc/?exchange=${exchange}&base_id=${base_id}&quote_id=${quote_id}&start=${start}&end=${end}&mls=true`
-    fetch(ohlcv_endpoint)
-        .then(response => response.json())
-        .then(resp_data => 
-            drawCandleSeries(resp_data)
-        )
-}
-
-var data = null;
+var data = null
+var loading = false
 
 var chart = LightweightCharts.createChart(document.getElementById('chart'), {
     width: 1200,
@@ -85,8 +31,66 @@ var chart = LightweightCharts.createChart(document.getElementById('chart'), {
 
 var candleSeries = chart.addCandlestickSeries();
 var timeScale = chart.timeScale();
-
 var timer = null;
+
+function dateToTimestamp(date) {
+    return new Date(Date.UTC(date.year, date.month - 1, date.day, 0, 0, 0, 0));
+}
+
+// Returns timestamp `step_amt * steps` away from `milliseconds`
+function getTimestampSteps(milliseconds, step_amt, steps) {
+    const ret = milliseconds + step_amt * steps
+    return ret
+}
+
+// Draw new candle series, merge data if there's new and existing data
+function drawCandleSeries(candle_data) {
+    if (candle_data !== null) {
+        try {
+            saveDataFromEndpoint(candle_data)
+            candleSeries.setData(data)
+        }
+        catch(err) {
+            console.log(err)
+        }
+    }
+}
+
+// Save response data from endpoint to `data`
+function saveDataFromEndpoint(resp_data) {
+    if (resp_data !== null) {
+        if (data == null) {
+            data = resp_data
+            console.log("new data: ")
+            console.log(data)
+        }
+        else {
+            // Not sure if Set is good because it may
+            //  mess up data order
+            data = [...new Set([...resp_data, ...data])]
+            console.log("data has been merged with new data: ")
+            console.log(data)
+        }
+    }
+    loading = false
+}
+
+// Read data from ohlcv endpoint and save to `data`
+async function readDrawOHLC(exchange, base_id, quote_id, start, end) {
+    loading = true
+    let ohlcv_endpoint = 
+        `http://${window.location.host}/ohlc/?exchange=${exchange}&base_id=${base_id}&quote_id=${quote_id}&start=${start}&end=${end}&mls=true`
+    fetch(ohlcv_endpoint)
+        .then(response => response.json())
+        .then(resp_data => 
+            drawCandleSeries(resp_data)
+        )
+}
+
+// Initialize new chart
+readDrawOHLC(exchange, base_id, quote_id, start, end)
+
+// Update chart when viewport changes
 timeScale.subscribeVisibleLogicalRangeChange(() => {
     if (timer !== null) {
         return;
@@ -96,15 +100,15 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
         if (logicalRange !== null && data !== undefined) {
             var barsInfo = candleSeries.barsInLogicalRange(logicalRange);
             console.log(barsInfo)
-            if (barsInfo !== null && barsInfo.barsBefore < 100) {
+            if (barsInfo !== null && barsInfo.barsBefore < 100 && loading === false) {
                 /* var firstTime = getBusinessDayBeforeCurrentAt(data[0].time, 1); */
                 var oneMinBefore = getTimestampSteps(data[0].time * 1000, -60000, 1);
                 /* var lastTime = getBusinessDayBeforeCurrentAt(firstTime, Math.max(100, -barsInfo.barsBefore + 100)); */
-                var hundredMinBefore = getTimestampSteps(oneMinBefore, -60000, 100);
+                var nMinBefore = getTimestampSteps(oneMinBefore, -60000, 100);
                 console.log(oneMinBefore)
-                console.log(hundredMinBefore)
+                console.log(nMinBefore)
                 /* Read more data from db, then append to current data */
-                readOHLC(exchange, base_id, quote_id, hundredMinBefore, oneMinBefore)
+                readDrawOHLC(exchange, base_id, quote_id, nMinBefore, oneMinBefore)
             }
         }
         timer = null;
