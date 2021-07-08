@@ -7,6 +7,7 @@ var current_interval = '1m'
 
 var data = null
 var data_loading = false
+var bar_latest = null
 var chart = LightweightCharts.createChart(document.getElementById('chart'), {
     width: 1200,
     height: 300,
@@ -68,7 +69,7 @@ function saveDataFromEndpoint(resp_data) {
             // Not sure if Set is good because it may
             //  mess up data order
             data = [...new Set([...resp_data, ...data])]
-            console.log("data has been merged with new data: ")
+            console.log("data has been merged with old historical data, here is data: ")
             console.log(data)
         }
     }
@@ -86,7 +87,7 @@ async function readRestDrawOHLC(exch, bid, qid, s, e, i) {
         )
 };
 
-// Read data from ohlcv WS endpoint
+// Read data from ohlc WS endpoint
 function readWSUpdateOHLC(exch, bid, qid) {
     var candles_ws = new WebSocket(`ws://${window.location.host}/candles`)
     
@@ -97,14 +98,29 @@ function readWSUpdateOHLC(exch, bid, qid) {
             base_id: bid,
             quote_id: qid
         })
-        console.log(candles_msg)
+        // console.log(candles_msg)
         candles_ws.send(candles_msg)
     }
 
     candles_ws.onmessage = function(event) {
         let parsed_data = JSON.parse(event.data)
-        console.log(parsed_data)
+        // console.log(parsed_data)
         candleSeries.update(parsed_data)
+        // Compare parsed data to the latest bar data 
+        //  to keep new bars persistent on chart
+        if (bar_latest === null || parsed_data.time == bar_latest.time) {
+            console.log('Saving parsed data to latest bar, here is bar_latest: ')
+            bar_latest = parsed_data
+            console.log(bar_latest)
+        }
+        else if (parsed_data.time > bar_latest.time) {
+            console.log('Pushing latest bar to data, here is data: ')
+            data.push(bar_latest)
+            candleSeries.setData(data)
+            console.log(data)
+            console.log('Saving parsed data to latest bar')
+            bar_latest = parsed_data
+        }
     }
 
     candles_ws.onclose = function(event) {
@@ -134,7 +150,7 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
         let logicalRange = timeScale.getVisibleLogicalRange();
         if (logicalRange !== null && data !== undefined) {
             let barsInfo = candleSeries.barsInLogicalRange(logicalRange);
-            console.log(barsInfo)
+            // console.log(barsInfo)
             if (barsInfo !== null && barsInfo.barsBefore < 100 && data_loading === false) {
                 let oneMinBefore = getTimestampSteps(data[0].time * 1000, -60000, 1)
                 let nMinBefore = getTimestampSteps(oneMinBefore, -60000, 100)
@@ -148,6 +164,16 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
         updateChartTimer = null;
     }, 50)
 })
+
+var test = {
+    time: 1625615940,
+    open: 28000,
+    high: 29500,
+    low: 27950,
+    close: 29000
+}
+candleSeries.update(test)
+console.log(test)
 
 
 // Time range switcher
