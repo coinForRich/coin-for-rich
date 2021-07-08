@@ -2,9 +2,30 @@ import json
 from typing import Optional, Union
 from datetime import datetime
 from sqlalchemy.orm import Session
-from web import models
 from common.helpers.datetimehelpers import datetime_to_seconds, milliseconds_to_datetime
+from web import models
+from web.config.constants import OHLCV_INTERVALS
 
+
+def get_symbol_from_basequote(
+        db: Session,
+        exchange: str,
+        base_id: str,
+        quote_id: str
+    ):
+    '''
+    Gets symbol from `base_id` and `quote_id`
+    :params:
+
+    '''
+
+    result = db.query(models.SymbolExchange).filter(
+        models.SymbolExchange.exchange == exchange,
+        models.SymbolExchange.base_id == base_id,
+        models.SymbolExchange.quote_id == quote_id
+    ).one_or_none()
+    symbol = result.symbol
+    return symbol
 
 def parse_ohlc(ohlcv: list):
     '''
@@ -34,6 +55,7 @@ def get_ohlc(
         quote_id: str,
         start: Union[datetime, int],
         end: Union[datetime, int],
+        interval: str,
         limit: int = 500
     ):
     '''
@@ -47,24 +69,26 @@ def get_ohlc(
         `quote_id`: str - quote id
         `start`: datetime obj or int - start time (must have same type as `end`)
         `end`: datetime obj or int - end time (must have same type as `start`)
+        `interval`: str - time interval of candles
+            enum: within the `OHLCV_INTERVALS` list
         `limit`: maximum number of data points to return
     '''
 
-    # TODO: add interval param
-    #   to query different data resolutions
-    #   Also add input data type checking
+    # TODO: Also add input data type checking
     limit = min(limit, 500)
     if isinstance(start, int):
         start = milliseconds_to_datetime(start)
         end = milliseconds_to_datetime(end)
-    results = db.query(models.Ohlcv).filter(
-            models.Ohlcv.exchange == exchange,
-            models.Ohlcv.base_id == base_id,
-            models.Ohlcv.quote_id == quote_id,
-            models.Ohlcv.time >= start,
-            models.Ohlcv.time <= end
-        )\
-        .order_by(models.Ohlcv.time.asc())\
-        .limit(limit).all()
-    # return results
-    return parse_ohlc(results)
+    if interval not in OHLCV_INTERVALS:
+        raise ValueError("interval paramater must be in the defined list")
+    elif interval == "1m":
+        results = db.query(models.Ohlcv).filter(
+                models.Ohlcv.exchange == exchange,
+                models.Ohlcv.base_id == base_id,
+                models.Ohlcv.quote_id == quote_id,
+                models.Ohlcv.time >= start,
+                models.Ohlcv.time <= end
+            )\
+            .order_by(models.Ohlcv.time.asc())\
+            .limit(limit).all()
+        return parse_ohlc(results)

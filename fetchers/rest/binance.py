@@ -305,7 +305,7 @@ class BinanceOHLCVFetcher:
         #   the backoff status
         # If there's no 429/418 or ohlcv_url is the original one, continue request
         #   Else, sleep until end of backoff duration
-        # Only backoff for max 12 times (retries)
+        # Only backoff for max 12 times/retries
         retries = 0
         while retries < 12:
             await self.rw_man.aweight_one()

@@ -68,3 +68,94 @@ t_ohlcvs_summary_daily = Table(
     Column('close', Numeric),
     Column('volume', Numeric)
 )
+
+t_ohlcvs_summary_5min = Table(
+    'ohlcvs_summary_5min', metadata,
+    Column('bucket', DateTime(True)),
+    Column('exchange', String(100)),
+    Column('base_id', String(20)),
+    Column('quote_id', String(20)),
+    Column('open', Numeric),
+    Column('high', Numeric),
+    Column('low', Numeric),
+    Column('close', Numeric),
+    Column('volume', Numeric)
+)
+
+t_ohlcvs_summary_15min = Table(
+    'ohlcvs_summary_15min', metadata,
+    Column('bucket', DateTime(True)),
+    Column('exchange', String(100)),
+    Column('base_id', String(20)),
+    Column('quote_id', String(20)),
+    Column('open', Numeric),
+    Column('high', Numeric),
+    Column('low', Numeric),
+    Column('close', Numeric),
+    Column('volume', Numeric)
+)
+
+t_ohlcvs_summary_30min = Table(
+    'ohlcvs_summary_30min', metadata,
+    Column('bucket', DateTime(True)),
+    Column('exchange', String(100)),
+    Column('base_id', String(20)),
+    Column('quote_id', String(20)),
+    Column('open', Numeric),
+    Column('high', Numeric),
+    Column('low', Numeric),
+    Column('close', Numeric),
+    Column('volume', Numeric)
+)
+
+t_ohlcvs_summary_1hour = Table(
+    'ohlcvs_summary_1hour', metadata,
+    Column('bucket', DateTime(True)),
+    Column('exchange', String(100)),
+    Column('base_id', String(20)),
+    Column('quote_id', String(20)),
+    Column('open', Numeric),
+    Column('high', Numeric),
+    Column('low', Numeric),
+    Column('close', Numeric),
+    Column('volume', Numeric)
+)
+
+t_ohlcvs_summary_6hour = Table(
+    'ohlcvs_summary_6hour', metadata,
+    Column('bucket', DateTime(True)),
+    Column('exchange', String(100)),
+    Column('base_id', String(20)),
+    Column('quote_id', String(20)),
+    Column('open', Numeric),
+    Column('high', Numeric),
+    Column('low', Numeric),
+    Column('close', Numeric),
+    Column('volume', Numeric)
+)
+
+t_ohlcvs_summary_12hour = Table(
+    'ohlcvs_summary_12hour', metadata,
+    Column('bucket', DateTime(True)),
+    Column('exchange', String(100)),
+    Column('base_id', String(20)),
+    Column('quote_id', String(20)),
+    Column('open', Numeric),
+    Column('high', Numeric),
+    Column('low', Numeric),
+    Column('close', Numeric),
+    Column('volume', Numeric)
+)
+
+t_ohlcvs_summary_7day = Table(
+    'ohlcvs_summary_7day', metadata,
+    Column('bucket', DateTime(True)),
+    Column('exchange', String(100)),
+    Column('base_id', String(20)),
+    Column('quote_id', String(20)),
+    Column('open', Numeric),
+    Column('high', Numeric),
+    Column('low', Numeric),
+    Column('close', Numeric),
+    Column('volume', Numeric)
+)

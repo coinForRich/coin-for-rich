@@ -1,4 +1,4 @@
-DBCONNECTION = "dbname=postgres user=postgres password=horus123 host=localhost port=15432"
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379
 PSQL_BATCHSIZE = 10000
+OHLCV_INTERVALS = [
+    '1m', '5m', '15m', '30m', '1h', '3h', '6h', '12h', '1D', '7D', '14D', '1M'
+]

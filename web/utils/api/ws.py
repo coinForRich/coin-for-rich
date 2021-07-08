@@ -56,6 +56,7 @@ class WSServerSender:
         ):
         '''
         Coroutine that serves OHLC from Redis hash
+        Serves OHLC data every 1 second
         :params:
             `ws`: fastAPI WebSocket obj
             `ws_manager`: WSServerConnectionManager obj
@@ -65,6 +66,7 @@ class WSServerSender:
 
         while ws in ws_manager.active_connections:
             data = redis_client.hgetall(rkey)
+            print(data)
             if data:
                 try:
                     parsed_data = {
@@ -75,9 +77,10 @@ class WSServerSender:
                         'close': float(data['close'])
                     }
                     await ws.send_json(parsed_data)
+                    print(f"Sending {parsed_data}")
                 except Exception as exc:
                     print(exc)
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
 
     def serve_ohlc_from_redis_hash(
             self, ws, ws_manager, redis_client, rkey

@@ -20,9 +20,9 @@ class BitfinexOHLCVWebsocket:
             password=REDIS_PASSWORD,
             decode_responses=True
         )
-        # Mapping from tsymbol to symbol
+        # Mapping from ws_symbol to symbol
         #   and mapping from channel ID to symbol
-        self.tsymbol_mapping = {}
+        self.wssymbol_mapping = {}
         self.chanid_mapping = {}
 
     async def connect(self, symbol, ws_client):
@@ -35,7 +35,7 @@ class BitfinexOHLCVWebsocket:
 
         tsymbol = BitfinexOHLCVFetcher.make_tsymbol(symbol)
         ws_symbol = f"trade:1m:{tsymbol}"
-        self.tsymbol_mapping[ws_symbol] = symbol
+        self.wssymbol_mapping[ws_symbol] = symbol
         msg = {'event': 'subscribe',  'channel': 'candles', 'key': ws_symbol}
         await ws_client.send(json.dumps(msg))
 
@@ -55,7 +55,7 @@ class BitfinexOHLCVWebsocket:
                         resp = await ws.recv()
                         respj = json.loads(resp)
                         try:
-                            # If resp is dict, find the symbol using tsymbol_mapping
+                            # If resp is dict, find the symbol using wssymbol_mapping
                             #   and then map chanID to found symbol
                             # If resp is list, make sure its length is 6
                             #   and use the mappings to find symbol and push to Redis
@@ -64,7 +64,7 @@ class BitfinexOHLCVWebsocket:
                                     if respj['event'] != "subscribed":
                                         raise UnsuccessfulConnection
                                     else:
-                                        symbol = self.tsymbol_mapping[respj['key']]
+                                        symbol = self.wssymbol_mapping[respj['key']]
                                         self.chanid_mapping[respj['chanId']] = symbol
                             if isinstance(respj, list):
                                 if len(respj[1]) == 6:

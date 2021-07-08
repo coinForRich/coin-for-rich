@@ -21,8 +21,8 @@ from fetchers.config.constants import WS_SERVE_REDIS_KEY
 from web import models
 from web.helpers import dbhelpers
 from web.database import SessionLocal, engine
-from web.utils.websocketutils import WSServerConnectionManager, WSServerSender
-from web.utils import webapiutils
+from web.utils.api.ws import WSServerConnectionManager, WSServerSender
+import web.utils.api.rest as webapi_rest
 
 
 models.Base.metadata.create_all(bind=engine)
@@ -72,6 +72,7 @@ async def read_ohlcv(
     quote_id: str,
     start: Union[str, int],
     end: Union[str, int],
+    interval: str,
     mls: Optional[bool] = True,
     limit: Optional[int] = 500,
     db: Session = Depends(get_db)
@@ -80,6 +81,21 @@ async def read_ohlcv(
     Reads OHLC from database, max 500 data points
     API endpoint for charting
     :params:
+        `interval`: str - time interval of candles
+            enum:
+                - `1m` for 1 minute
+                - `5m` for 5 minutes
+                - `15m` for 15 minutes
+                - `30m` for 30 minutes
+                - `1h` for 1 hour
+                - `3h` for 3 hours
+                - `6h` for 6 hours
+                - `12h` for 12 hours
+                - `1D` for 1 day
+                - `7D` for 7 days
+                - `14D` for 14 days
+                - `1M` for 1 month 
+        
         `mls`: bool if query is using milliseconds or not
             if `mls`, `start` and `end` must be int
     '''
@@ -92,37 +108,49 @@ async def read_ohlcv(
         start = str_to_datetime(start, DEFAULT_DATETIME_STR_QUERY)
         end = str_to_datetime(end, DEFAULT_DATETIME_STR_QUERY)
     
-    ohlcv = webapiutils.get_ohlc(
-        db, exchange, base_id, quote_id, start, end, limit
+    ohlcv = webapi_rest.get_ohlc(
+        db, exchange, base_id, quote_id, start, end, interval, limit
     )
     
     if not ohlcv:
-        # raise HTTPException(status_code=404, detail="OHLCV not found")
-        return None
+        raise HTTPException(status_code=404, detail="OHLCV not found")
+        # return None
     ends = time.time()
     print(f"Read ohlcv endpoint elapsed: {ends - starts} seconds")
     return ohlcv
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+@app.websocket("/candles")
+async def websocket_endpoint(
+    websocket: WebSocket,
+    db: Session = Depends(get_db)
+    ):
     await ws_manager.connect(websocket)
     ws_sender = WSServerSender()
     try:
         while True:
-            input = await websocket.receive_text()
+            input = await websocket.receive_json()
             if input:
+                print(input)
                 try:
-                    exchange, symbol = input.split(";")
-                    ws_sender.serve_ohlc_from_redis_hash(
-                        websocket,
-                        ws_manager,
-                        redis_client,
-                        WS_SERVE_REDIS_KEY.format(
-                            exchange = exchange,
-                            symbol = symbol
-                        )
+                    data_type = input['data_type']
+                    exchange = input['exchange']
+                    base_id = input['base_id']
+                    quote_id = input['quote_id']
+                    symbol = webapi_rest.get_symbol_from_basequote(
+                        db, exchange, base_id, quote_id
                     )
+                    if data_type == "ohlc":
+                        ws_sender.serve_ohlc_from_redis_hash(
+                            websocket,
+                            ws_manager,
+                            redis_client,
+                            WS_SERVE_REDIS_KEY.format(
+                                exchange = exchange,
+                                symbol = symbol
+                            )
+                        )
                 except Exception as exc:
                     print(f'EXCEPTION: {exc}')
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
+# aaa

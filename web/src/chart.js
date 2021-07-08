@@ -1,13 +1,12 @@
-var exchange = document.getElementById("exchange").textContent
-var base_id = document.getElementById("base_id").textContent
-var quote_id = document.getElementById("quote_id").textContent
-var start = 1609480800000
-var end = 1612159200000
-console.log(exchange, base_id, quote_id, start, end)
+var current_exchange = document.getElementById("exchange").textContent
+var current_base_id = document.getElementById("base_id").textContent
+var current_quote_id = document.getElementById("quote_id").textContent
+var current_start = 1625612400000
+var current_end = 1625616000000
+var current_interval = '1m'
 
 var data = null
-var loading = false
-
+var data_loading = false
 var chart = LightweightCharts.createChart(document.getElementById('chart'), {
     width: 1200,
     height: 300,
@@ -28,20 +27,20 @@ var chart = LightweightCharts.createChart(document.getElementById('chart'), {
         secondsVisible: false,
     },
 });
+var candleSeries = chart.addCandlestickSeries()
+var timeScale = chart.timeScale()
+var updateChartTimer = null
 
-var candleSeries = chart.addCandlestickSeries();
-var timeScale = chart.timeScale();
-var timer = null;
 
 function dateToTimestamp(date) {
-    return new Date(Date.UTC(date.year, date.month - 1, date.day, 0, 0, 0, 0));
-}
+    return new Date(Date.UTC(date.year, date.month - 1, date.day, 0, 0, 0, 0))
+};
 
 // Returns timestamp `step_amt * steps` away from `milliseconds`
 function getTimestampSteps(milliseconds, step_amt, steps) {
     const ret = milliseconds + step_amt * steps
     return ret
-}
+};
 
 // Draw new candle series, merge data if there's new and existing data
 function drawCandleSeries(candle_data) {
@@ -54,7 +53,8 @@ function drawCandleSeries(candle_data) {
             console.log(err)
         }
     }
-}
+    data_loading = false
+};
 
 // Save response data from endpoint to `data`
 function saveDataFromEndpoint(resp_data) {
@@ -72,48 +72,82 @@ function saveDataFromEndpoint(resp_data) {
             console.log(data)
         }
     }
-    loading = false
-}
+};
 
-// Read data from ohlcv endpoint and save to `data`
-async function readDrawOHLC(exchange, base_id, quote_id, start, end) {
-    loading = true
+// Read data from ohlc REST endpoint and save to `data`
+async function readRestDrawOHLC(exch, bid, qid, s, e, i) {
+    data_loading = true
     let ohlcv_endpoint = 
-        `http://${window.location.host}/ohlc/?exchange=${exchange}&base_id=${base_id}&quote_id=${quote_id}&start=${start}&end=${end}&mls=true`
+        `http://${window.location.host}/ohlc/?exchange=${exch}&base_id=${bid}&quote_id=${qid}&start=${s}&end=${e}&interval=${i}&mls=true`
     fetch(ohlcv_endpoint)
         .then(response => response.json())
         .then(resp_data => 
             drawCandleSeries(resp_data)
         )
-}
+};
 
-// Initialize new chart
-readDrawOHLC(exchange, base_id, quote_id, start, end)
+// Read data from ohlcv WS endpoint
+function readWSUpdateOHLC(exch, bid, qid) {
+    var candles_ws = new WebSocket(`ws://${window.location.host}/candles`)
+    
+    candles_ws.onopen = function() {
+        let candles_msg = JSON.stringify({
+            data_type: "ohlc",
+            exchange: exch,
+            base_id: bid,
+            quote_id: qid
+        })
+        console.log(candles_msg)
+        candles_ws.send(candles_msg)
+    }
+
+    candles_ws.onmessage = function(event) {
+        let parsed_data = JSON.parse(event.data)
+        console.log(parsed_data)
+        candleSeries.update(parsed_data)
+    }
+
+    candles_ws.onclose = function(event) {
+        console.log('Socket is closed. Reconnecting in 1 second...', event.reason)
+        setTimeout(function() {
+            readWSUpdateOHLC(exch, bid, qid)
+        }, 1000)
+    }
+};
+
+// Rest API to chart
+readRestDrawOHLC(
+    current_exchange, current_base_id,
+    current_quote_id, current_start,
+    current_end, current_interval
+)
+
+// Websocket API to chart
+readWSUpdateOHLC(current_exchange, current_base_id, current_quote_id)
 
 // Update chart when viewport changes
 timeScale.subscribeVisibleLogicalRangeChange(() => {
-    if (timer !== null) {
+    if (updateChartTimer !== null) {
         return;
     }
-    timer = setTimeout(() => {
-        var logicalRange = timeScale.getVisibleLogicalRange();
+    updateChartTimer = setTimeout(() => {
+        let logicalRange = timeScale.getVisibleLogicalRange();
         if (logicalRange !== null && data !== undefined) {
-            var barsInfo = candleSeries.barsInLogicalRange(logicalRange);
+            let barsInfo = candleSeries.barsInLogicalRange(logicalRange);
             console.log(barsInfo)
-            if (barsInfo !== null && barsInfo.barsBefore < 100 && loading === false) {
-                /* var firstTime = getBusinessDayBeforeCurrentAt(data[0].time, 1); */
-                var oneMinBefore = getTimestampSteps(data[0].time * 1000, -60000, 1);
-                /* var lastTime = getBusinessDayBeforeCurrentAt(firstTime, Math.max(100, -barsInfo.barsBefore + 100)); */
-                var nMinBefore = getTimestampSteps(oneMinBefore, -60000, 100);
-                console.log(oneMinBefore)
-                console.log(nMinBefore)
-                /* Read more data from db, then append to current data */
-                readDrawOHLC(exchange, base_id, quote_id, nMinBefore, oneMinBefore)
+            if (barsInfo !== null && barsInfo.barsBefore < 100 && data_loading === false) {
+                let oneMinBefore = getTimestampSteps(data[0].time * 1000, -60000, 1)
+                let nMinBefore = getTimestampSteps(oneMinBefore, -60000, 100)
+                readRestDrawOHLC(
+                    current_exchange, current_base_id,
+                    current_quote_id, nMinBefore,
+                    oneMinBefore, current_interval
+                )
             }
         }
-        timer = null;
-    }, 50);
-});
+        updateChartTimer = null;
+    }, 50)
+})
 
 
 // Time range switcher
