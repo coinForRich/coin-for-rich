@@ -12,4 +12,4 @@ celery -A celery_app.celery_main worker -Q binance_rest -n binanceRestWorker@h -
 
 celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log"
 
-celery -A celery_app.celery_main worker -Q update_all -c 4 -n updateWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log"
+celery -A celery_app.celery_main worker -Q updater -c 4 -n updateWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log"

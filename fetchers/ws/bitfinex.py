@@ -1,11 +1,16 @@
-### This script uses websocket to fetch bitfinex 1-minute OHLCV data in real time
+### This module uses websocket to fetch bitfinex 1-minute OHLCV data in real time
 
+import time
 import asyncio
 import json
 import redis
 import websockets
-from common.config.constants import *
-from fetchers.config.constants import WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY
+from common.config.constants import (
+    REDIS_HOST, REDIS_PASSWORD, REDIS_DELIMITER
+)
+from fetchers.config.constants import (
+    WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY, WS_SUB_LIST_REDIS_KEY
+)
 from fetchers.rest.bitfinex import BitfinexOHLCVFetcher, EXCHANGE_NAME
 from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosedOK
 
@@ -25,6 +30,9 @@ class BitfinexOHLCVWebsocket:
         self.wssymbol_mapping = {}
         self.chanid_mapping = {}
 
+        # Rest fetcher for convenience
+        self.rest_fetcher = BitfinexOHLCVFetcher()
+
     async def connect(self, symbol, ws_client):
         '''
         Connects to WS endpoint for a symbol
@@ -33,7 +41,7 @@ class BitfinexOHLCVWebsocket:
             `ws_client`: websockets client obj
         '''
 
-        tsymbol = BitfinexOHLCVFetcher.make_tsymbol(symbol)
+        tsymbol = self.rest_fetcher.make_tsymbol(symbol)
         ws_symbol = f"trade:1m:{tsymbol}"
         self.wssymbol_mapping[ws_symbol] = symbol
         msg = {'event': 'subscribe',  'channel': 'candles', 'key': ws_symbol}
@@ -43,14 +51,15 @@ class BitfinexOHLCVWebsocket:
         '''
         Subscribes to Bitfinex WS for `symbols`
         :params:
-            `symbols`: list of symbols (not tsymbol)
-                e.g., [BTCUSD, ETHUSD]
+            `symbols` list of symbols
+                e.g., ['ETHBTC', 'BTCEUR']
         '''
 
         while True:
             try:
                 async with websockets.connect(URI) as ws:
-                    await asyncio.gather(*(self.connect(symbol, ws) for symbol in symbols))
+                    await asyncio.gather(
+                        *(self.connect(symbol, ws) for symbol in symbols))
                     while True:
                         resp = await ws.recv()
                         respj = json.loads(resp)
@@ -68,38 +77,62 @@ class BitfinexOHLCVWebsocket:
                                         self.chanid_mapping[respj['chanId']] = symbol
                             if isinstance(respj, list):
                                 if len(respj[1]) == 6:
-                                    print(f'Response: {respj}')
+                                    print(f'At time {round(time.time(), 2)}, response: {respj}')
                                     symbol = self.chanid_mapping[respj[0]]
-                                    timestamp = respj[1][0]
-                                    open = respj[1][1]
-                                    high = respj[1][3]
-                                    low = respj[1][4]
-                                    close = respj[1][2]
-                                    volume = respj[1][5]
-                                    sub_val = f'{timestamp}{REDIS_DELIMITER}{open}{REDIS_DELIMITER}{high}{REDIS_DELIMITER}{low}{REDIS_DELIMITER}{close}{REDIS_DELIMITER}{volume}'
+                                    timestamp = int(respj[1][0])
+                                    open_ = respj[1][1]
+                                    high_ = respj[1][3]
+                                    low_ = respj[1][4]
+                                    close_ = respj[1][2]
+                                    volume_ = respj[1][5]
+                                    sub_val = f'{timestamp}{REDIS_DELIMITER}{open_}{REDIS_DELIMITER}{high_}{REDIS_DELIMITER}{low_}{REDIS_DELIMITER}{close_}{REDIS_DELIMITER}{volume_}'
 
                                     # Setting Redis data for updating ohlcv psql db
                                     #   and serving real-time chart
                                     # This Redis-update-ohlcv-psql-db-procedure
                                     #   may be changed with a pipeline from fastAPI...
+                                    base_id = self.rest_fetcher.symbol_data[symbol]['base_id']
+                                    quote_id = self.rest_fetcher.symbol_data[symbol]['quote_id']
                                     ws_sub_redis_key = WS_SUB_REDIS_KEY.format(
                                         exchange = EXCHANGE_NAME,
-                                        symbol = symbol)
+                                        delimiter = REDIS_DELIMITER,
+                                        base_id = base_id,
+                                        quote_id = quote_id)
                                     ws_serve_redis_key = WS_SERVE_REDIS_KEY.format(
                                         exchange = EXCHANGE_NAME,
-                                        symbol = symbol)
-                                    self.redis_client.hset(ws_sub_redis_key, timestamp, sub_val)
-                                    self.redis_client.hset(
-                                        ws_serve_redis_key,
-                                        mapping = {
-                                            'time': timestamp,
-                                            'open': open,
-                                            'high': high,
-                                            'low': low,
-                                            'close': close,
-                                            'volume': volume
-                                        }
+                                        delimiter = REDIS_DELIMITER,
+                                        base_id = base_id,
+                                        quote_id = quote_id)
+
+                                    print(ws_sub_redis_key)
+                                    print(ws_serve_redis_key)
+                                    
+                                    # Add ws sub key to set of all ws sub keys
+                                    # Set hash value for ws sub key
+                                    # Replace ws serve key hash if this timestamp
+                                    #   is more up-to-date
+                                    self.redis_client.sadd(
+                                        WS_SUB_LIST_REDIS_KEY, ws_sub_redis_key
                                     )
+                                    self.redis_client.hset(
+                                        ws_sub_redis_key, timestamp, sub_val
+                                    )
+                                    current_timestamp = self.redis_client.hget(
+                                        ws_serve_redis_key,
+                                        'time')
+                                    if current_timestamp is None or \
+                                        timestamp >= int(current_timestamp):
+                                        self.redis_client.hset(
+                                            ws_serve_redis_key,
+                                            mapping = {
+                                                'time': timestamp,
+                                                'open': open_,
+                                                'high': high_,
+                                                'low': low_,
+                                                'close': close_,
+                                                'volume': volume_
+                                            }
+                                        )
                         except Exception as exc:
                             print(f'{exc}')
             except ConnectionClosedOK:
@@ -108,12 +141,10 @@ class BitfinexOHLCVWebsocket:
                 print(f"EXCEPTION: {exc}")
 
     async def mutual_basequote(self):
-        # bitfinex_fetcher = BitfinexOHLCVFetcher()
-        # bitfinex_fetcher.fetch_symbol_data()
-        # symbols = bitfinex_fetcher.get_mutual_basequote()
-        # bitfinex_fetcher.close_connections()
-        symbols = ["ETHBTC", "BTCEUR"]
-        await asyncio.gather(self.subscribe(symbols))
+        symbols_dict = self.rest_fetcher.get_mutual_basequote()
+        self.rest_fetcher.close_connections()
+        # symbols_dict = ["ETHBTC", "BTCEUR"]
+        await asyncio.gather(self.subscribe(symbols_dict.keys()))
     
     def run_mutual_basequote(self):
         asyncio.run(self.mutual_basequote())

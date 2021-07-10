@@ -5,6 +5,7 @@ from celery_app.celery_main import app
 from fetchers.rest.bitfinex import BitfinexOHLCVFetcher
 from fetchers.rest.bittrex import BittrexOHLCVFetcher
 from fetchers.rest.binance import BinanceOHLCVFetcher
+from fetchers.ws.updater import OHLCVWebsocketUpdater
 from fetchers.rest.updater import *
 from common.helpers.datetimehelpers import str_to_datetime
 
@@ -133,6 +134,10 @@ def binance_fetch_ohlcvs_mutual_basequote(start_date, end_date):
     binance_fetcher.run_fetch_ohlcvs_mutual_basequote(start_date_dt, end_date_dt)
     binance_fetcher.close_connections()
 
+@app.task
+def ohlcv_websocket_update():
+    updater = OHLCVWebsocketUpdater()
+    updater.update()
 # @app.task
 # def get_and_fetch_all_task():
 #     update_OHLCVs.run_get_and_fetch_all()

@@ -74,6 +74,7 @@ CREATE TABLE symbol_exchange (
 ALTER TABLE symbol_exchange
 ADD PRIMARY KEY (exchange, base_id, quote_id);
 -- Create indices
+CREATE UNIQUE INDEX symexch_exch_sym_idx ON symbol_exchange (exchange, symbol);
 CREATE INDEX symexch_exch_idx ON symbol_exchange (exchange);
 CREATE INDEX symexch_base_idx ON symbol_exchange (base_id);
 CREATE INDEX symexch_quote_idx ON symbol_exchange (quote_id);

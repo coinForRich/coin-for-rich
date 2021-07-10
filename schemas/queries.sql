@@ -148,5 +148,5 @@ FROM ohlcvs
 WHERE
   base_id = 'BTC' AND
   quote_id = 'USD' AND
-  "time" > '2021-01-01'::timestamp
+  "time" > '2021-07-09 08:50:00+00'::timestamp
 ORDER BY exchange, time;

@@ -27,5 +27,8 @@ ASYNC_SIGNALS = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
 # Websocket Redis keys
 # Sub is for storing temp subscribed ws data to update psql db later
 # Serve is for serving real time data to our web service
-WS_SUB_REDIS_KEY = "ws_sub_{exchange}_{symbol}"
-WS_SERVE_REDIS_KEY = "ws_serve_{exchange}_{symbol}"
+WS_SUB_PREFIX = "ws_sub_"
+WS_SUB_REDIS_KEY = "ws_sub_{exchange}{delimiter}{base_id}{delimiter}{quote_id}"
+WS_SERVE_REDIS_KEY = "ws_serve_{exchange}{delimiter}{base_id}{delimiter}{quote_id}"
+WS_SUB_LIST_REDIS_KEY = "ws_sub_list"
+WS_SUB_PROCESSING_REDIS_KEY = "ws_sub_processing"

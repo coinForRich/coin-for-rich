@@ -38,30 +38,6 @@ select ohlcvs."time" as "time",
    order by time ASC;
 
 -- (3) Continous aggregates with different resolutions
--- (3a) Weekly OHLCV summary
--- Can be used to view chart for a period back 5 years
-create materialized view ohlcvs_summary_weekly
-with (timescaledb.continuous) as
-   select time_bucket('1 week', "time") as "bucket",
-      exchange,
-      base_id,
-      quote_id,
-      first(opening_price, "time") as "open",
-      max(highest_price) as "high",
-      min(lowest_price) as "low",
-      last(closing_price, "time") as "close",
-      sum(volume) as "volume"
-   from ohlcvs
-   group by exchange, base_id, quote_id, "bucket"
-with no data;
-
-CALL refresh_continuous_aggregate('ohlcvs_summary_weekly', NULL, '2021-02-10');
-
-SELECT add_continuous_aggregate_policy('ohlcvs_summary_weekly',
-   start_offset => INTERVAL '3 weeks',
-   end_offset   => INTERVAL '1 week',
-   schedule_interval => INTERVAL '1 day');
-
 -- (3b) Daily OHLCV summary
 -- Can be used to view chart for a period back 1 year
 create materialized view ohlcvs_summary_daily
@@ -103,7 +79,7 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-CALL refresh_continuous_aggregate('ohlcvs_summary_5min', NULL, '2021-06-26');
+   CALL refresh_continuous_aggregate('ohlcvs_summary_5min', NULL, '2021-06-26');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_5min',
    start_offset => INTERVAL '15 minutes',
@@ -234,7 +210,7 @@ SELECT add_continuous_aggregate_policy('ohlcvs_summary_12hour',
 -- Can be used to view chart for a period back 3 years
 create materialized view ohlcvs_summary_7day
 with (timescaledb.continuous) as
-   select time_bucket('12 hours', "time") as "bucket",
+   select time_bucket('7 days', "time") as "bucket",
       exchange,
       base_id,
       quote_id,
@@ -247,7 +223,7 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-CALL refresh_continuous_aggregate('ohlcvs_summary_7day', NULL, '2021-06-26');
+CALL refresh_continuous_aggregate('ohlcvs_summary_7day', NULL, '2021-07-10');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_7day',
    start_offset => INTERVAL '21 days',

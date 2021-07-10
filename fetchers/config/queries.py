@@ -3,6 +3,8 @@
 # Generic insert query that ignores unique constraints
 PSQL_INSERT_IGNOREDUP_QUERY = "INSERT INTO {table} VALUES %s ON CONFLICT DO NOTHING;"
 
+# Insert query into ohlcvs that updates the existing rows with new ones
+
 # Get latest timestamp for each exchange-base-quote
 #  combination
 LATEST_SYMEXCH_QUERY = '''

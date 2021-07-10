@@ -1,5 +1,5 @@
 from websockets.exceptions import ConnectionClosedOK
 
 
-class UnsuccessfulConnection:
+class UnsuccessfulConnection(Exception):
     pass

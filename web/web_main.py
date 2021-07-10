@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.sql.operators import endswith_op
 from starlette.websockets import WebSocketDisconnect
 from common.config.constants import (
-    REDIS_HOST, REDIS_PASSWORD, DEFAULT_DATETIME_STR_QUERY
+    REDIS_DELIMITER, REDIS_HOST, REDIS_PASSWORD, DEFAULT_DATETIME_STR_QUERY
 )
 from common.helpers.datetimehelpers import str_to_datetime, str_to_milliseconds
 from fetchers.config.constants import WS_SERVE_REDIS_KEY
@@ -23,6 +23,7 @@ from web.helpers import dbhelpers
 from web.database import SessionLocal, engine
 from web.utils.api.ws import WSServerConnectionManager, WSServerSender
 import web.utils.api.rest as webapi_rest
+from web.config.constants import WS_SERVE_EVENT_TYPES
 
 
 models.Base.metadata.create_all(bind=engine)
@@ -57,7 +58,7 @@ async def testws(
     quote_id: str
     ):
     return templates.TemplateResponse(
-        "testws.html", {
+        "viewsymbol.html", {
             "request": request,
             "exchange": exchange,
             "base_id": base_id,
@@ -70,9 +71,9 @@ async def read_ohlcv(
     exchange: str,
     base_id: str,
     quote_id: str,
-    start: Union[str, int],
-    end: Union[str, int],
     interval: str,
+    start: Optional[Union[str, int]] = None,
+    end: Optional[Union[str, int]] = None,
     mls: Optional[bool] = True,
     limit: Optional[int] = 500,
     db: Session = Depends(get_db)
@@ -97,21 +98,23 @@ async def read_ohlcv(
                 - `1M` for 1 month 
         
         `mls`: bool if query is using milliseconds or not
-            if `mls`, `start` and `end` must be int
+            if `mls`, both `start` and `end` must be int
     '''
 
     starts = time.time()
     if mls:
-        start = int(start)
-        end = int(end)
+        if start:
+            start = int(start)
+        if end:
+            end = int(end)
     else:
-        start = str_to_datetime(start, DEFAULT_DATETIME_STR_QUERY)
-        end = str_to_datetime(end, DEFAULT_DATETIME_STR_QUERY)
-    
+        if start:
+            start = str_to_datetime(start, DEFAULT_DATETIME_STR_QUERY)
+        if end:
+            end = str_to_datetime(end, DEFAULT_DATETIME_STR_QUERY)
     ohlcv = webapi_rest.get_ohlc(
-        db, exchange, base_id, quote_id, start, end, interval, limit
+        db, exchange, base_id, quote_id, interval, start, end, limit
     )
-    
     if not ohlcv:
         raise HTTPException(status_code=404, detail="OHLCV not found")
         # return None
@@ -125,32 +128,38 @@ async def websocket_endpoint(
     db: Session = Depends(get_db)
     ):
     await ws_manager.connect(websocket)
-    ws_sender = WSServerSender()
+    ws_sender = WSServerSender(ws_manager, websocket, redis_client, db)
     try:
         while True:
             input = await websocket.receive_json()
             if input:
                 print(input)
                 try:
+                    event_type = input['event_type']
                     data_type = input['data_type']
                     exchange = input['exchange']
                     base_id = input['base_id']
                     quote_id = input['quote_id']
-                    symbol = webapi_rest.get_symbol_from_basequote(
-                        db, exchange, base_id, quote_id
-                    )
-                    if data_type == "ohlc":
-                        ws_sender.serve_ohlc_from_redis_hash(
-                            websocket,
-                            ws_manager,
-                            redis_client,
-                            WS_SERVE_REDIS_KEY.format(
-                                exchange = exchange,
-                                symbol = symbol
+                    interval = input['interval']
+                    if event_type not in WS_SERVE_EVENT_TYPES:
+                        await websocket.send_json({
+                            'message': "event_type must be subscribe or unsubscribe"
+                        })
+                    elif event_type == "subscribe":
+                        if data_type == "ohlc":
+                            ws_sender.serve_ohlc(
+                                exchange, base_id, quote_id, interval
                             )
-                        )
+                    elif event_type == "unsubscribe":
+                        if data_type == "ohlc":
+                            ws_sender.unserve_ohlc(
+                                exchange, base_id, quote_id, interval
+                            )
+                            await websocket.send_json({
+                            'message': \
+                                f"unsubscribed successfully from {exchange}_{base_id}_{quote_id}_{interval}"
+                        })
                 except Exception as exc:
                     print(f'EXCEPTION: {exc}')
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
-# aaa

@@ -1,4 +1,4 @@
-### This script fetches bitfinex 1-minute OHLCV data
+### This module fetches bitfinex 1-minute OHLCV data
 
 import asyncio
 import datetime
@@ -83,7 +83,7 @@ class BitfinexOHLCVFetcher:
                 }
                 ...
             }
-        saves it in self.symbol_data
+        saves it in `self.symbol_data`
         '''
 
         self.symbol_data = {}
@@ -189,7 +189,7 @@ class BitfinexOHLCVFetcher:
         '''
 
         # Ignore ohlcvs that are empty, do not raise error,
-        # as other errors are catched elsewhere
+        #   as other errors are catched elsewhere
         if ohlcvs:
             ohlcvs_table_insert = []
             if ohlcv_section == OHLCV_SECTION_HIST:
@@ -562,13 +562,25 @@ class BitfinexOHLCVFetcher:
 
     def get_mutual_basequote(self):
         '''
-        Returns the list of the 30 mutual base-quote symbols
+        Returns a dict of the 30 mutual base-quote symbols
+            in this form:
+                {
+                    'ETHBTC': {
+                        'base_id': 'ETH',
+                        'quote_id': 'BTC'
+                    }
+                }
         '''
         
         self.psql_cur.execute(MUTUAL_BASE_QUOTE_QUERY, (EXCHANGE_NAME,))
         results = self.psql_cur.fetchall()
-        symbols = [result[0] for result in results]
-        return symbols
+        ret = {}
+        for result in results:
+            ret[result[0]] = {
+                'base_id': self.symbol_data[result[0]]['base_id'],
+                'quote_id': self.symbol_data[result[0]]['quote_id']
+            }
+        return ret
 
     def run_fetch_ohlcvs_mutual_basequote(self, start_date_dt, end_date_dt):
         '''

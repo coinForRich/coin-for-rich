@@ -24,6 +24,9 @@ class OhlcvsError(Base):
 
 class SymbolExchange(Base):
     __tablename__ = SYMBOL_EXCHANGE_TABLE
+    __table_args__ = (
+        Index('symexch_exch_sym_idx', 'exchange', 'symbol', unique=True),
+    )
 
     exchange = Column(String(100), primary_key=True, nullable=False, index=True)
     base_id = Column(String(20), primary_key=True, nullable=False, index=True)

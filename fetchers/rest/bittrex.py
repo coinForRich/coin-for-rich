@@ -1,4 +1,4 @@
-# This script fetches bittrex 1-minute OHLCV data
+# This module fetches bittrex 1-minute OHLCV data
 
 import asyncio
 import datetime
