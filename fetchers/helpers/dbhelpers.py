@@ -20,6 +20,8 @@ def psql_bulk_insert(conn, rows, table, insert_query, cursor=None):
         `cursor`: psycopg2 cursor obj (optional)
     '''
 
+    # TODO: add `return` statement for a status code indicating
+    #   whether the insert is successful or not
     if not cursor:
         cursor = conn.cursor()
     try:

@@ -15,6 +15,8 @@ from fetchers.rest.bitfinex import BitfinexOHLCVFetcher, EXCHANGE_NAME
 from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosedOK
 
 
+# Bitfinex only allows up to 30 subscriptions per ws connection
+
 URI = "wss://api-pub.bitfinex.com/ws/2"
 
 class BitfinexOHLCVWebsocket:
@@ -33,7 +35,7 @@ class BitfinexOHLCVWebsocket:
         # Rest fetcher for convenience
         self.rest_fetcher = BitfinexOHLCVFetcher()
 
-    async def connect(self, symbol, ws_client):
+    async def subscribe_one(self, symbol, ws_client):
         '''
         Connects to WS endpoint for a symbol
         :params:
@@ -59,7 +61,7 @@ class BitfinexOHLCVWebsocket:
             try:
                 async with websockets.connect(URI) as ws:
                     await asyncio.gather(
-                        *(self.connect(symbol, ws) for symbol in symbols))
+                        *(self.subscribe_one(symbol, ws) for symbol in symbols))
                     while True:
                         resp = await ws.recv()
                         respj = json.loads(resp)
@@ -104,8 +106,8 @@ class BitfinexOHLCVWebsocket:
                                         base_id = base_id,
                                         quote_id = quote_id)
 
-                                    print(ws_sub_redis_key)
-                                    print(ws_serve_redis_key)
+                                    print(f'ws sub redis key: {ws_sub_redis_key}')
+                                    print(f'ws serve redis key: {ws_serve_redis_key}')
                                     
                                     # Add ws sub key to set of all ws sub keys
                                     # Set hash value for ws sub key
@@ -141,9 +143,14 @@ class BitfinexOHLCVWebsocket:
                 print(f"EXCEPTION: {exc}")
 
     async def mutual_basequote(self):
+        '''
+        Subscribes to WS channels of the mutual symbols
+            among all exchanges
+        '''
+
         symbols_dict = self.rest_fetcher.get_mutual_basequote()
         self.rest_fetcher.close_connections()
-        # symbols_dict = ["ETHBTC", "BTCEUR"]
+        # symbols = ["ETHBTC", "BTCEUR"]
         await asyncio.gather(self.subscribe(symbols_dict.keys()))
     
     def run_mutual_basequote(self):

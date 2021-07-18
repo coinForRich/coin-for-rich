@@ -221,7 +221,8 @@ class BinanceOHLCVFetcher:
     @classmethod
     def parse_ohlcvs(cls, ohlcvs, base_id, quote_id):
         '''
-        returns a list of rows of parsed ohlcv
+        returns a list of rows of parsed ohlcvs
+        
         :params:
             `ohlcvs`: list of ohlcv dicts (returned from request)
             `base_id`: string
@@ -580,6 +581,28 @@ class BinanceOHLCVFetcher:
             self.psql_conn, rows, SYMBOL_EXCHANGE_TABLE,
             PSQL_INSERT_IGNOREDUP_QUERY
         )
+    
+    def get_mutual_basequote(self):
+        '''
+        Returns a dict of the 30 mutual base-quote symbols
+            in this form:
+                {
+                    'ETHBTC': {
+                        'base_id': 'ETH',
+                        'quote_id': 'BTC'
+                    }
+                }
+        '''
+        
+        self.psql_cur.execute(MUTUAL_BASE_QUOTE_QUERY, (EXCHANGE_NAME,))
+        results = self.psql_cur.fetchall()
+        ret = {}
+        for result in results:
+            ret[result[0]] = {
+                'base_id': self.symbol_data[result[0]]['base_id'],
+                'quote_id': self.symbol_data[result[0]]['quote_id']
+            }
+        return ret
 
     def run_fetch_ohlcvs(self, symbols, start_date_dt, end_date_dt):
         '''
@@ -637,28 +660,6 @@ class BinanceOHLCVFetcher:
         finally:
             print("Run_resume_fetch: Finished fetching OHLCVS")
             loop.close()
-
-    def get_mutual_basequote(self):
-        '''
-        Returns a dict of the 30 mutual base-quote symbols
-            in this form:
-                {
-                    'ETHBTC': {
-                        'base_id': 'ETH',
-                        'quote_id': 'BTC'
-                    }
-                }
-        '''
-        
-        self.psql_cur.execute(MUTUAL_BASE_QUOTE_QUERY, (EXCHANGE_NAME,))
-        results = self.psql_cur.fetchall()
-        ret = {}
-        for result in results:
-            ret[result[0]] = {
-                'base_id': self.symbol_data[result[0]]['base_id'],
-                'quote_id': self.symbol_data[result[0]]['quote_id']
-            }
-        return ret
 
     def run_fetch_ohlcvs_mutual_basequote(self, start_date_dt, end_date_dt):
         '''

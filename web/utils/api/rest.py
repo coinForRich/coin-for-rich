@@ -146,6 +146,7 @@ def get_ohlc(
         return parse_ohlc(results, False)
     else:
         # Choose summary table according to `interval`
+        # TODO: replace these `elifs` with lookup table
         if interval == "5m":
             table = models.t_ohlcvs_summary_5min
         elif interval == "15m":

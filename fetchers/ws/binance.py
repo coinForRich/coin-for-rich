@@ -53,7 +53,8 @@ class BinanceOHLCVWebsocket:
                             "method": "SUBSCRIBE",
                             "params": params,
                             "id": self.ws_msg_ids["subscribe"]
-                        }))
+                        })
+                    )
                     while True:
                         resp = await ws.recv()
                         respj = json.loads(resp)

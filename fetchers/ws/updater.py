@@ -1,4 +1,4 @@
-# This module collects websocket sub data in Redis, from all exchanges
+# This module collects websocket subbed data in Redis, from all exchanges
 #   and inserts them into PSQL database
 
 import redis
@@ -28,9 +28,10 @@ class OHLCVWebsocketUpdater:
 
     def update(self):
         '''
-        Collects ohlcv data in Redis sub keys and inserts them
+        Collects ohlcv data in ws sub Redis keys and inserts them
             into PSQL db every `UPDATE_FREQUENCY_SECS` seconds
         '''
+
         psql_conn = psycopg2.connect(DBCONNECTION)
         try:
             while True:
@@ -42,7 +43,7 @@ class OHLCVWebsocketUpdater:
                         data = self.redis_client.hgetall(key)
                         # If there is data and len data > 1,
                         #   sort timestamps ascending,  exclude the latest one,
-                        #   make ohlcv rows to insert
+                        #   prepare ohlcv rows to insert
                         #   then delete data related to inserted timestamps
                         if data and len(data.keys()) > 1:
                             ts_sorted = sorted(data.keys())

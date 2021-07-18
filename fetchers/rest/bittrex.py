@@ -7,14 +7,16 @@ import httpx
 import backoff
 import redis
 from asyncio_throttle import Throttler
+from common.config.constants import *
 from common.helpers.datetimehelpers import (
     datetime_to_str, str_to_datetime, list_days_fromto
 )
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.helpers.asynciohelpers import *
 from fetchers.config.constants import *
-from fetchers.config.queries import PSQL_INSERT_IGNOREDUP_QUERY
-from common.config.constants import *
+from fetchers.config.queries import (
+    PSQL_INSERT_IGNOREDUP_QUERY, MUTUAL_BASE_QUOTE_QUERY
+)
 
 
 # Bittrex returns:
@@ -47,7 +49,8 @@ class BittrexOHLCVFetcher:
 
         # Async throttler
         self.async_throttler = Throttler(
-            rate_limit=RATE_LIMIT_HITS_PER_MIN, period=RATE_LIMIT_SECS_PER_MIN
+            rate_limit = 1,
+            period = RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
         )
 
         # Postgres connection
@@ -104,21 +107,21 @@ class BittrexOHLCVFetcher:
     @classmethod
     def make_ohlcv_url(cls, symbol, interval, start_date):
         '''
-        returns tuple of string of OHLCV url and historical
+        returns tuple of string of OHLCV url and historical indicator
         params:
             `symbol`: string - symbol
             `interval`: string - interval type (see INTERVALS)
             `start_date`: datetime object
+        
         example: https://api.bittrex.com/v3/markets/1INCH-USD/candles/MINUTE_1/historical/2019/01/01
         '''
         
         # Has to check for hist or recent of OHLCV historical param
         # Fetch historical data if time difference between now and start date is > 1 day
         delta = datetime.datetime.now() - start_date
+        historical = 0
         if delta.days > 1:
             historical = OHLCV_SECTION_HIST
-        else:
-            historical = 0
 
         if historical == OHLCV_SECTION_HIST:
             if interval == "MINUTE_1" or interval == "MINUTE_5":
@@ -142,9 +145,25 @@ class BittrexOHLCVFetcher:
         )
 
     @classmethod
+    def make_tofetch_params(cls, symbol, start_date, end_date, interval):
+        '''
+        makes tofetch params to feed into Redis to-fetch set
+        params:
+            `symbol`: symbol string
+            `start_date`: datetime obj or string representing datetime
+            `end_date`: datetime obj or string representing datetime
+            `interval`: string
+        e.g.:
+            'BTC-USD;;2021-06-16T00:00:00;;2021-06-17T00:00:00;;MINUTE_1'
+        '''
+
+        return f'{symbol}{REDIS_DELIMITER}{start_date}{REDIS_DELIMITER}{end_date}{REDIS_DELIMITER}{interval}'
+
+    @classmethod
     def parse_ohlcvs(cls, ohlcvs, base_id, quote_id):
         '''
-        returns rows of parsed ohlcv
+        returns rows of parsed ohlcvs
+        
         params:
             `ohlcvs`: list of ohlcv dicts (returned from request)
             `base_id`: string
@@ -152,7 +171,7 @@ class BittrexOHLCVFetcher:
         '''
 
         # Ignore ohlcvs that are empty, do not raise error,
-        # as other errors are catched elsewhere
+        #   as other errors are catched elsewhere
         if ohlcvs:
             ohlcvs_table_insert = []
             for ohlcv in ohlcvs:
@@ -179,6 +198,7 @@ class BittrexOHLCVFetcher:
         '''
         returns a list that contains:
             - a tuple to insert into the ohlcvs error table
+
         params:
             `symbol`: string
             `start_date`: datetime obj of start date
@@ -191,14 +211,23 @@ class BittrexOHLCVFetcher:
         '''
         
         return [
-            (EXCHANGE_NAME,symbol,start_date,end_date,interval,historical,\
+            (EXCHANGE_NAME,symbol,start_date,end_date,interval,historical, \
             resp_status_code,str(exception_class),exception_msg)
         ]
 
-    @backoff.on_predicate(backoff.fibo, lambda result: result[0] == 429, max_tries=12, on_backoff=onbackoff, on_success=onsuccessgiveup, on_giveup=onsuccessgiveup)
+    @backoff.on_predicate(
+        backoff.constant,
+        lambda result: result[0] == 429,
+        max_tries=12,
+        on_backoff=onbackoff,
+        on_success=onsuccessgiveup,
+        on_giveup=onsuccessgiveup,
+        interval=RATE_LIMIT_SECS_PER_MIN
+    )
     async def get_ohlcv_data(self, ohlcv_url, throttler=None, exchange_name=None):
         '''
-        gets ohlcv data based on url
+        gets ohlcv data based on url;
+            also backoffs conservatively by 60 secs
         returns tuple:
             (
                 http status (None if there's none),
@@ -207,110 +236,146 @@ class BittrexOHLCVFetcher:
                 error message (None if there's none)
 
             )
+
         params:
             `ohlcv_url`: string - ohlcv API url
             `throttler`: asyncio-throttle obj
             `exchange_name`: string - this exchange's name
         '''
 
-        try:
-            ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
-            ohlcvs_resp.raise_for_status()
-            return (
-                ohlcvs_resp.status_code,
-                ohlcvs_resp.json(),
-                None,
-                None
-            )
-        except httpx.HTTPStatusError as exc:
-            resp_status_code = exc.response.status_code
-            return (
-                resp_status_code,
-                None,
-                type(exc),
-                f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
-            )
-        except httpx.RequestError as exc:
-            return (
-                None,
-                None,
-                type(exc),
-                f'EXCEPTION: Request error while requesting {exc.request.url}'
-            )
+        async with self.async_throttler:
+            try:
+                ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
+                ohlcvs_resp.raise_for_status()
+                return (
+                    ohlcvs_resp.status_code,
+                    ohlcvs_resp.json(),
+                    None,
+                    None
+                )
+            except httpx.HTTPStatusError as exc:
+                resp_status_code = exc.response.status_code
+                return (
+                    resp_status_code,
+                    None,
+                    type(exc),
+                    f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
+                )
+            except Exception as exc:
+                return (
+                    None,
+                    None,
+                    type(exc),
+                    f'EXCEPTION: Request error while requesting {exc.request.url}'
+                )
 
-    def sadd_tofetch_redis(self, symbol, start_date, end_date, interval):
+    async def get_and_parse_ohlcv(self, params):
         '''
-        Adds params to Redis to-fetch set
+        Gets and parses ohlcvs from consumed params
+        
         params:
-            `symbol`: symbol string
-            `start_date`: datetime obj
-            `end_date`: datetime obj
-            `interval`: string - interval type (e.g., MINUTE_1)
-        e.g.:
-            'BTC-USD;;MINUTE_1;;2021-06-16T00:00:00;;2021-06-17T00:00:00'
+            `params`: params consumed from Redis to-fetch set
         '''
 
-        # Needs to serialize datetime obj to str
-        start_date_str = datetime_to_str(start_date, DATETIME_STR_FORMAT)
-        end_date_str = datetime_to_str(end_date, DATETIME_STR_FORMAT)
+        # Extract params
+        params_split = params.split(REDIS_DELIMITER)
+        symbol = params_split[0]
+        start_date = str_to_datetime(params_split[1], DEFAULT_DATETIME_STR_QUERY)
+        end_date = str_to_datetime(params_split[2], DEFAULT_DATETIME_STR_QUERY)
+        interval = params_split[3]
 
-        self.redis_client.sadd(
-            OHLCVS_BITTREX_TOFETCH_REDIS,
-            f'{symbol}{REDIS_DELIMITER}{interval}{REDIS_DELIMITER}{start_date_str}{REDIS_DELIMITER}{end_date_str}'
+        # Construct url and fetch
+        base_id = self.symbol_data[symbol]['base_id']
+        quote_id = self.symbol_data[symbol]['quote_id']
+
+        ohlcv_url, historical = self.make_ohlcv_url(
+            symbol, interval, start_date
         )
+        ohlcv_result = await self.get_ohlcv_data(
+            ohlcv_url, throttler=self.async_throttler, exchange_name=EXCHANGE_NAME
+        )
+        resp_status_code = ohlcv_result[0]
+        ohlcvs = ohlcv_result[1]
+        exc_type = ohlcv_result[2]
+        exception_msg = ohlcv_result[3]
 
-    @classmethod
-    def make_tofetch_params(cls, symbol, start_date, end_date, interval):
-        '''
-        Makes to-fetch params for Redis set
-        :params:
-            `symbol`: symbol string
-            `start_date`: datetime obj
-            `end_date`: datetime obj
-            `interval`: string - interval type (e.g., MINUTE_1)
-        e.g.:
-            'BTC-USD;;MINUTE_1;;2021-06-16T00:00:00;;2021-06-17T00:00:00'
-        '''
+        # If exc_type is None (meaning no exception), process;
+        #   Else, process the error
+        if exc_type is None:
+            try:
+                # Copy to PSQL if parsed successfully
+                # Get the latest date in OHLCVS list,
+                #   if latest date > start_date, update start_date
+                ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id)
+                if ohlcvs_parsed:
+                    psql_bulk_insert(
+                        self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY
+                    )
+            except Exception as exc:
+                exc_type = type(exc)
+                exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
+                print(exception_msg)
+                error_tuple = self.make_error_tuple(
+                    symbol, start_date, end_date, interval, historical, resp_status_code, exc_type, exception_msg
+                )
+                psql_bulk_insert(
+                    self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY
+                )
+        else:
+            print(exception_msg)
+            error_tuple = self.make_error_tuple(
+                symbol, start_date, end_date, interval, historical, resp_status_code, exc_type, exception_msg
+            )
+            psql_bulk_insert(
+                self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE,
+                PSQL_INSERT_IGNOREDUP_QUERY
+            )
+        
+        # PSQL Commit
+        self.psql_conn.commit()
 
-        return ""
-    
-    async def feed_ohlcvs_redis(self, symbols, start_date, end_date, interval):
+        return None
+
+    async def init_tofetch_redis(self, symbols, start_date, end_date, interval):
         '''
-        Initially creates OHLCV parameters and feeds to a Redis set to begin fetching;
-        This Redis set and params are exclusively for this exchange
-        This method serves as a "prime" for fetching
+        Initializes feeding params to Redis to-fetch set
+        
         params:
             `symbols`: list of symbols
             `start_date`: datetime obj
             `end_date`: datetime obj
             `interval`: string
+        
         feeds the following information:
             - key: OHLCVS_BITTREX_TOFETCH_REDIS
             - value: symbol;;interval;;historical;;start_date_str;;end_date_str
+        
         e.g.:
-            'BTC-USD;;MINUTE_1;;2021-06-16T00:00:00;;2021-06-17T00:00:00'
+            'BTC-USD;;2021-06-16T00:00:00;;2021-06-17T00:00:00;;MINUTE_1'
         '''
 
         # Set feeding status
-        self.feeding = True
-
         # Convert datetime with tzinfo to non-tzinfo, if any
+        # Also format end_date according to DEFAULT_DATETIME_STR_QUERY
+        self.feeding = True
         start_date = start_date.replace(tzinfo=None)
         end_date = end_date.replace(tzinfo=None)
+        end_date_fmted = datetime_to_str(end_date, DEFAULT_DATETIME_STR_QUERY)
 
         # Initial feed params to Redis set
         # Keep looping until start_date = end_date
         # while start_date < end_date:
         #     self.sadd_tofetch_redis(symbol, start_date, end_date, interval)
         #     start_date += datetime.timedelta(days=DAYDELTAS[interval])
-        
+        # Finally reset feeding status
         for date in list_days_fromto(start_date, end_date):
+            date_fmted = datetime_to_str(date, DEFAULT_DATETIME_STR_QUERY)
             params_list = [
-                self.make_tofetch_params(symbol, date, end_date, interval) for symbol in symbols
+                self.make_tofetch_params(symbol, date_fmted, end_date_fmted, interval) for symbol in symbols
             ]
-
-        # Reset feeding status
+            self.redis_client.sadd(OHLCVS_BITTREX_TOFETCH_REDIS, *params_list)
         self.feeding = False
+        print("Redis: Successfully initialized feeding params")
 
     async def consume_ohlcvs_redis(self):
         '''
@@ -325,107 +390,57 @@ class BittrexOHLCVFetcher:
             while self.feeding or \
                 self.redis_client.scard(OHLCVS_BITTREX_TOFETCH_REDIS) > 0 \
                     or self.redis_client.scard(OHLCVS_BITTREX_FETCHING_REDIS) > 0:
-                    async with self.async_throttler:
-                        # Pop 1 from to-fetch Redis set
-                        # Send it to fetching Redis set
-                        params = self.redis_client.spop(OHLCVS_BITTREX_TOFETCH_REDIS)
-                        if params:
-                            self.redis_client.sadd(OHLCVS_BITTREX_FETCHING_REDIS, params)
-                            # Extract params
-                            params_split = params.split(REDIS_DELIMITER)
-                            symbol = params_split[0]
-                            interval = params_split[1]
-                            start_date_str = params_split[2]
-                            start_date_dt = str_to_datetime(start_date_str, DATETIME_STR_FORMAT)
-                            end_date_str = params_split[3]
-                            end_date_dt = str_to_datetime(end_date_str, DATETIME_STR_FORMAT)
-
-                            # Construct url and fetch
-                            base_id = self.symbol_data[symbol]['base_id']
-                            quote_id = self.symbol_data[symbol]['quote_id']
-
-                            ohlcv_url, historical = self.make_ohlcv_url(
-                                symbol, interval, start_date_dt
-                            )
-                            ohlcv_result = await self.get_ohlcv_data(
-                                ohlcv_url, throttler=self.async_throttler, exchange_name=EXCHANGE_NAME
-                            )
-                            resp_status_code = ohlcv_result[0]
-                            ohlcvs = ohlcv_result[1]
-                            exc_type = ohlcv_result[2]
-                            exception_msg = ohlcv_result[3]
-                            
-                            # If exc_type is None, process
-                            # Else, process the error
-                            if exc_type is None:
-                                try:
-                                    ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id)
-                                    if ohlcvs_parsed:
-                                        psql_bulk_insert(self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY)
-                                except Exception as exc:
-                                    exc_type = type(exc)
-                                    exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
-                                    print(exception_msg)
-                                    error_tuple = self.make_error_tuple(symbol, start_date_dt, end_date_dt, interval, historical, resp_status_code, exc_type, exception_msg)
-                                    psql_bulk_insert(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY)
-                            else:
-                                print(exception_msg)
-                                error_tuple = self.make_error_tuple(symbol, start_date_dt, end_date_dt, interval, historical, resp_status_code, exc_type, exception_msg)
-                                psql_bulk_insert(self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY)
-                    
-                    # Commit and remove params from fetching set
-                    self.psql_conn.commit()
-                    self.redis_client.srem(OHLCVS_BITTREX_FETCHING_REDIS, params)
+                # Pop a batch of size `rate_limit` from Redis to-fetch set,
+                #   send it to Redis fetching set
+                # Add params in params list to Redis fetching set
+                # New to-fetch params with new start dates will be results
+                #   of `get_parse_tasks`
+                #   Add these params to Redis to-fetch set, if not None
+                # Finally, remove params list from Redis fetching set
+                    params_list = self.redis_client.spop(
+                        OHLCVS_BITTREX_TOFETCH_REDIS, RATE_LIMIT_HITS_PER_MIN
+                    )
+                    if params_list:
+                        self.redis_client.sadd(OHLCVS_BITTREX_FETCHING_REDIS, *params_list)
+                        get_parse_tasks = [
+                            self.get_and_parse_ohlcv(params) for params in params_list
+                        ]
+                        await asyncio.gather(*get_parse_tasks)
+                        self.redis_client.srem(OHLCVS_BITTREX_FETCHING_REDIS, *params_list)
 
     async def fetch_ohlcvs_symbols(self, symbols, start_date_dt, end_date_dt):
         '''
         Function to get OHLCVs of symbols
+        
         params:
             `symbol`: list of symbol string
             `start_date_dt`: datetime obj - for start date
             `end_date_dt`: datetime obj - for end date
         '''
 
-        # Asyncio tasks and exception handler
-        loop = asyncio.get_event_loop()
-        tasks = []
-        aio_set_exception_handler(loop)
-
         # Set feeding status so the consume
         # function does not close immediately
         self.feeding = True
 
-        # Create feeding task for each symbol
-        for symbol in symbols:
-            print(f"=== Fetching OHLCVs for symbol {symbol}")
-            tasks.append(
-                loop.create_task(
-                    self.feed_ohlcvs_redis(
-                        symbol=symbol,
-                        start_date=start_date_dt,
-                        end_date=end_date_dt,
-                        interval=OHLCV_INTERVAL
-                    )
-                )
-            )
-        # Create consuming task
-        tasks.append(loop.create_task(self.consume_ohlcvs_redis()))
-
-        # Await tasks
-        await asyncio.wait(tasks)
-
-    async def fetch_ohlcvs_all_symbols(self, start_date_dt, end_date_dt):
-        '''
-        Function to fetch OHLCVS for all trading symbols on Bittrex
-        params:
-            `start_date_dt`: datetime object (for starting date)
-            `end_date_dt`: datetime object (for ending date)
-        '''
-
-        # Run tasks and set fetching to False
-        symbols = self.symbol_data.keys()
+        # Asyncio gather 2 tasks:
+        # - Init to-fetch
+        # - Consume from Redis to-fetch
         await asyncio.gather(
-            self.fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt)
+            self.init_tofetch_redis(
+                symbols, start_date_dt, end_date_dt, OHLCV_INTERVAL
+            ),
+            self.consume_ohlcvs_redis()
+        )
+
+    async def resume_fetch(self):
+        '''
+        Resumes fetching tasks if there're params inside Redis sets
+        '''
+
+        # Asyncio gather 1 task:
+        # - Consume from Redis to-fetch
+        await asyncio.gather(
+            self.consume_ohlcvs_redis()
         )
 
     def fetch_symbol_data(self):
@@ -433,22 +448,105 @@ class BittrexOHLCVFetcher:
             (EXCHANGE_NAME, bq['base_id'], bq['quote_id'], symbol) \
             for symbol, bq in self.symbol_data.items()
         ]
-        psql_bulk_insert(self.psql_conn, rows, SYMBOL_EXCHANGE_TABLE, PSQL_INSERT_IGNOREDUP_QUERY)
+        psql_bulk_insert(
+            self.psql_conn, rows, SYMBOL_EXCHANGE_TABLE,
+            PSQL_INSERT_IGNOREDUP_QUERY
+        )
+
+    def get_mutual_basequote(self):
+        '''
+        Returns a dict of the 30 mutual base-quote symbols
+            in this form:
+                {
+                    'BTC-USD': {
+                        'base_id': 'BTC',
+                        'quote_id': 'USD'
+                    }
+                }
+        '''
+        
+        self.psql_cur.execute(MUTUAL_BASE_QUOTE_QUERY, (EXCHANGE_NAME,))
+        results = self.psql_cur.fetchall()
+        ret = {}
+        for result in results:
+            ret[result[0]] = {
+                'base_id': self.symbol_data[result[0]]['base_id'],
+                'quote_id': self.symbol_data[result[0]]['quote_id']
+            }
+        return ret
 
     def run_fetch_ohlcvs(self, symbols, start_date_dt, end_date_dt):
         '''
         Runs fetching OHLCVS
+        params:
+            `symbols`: list of symbol string
+            `start_date_dt`: datetime obj - for start date
+            `end_date_dt`: datetime obj - for end date
         '''
 
-        asyncio.run(self.fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt))
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            asyncio.set_event_loop(asyncio.new_event_loop())
+            loop = asyncio.get_event_loop()
+        aio_set_exception_handler(loop)
+        try:
+            print("Run_fetch_ohlcvs: Fetching OHLCVS for indicated symbols")
+            loop.run_until_complete(
+                self.fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt)
+            )
+        finally:
+            print("Run_fetch_ohlcvs: Finished fetching OHLCVS for indicated symbols")
+            loop.close()
 
     def run_fetch_ohlcvs_all(self, start_date_dt, end_date_dt):
         '''
         Runs the fetching OHLCVS for all symbols
+        params:
+            `symbols`: list of symbol string
+            `start_date_dt`: datetime obj - for start date
+            `end_date_dt`: datetime obj - for end date
         '''
 
-        asyncio.run(self.fetch_ohlcvs_all_symbols(start_date_dt, end_date_dt))
-    
+        # Have to fetch symbol data first to
+        # make sure it's up-to-date
+        self.fetch_symbol_data()
+        symbols = self.symbol_data.keys()
+
+        self.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt)
+        print("Run_fetch_ohlcvs_all: Finished fetching OHLCVS for all symbols")
+
+    def run_resume_fetch(self):
+        '''
+        Runs the resuming of fetching tasks
+        '''
+
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            asyncio.set_event_loop(asyncio.new_event_loop())
+            loop = asyncio.get_event_loop()
+        aio_set_exception_handler(loop)
+        try:
+            print("Run_resume_fetch: Resuming fetching tasks from Redis sets")
+            loop.run_until_complete(self.resume_fetch())
+        finally:
+            print("Run_resume_fetch: Finished fetching OHLCVS")
+            loop.close()
+
+    def run_fetch_ohlcvs_mutual_basequote(self, start_date_dt, end_date_dt):
+        '''
+        Runs the fetching of the 30 mutual base-quote symbols
+        :params:
+            `start_date_dt`: datetime obj
+            `end_date_dt`: datetime obj
+        '''
+        # Have to fetch symbol data first to
+        # make sure it's up-to-date
+        self.fetch_symbol_data()
+        
+        symbols = self.get_mutual_basequote()
+        self.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt)
+        print("Run_fetch_ohlcvs_all: Finished fetching OHLCVS for common symbols")
+
     def close_connections(self):
         '''
         Close all connections (e.g., PSQL)

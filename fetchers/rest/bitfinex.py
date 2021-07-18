@@ -134,7 +134,7 @@ class BitfinexOHLCVFetcher:
         '''
         returns tuple of OHLCV url and OHLCV section
         params:
-            `time_frame`: string - time frame, e.g., 1m
+            `time_frame`: string - time frame, e.g,, 1m
             `symbol`: string - trading symbol, e.g., BTSE:USD
             `limit`: int - number limit of results fetched
             `start_date_mls`: int - datetime obj converted into milliseconds
@@ -158,13 +158,13 @@ class BitfinexOHLCVFetcher:
         return (ohlcv_url, ohlcv_section)
     
     @classmethod
-    def make_tofetch_params(cls, symbol, start_date_mls, end_date_mls, time_frame, limit, sort):
+    def make_tofetch_params(cls, symbol, start_date, end_date, time_frame, limit, sort):
         '''
         makes tofetch params to feed into Redis to-fetch set
         params:
             `symbol`: symbol string
-            `start_date_mls`: datetime in millisecs
-            `end_date_mls`: datetime in millisecs
+            `start_date`: datetime obj
+            `end_date`: datetime obj
             `time_frame`: string
             `limit`: int
             `sort`: int (1 or -1)
@@ -172,15 +172,22 @@ class BitfinexOHLCVFetcher:
             'BTCUSD;;1000000;;2000000;;1m;;9000;;1
         '''
 
-        return f'{symbol}{REDIS_DELIMITER}{start_date_mls}{REDIS_DELIMITER}{end_date_mls}{REDIS_DELIMITER}{time_frame}{REDIS_DELIMITER}{limit}{REDIS_DELIMITER}{sort}'
+        # Convert start_date and end_date to milliseconds if needed
+        if not isinstance(start_date, int):
+            start_date = datetime_to_milliseconds(start_date)
+        if not isinstance(end_date, int):
+            end_date = datetime_to_milliseconds(end_date)
+        
+        return f'{symbol}{REDIS_DELIMITER}{start_date}{REDIS_DELIMITER}{end_date}{REDIS_DELIMITER}{time_frame}{REDIS_DELIMITER}{limit}{REDIS_DELIMITER}{sort}'
 
     @classmethod
     def parse_ohlcvs(cls, ohlcvs, base_id, quote_id, ohlcv_section):
         '''
-        returns a list of rows of parsed ohlcv
-        note, in the ohlcv response that:
-            if ohlcv_section is `hist`, ohlcvs will be list of lists
-            if ohlcv_section is `last`, ohlcvs will be a list
+        returns a list of rows of parsed ohlcvs
+        note, in the ohlcv response from Bitfinex, that:
+            - if ohlcv_section is `hist`, ohlcvs will be list of lists
+            - if ohlcv_section is `last`, ohlcvs will be a list
+        
         params:
             `ohlcvs`: list of ohlcv dicts (returned from request)
             `base_id`: string
@@ -222,15 +229,15 @@ class BitfinexOHLCVFetcher:
             `symbol`: string
             `start_date`: datetime obj of start date
             `end_date`: datetime obj of end date
-            `time_frame`: string
-            `ohlcv_section`: string
+            `time_frame`: string - timeframe
+            `ohlcv_section`: string - historical or recent
             `resp_status_code`: int - response status code
             `exception_class`: string
             `exception_msg`: string
         '''
 
         # Convert start_date and end_date to datetime obj if needed;
-        # Because timestamps in Bitfinex are in mls
+        #   as timestamps in Bitfinex are in mls
         if not isinstance(start_date, datetime.datetime):
             start_date = milliseconds_to_datetime(start_date)
         if not isinstance(end_date, datetime.datetime):
@@ -252,8 +259,8 @@ class BitfinexOHLCVFetcher:
     )
     async def get_ohlcv_data(self, ohlcv_url, throttler=None, exchange_name=None):
         '''
-        gets ohlcv data based on url
-        also backoffs conservatively by 60 secs
+        gets ohlcv data based on url;
+            also backoffs conservatively by 60 secs
         returns tuple:
             (
                 http status (None if there's none),
@@ -261,6 +268,7 @@ class BitfinexOHLCVFetcher:
                 exception type (None if there's none),
                 error message (None if there's none)
             )
+
         params:
             `ohlcv_url`: string - ohlcv API url
             `throttler`: asyncio-throttle obj
@@ -296,6 +304,7 @@ class BitfinexOHLCVFetcher:
     async def get_and_parse_ohlcv(self, params):
         '''
         Gets and parses ohlcvs from consumed params
+
         params:
             `params`: params consumed from Redis to-fetch set
         '''
@@ -351,14 +360,18 @@ class BitfinexOHLCVFetcher:
                 exc_type = type(exc)
                 exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
                 print(exception_msg)
-                error_tuple = self.make_error_tuple(symbol, start_date_mls, end_date_mls, time_frame, ohlcv_section, resp_status_code, exc_type, exception_msg)
+                error_tuple = self.make_error_tuple(
+                    symbol, start_date_mls, end_date_mls, time_frame, ohlcv_section, resp_status_code, exc_type, exception_msg
+                )
                 psql_bulk_insert(
                     self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY
                 )
                 start_date_mls += (60000 * OHLCV_LIMIT)
         else:
             print(exception_msg)
-            error_tuple = self.make_error_tuple(symbol, start_date_mls, end_date_mls, time_frame, ohlcv_section, resp_status_code, exc_type, exception_msg)
+            error_tuple = self.make_error_tuple(
+                symbol, start_date_mls, end_date_mls, time_frame, ohlcv_section, resp_status_code, exc_type, exception_msg
+            )
             psql_bulk_insert(
                 self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE,
                 PSQL_INSERT_IGNOREDUP_QUERY
@@ -379,6 +392,7 @@ class BitfinexOHLCVFetcher:
     async def init_tofetch_redis(self, symbols, start_date, end_date, time_frame, limit, sort):
         '''
         Initializes feeding params to Redis to-fetch set
+        
         params:
             `symbols`: iterable of symbols
             `start_date`: datetime obj
@@ -386,12 +400,15 @@ class BitfinexOHLCVFetcher:
             `time_frame`: string
             `limit`: int
             `sort`: int (1 or -1)
-        e.g.:
-            'BTCUSD;;1000000;;2000000;;1m;;9000;;1
+        
         feeds the following information:
         - key: OHLCVS_BITFINEX_TOFETCH_REDIS
         - value: symbol;;start_date_mls;;end_date_mls;;time_frame;;limit;;sort
+        
+        e.g.:
+            'BTCUSD;;1000000;;2000000;;1m;;9000;;1
         '''
+
         # Set feeding status
         # Convert datetime with tzinfo to non-tzinfo, if any
         self.feeding = True
@@ -462,6 +479,7 @@ class BitfinexOHLCVFetcher:
     async def fetch_ohlcvs_symbols(self, symbols, start_date_dt, end_date_dt):
         '''
         Function to get OHLCVs of symbols
+        
         params:
             `symbol`: list of symbol string
             `start_date_dt`: datetime obj - for start date
@@ -502,6 +520,28 @@ class BitfinexOHLCVFetcher:
             self.psql_conn, rows, SYMBOL_EXCHANGE_TABLE,
             PSQL_INSERT_IGNOREDUP_QUERY
         )
+
+    def get_mutual_basequote(self):
+        '''
+        Returns a dict of the 30 mutual base-quote symbols
+            in this form:
+                {
+                    'ETHBTC': {
+                        'base_id': 'ETH',
+                        'quote_id': 'BTC'
+                    }
+                }
+        '''
+        
+        self.psql_cur.execute(MUTUAL_BASE_QUOTE_QUERY, (EXCHANGE_NAME,))
+        results = self.psql_cur.fetchall()
+        ret = {}
+        for result in results:
+            ret[result[0]] = {
+                'base_id': self.symbol_data[result[0]]['base_id'],
+                'quote_id': self.symbol_data[result[0]]['quote_id']
+            }
+        return ret
 
     def run_fetch_ohlcvs(self, symbols, start_date_dt, end_date_dt):
         '''
@@ -559,28 +599,6 @@ class BitfinexOHLCVFetcher:
         finally:
             print("Run_resume_fetch: Finished fetching OHLCVS")
             loop.close()
-
-    def get_mutual_basequote(self):
-        '''
-        Returns a dict of the 30 mutual base-quote symbols
-            in this form:
-                {
-                    'ETHBTC': {
-                        'base_id': 'ETH',
-                        'quote_id': 'BTC'
-                    }
-                }
-        '''
-        
-        self.psql_cur.execute(MUTUAL_BASE_QUOTE_QUERY, (EXCHANGE_NAME,))
-        results = self.psql_cur.fetchall()
-        ret = {}
-        for result in results:
-            ret[result[0]] = {
-                'base_id': self.symbol_data[result[0]]['base_id'],
-                'quote_id': self.symbol_data[result[0]]['quote_id']
-            }
-        return ret
 
     def run_fetch_ohlcvs_mutual_basequote(self, start_date_dt, end_date_dt):
         '''
