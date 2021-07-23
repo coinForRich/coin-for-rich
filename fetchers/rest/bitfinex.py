@@ -133,7 +133,8 @@ class BitfinexOHLCVFetcher:
     def make_ohlcv_url(cls, time_frame, symbol, limit, start_date_mls, end_date_mls, sort):
         '''
         returns tuple of OHLCV url and OHLCV section
-        params:
+
+        :params:
             `time_frame`: string - time frame, e.g,, 1m
             `symbol`: string - trading symbol, e.g., BTSE:USD
             `limit`: int - number limit of results fetched
@@ -147,15 +148,17 @@ class BitfinexOHLCVFetcher:
         # Has to check for hist or last of OHLCV section
         # Fetch historical data if time difference between now and start date is > 60k mls
         delta = datetime_to_milliseconds(datetime.datetime.now()) - start_date_mls
-        if delta > 60000:
-            ohlcv_section = OHLCV_SECTION_HIST
-        else:
-            ohlcv_section = OHLCV_SECTION_LAST
-        
         symbol = cls.make_tsymbol(symbol)
-        ohlcv_url = f"{BASE_CANDLE_URL}/trade:{time_frame}:{symbol}/{ohlcv_section}?limit={limit}&start={start_date_mls}&end={end_date_mls}&sort={sort}"
-
-        return (ohlcv_url, ohlcv_section)
+        if delta > 60000:
+            return (
+                f"{BASE_CANDLE_URL}/trade:{time_frame}:{symbol}/{OHLCV_SECTION_HIST}?limit={limit}&start={start_date_mls}&end={end_date_mls}&sort={sort}",
+                OHLCV_SECTION_HIST
+            )
+        else:
+            return (
+                f"{BASE_CANDLE_URL}/trade:{time_frame}:{symbol}/{OHLCV_SECTION_LAST}?sort={sort}",
+                OHLCV_SECTION_LAST
+            )
     
     @classmethod
     def make_tofetch_params(cls, symbol, start_date, end_date, time_frame, limit, sort):

@@ -100,26 +100,18 @@ async def read_ohlcv(
         `mls`: bool if query is using milliseconds or not
             if `mls`, both `start` and `end` must be int
     '''
-
-    starts = time.time()
+    
     if mls:
-        if start:
-            start = int(start)
-        if end:
-            end = int(end)
+        start = int(start) if start else start
+        end = int(end) if end else end
     else:
-        if start:
-            start = str_to_datetime(start, DEFAULT_DATETIME_STR_QUERY)
-        if end:
-            end = str_to_datetime(end, DEFAULT_DATETIME_STR_QUERY)
+        start = str_to_datetime(start, DEFAULT_DATETIME_STR_QUERY) if start else start
+        end = str_to_datetime(end, DEFAULT_DATETIME_STR_QUERY) if end else end
     ohlcv = webapi_rest.get_ohlc(
         db, exchange, base_id, quote_id, interval, start, end, limit
     )
     if not ohlcv:
         raise HTTPException(status_code=404, detail="OHLCV not found")
-        # return None
-    ends = time.time()
-    print(f"Read ohlcv endpoint elapsed: {ends - starts} seconds")
     return ohlcv
 
 @app.websocket("/candles")

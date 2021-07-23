@@ -8,8 +8,13 @@ from io import StringIO
 
 def psql_bulk_insert(conn, rows, table, insert_query, cursor=None):
     '''
-    Bulk inserts rows to `table` using StringIO and CSV
-    Also uses `page_size` of 1000 for inserting
+    Bulk inserts `rows` to `table` using StringIO and CSV;
+        
+    Also uses `page_size` of 1000 for inserting;
+        
+    Returns a boolean value indicating whether insert
+        is successful
+
     :params:
         `conn`: psycopg2 conn obj
         `rows`: iterable of tuples
@@ -20,8 +25,6 @@ def psql_bulk_insert(conn, rows, table, insert_query, cursor=None):
         `cursor`: psycopg2 cursor obj (optional)
     '''
 
-    # TODO: add `return` statement for a status code indicating
-    #   whether the insert is successful or not
     if not cursor:
         cursor = conn.cursor()
     try:
@@ -32,19 +35,25 @@ def psql_bulk_insert(conn, rows, table, insert_query, cursor=None):
         cursor.copy_from(buffer, table, sep=",", null="")
         conn.commit()
         print(f'PSQL Bulk Insert: Successfully copied rows to table {table}')
+        if cursor:
+            cursor.close()
+        return True
     except psycopg2.IntegrityError:
         conn.rollback()
         insert_query = sql.SQL(insert_query).format(
-                table = sql.Identifier(table)
-        )
+            table = sql.Identifier(table))
         extras.execute_values(cursor, insert_query, rows, page_size=1000)
         conn.commit()
         print(f'PSQL Bulk Insert: Successfully inserted rows to table {table}')
+        if cursor:
+            cursor.close()
+        return True
     except Exception as exc:
         print(f'PSQL Bulk Insert: EXCEPTION: {exc}')
         conn.rollback()
-    if cursor:
-        cursor.close()
+        if cursor:
+            cursor.close()
+        raise exc
 
 def psql_query_format(query, *args):
     '''

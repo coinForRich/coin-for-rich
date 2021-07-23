@@ -76,9 +76,13 @@ def get_ohlc(
     '''
     Gets OHLCV from psql based on exchange, base_id, quote_id
         and timestamp between start, end (inclusive)
+    
     Limits to a maximum of 500 data points
+    
     Outputs rows with timestamp by ascending order
+    
     Outputs rows with timestamp in seconds
+    
     :params:
         `db`: sqlalchemy Session obj
         `exchange`: str - exchange name

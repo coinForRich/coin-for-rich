@@ -1,5 +1,6 @@
 ### This module uses websocket to fetch binance 1-minute OHLCV data in real time
 
+import sys
 import time
 import asyncio
 import json
@@ -133,3 +134,10 @@ class BinanceOHLCVWebsocket:
     
     def run_mutual_basequote(self):
         asyncio.run(self.mutual_basequote())
+
+
+if __name__ == "__main__":
+    run_cmd = sys.argv[1]
+    ws_binance = BinanceOHLCVWebsocket()
+    if getattr(ws_binance, run_cmd):
+        getattr(ws_binance, run_cmd)()

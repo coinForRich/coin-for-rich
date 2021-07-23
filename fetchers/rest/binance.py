@@ -186,13 +186,16 @@ class BinanceOHLCVFetcher:
     def make_ohlcv_url(cls, interval, symbol, limit, start_date_mls):
         '''
         returns tuple of OHLCV url options
+
         :params:
             `interval`: string - interval, e.g., 1m
             `symbol`: string - trading symbol, e.g., BTCTUSD
             `limit`: int - number limit of results fetched
             `start_date_mls`: int - datetime obj converted into milliseconds
 
-        example: "https://api.binance.com/api/v3/klines?symbol=BTCTUSD&interval=1m&startTime=1357020000000&limit=1000"
+        note that binance does not distinguish historical url or not
+
+        example: https://api.binance.com/api/v3/klines?symbol=BTCTUSD&interval=1m&startTime=1357020000000&limit=1000
         '''
 
         return (

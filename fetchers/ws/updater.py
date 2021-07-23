@@ -1,6 +1,7 @@
 # This module collects websocket subbed data in Redis, from all exchanges
 #   and inserts them into PSQL database
 
+import sys
 import redis
 import time
 import psycopg2
@@ -36,6 +37,7 @@ class OHLCVWebsocketUpdater:
         try:
             while True:
                 ohlcvs_table_insert = []
+                # Loop thru all keys in sub list
                 for key in self.redis_client.smembers(WS_SUB_LIST_REDIS_KEY):
                     try:
                         exchange, base_id, quote_id = \
@@ -73,13 +75,24 @@ class OHLCVWebsocketUpdater:
                             self.redis_client.hdel(key, *ts_to_insert)
                     except Exception as exc:
                         print(f"EXCEPTION: {exc}")
-                psql_bulk_insert(
-                    psql_conn,
-                    ohlcvs_table_insert,
-                    OHLCVS_TABLE,
-                    PSQL_INSERT_IGNOREDUP_QUERY
-                )
-                self.redis_client.delete(WS_SUB_PROCESSING_REDIS_KEY)
+                # Bulk insert
+                try:
+                    psql_bulk_insert(
+                        psql_conn,
+                        ohlcvs_table_insert,
+                        OHLCVS_TABLE,
+                        PSQL_INSERT_IGNOREDUP_QUERY
+                    )
+                    self.redis_client.delete(WS_SUB_PROCESSING_REDIS_KEY)
+                except Exception as exc:
+                    print(f"EXCEPTION: {exc}")
                 time.sleep(UPDATE_FREQUENCY_SECS)
         finally:
             psql_conn.close()
+
+
+if __name__ == "__main__":
+    run_cmd = sys.argv[1]
+    updater = OHLCVWebsocketUpdater()
+    if getattr(updater, run_cmd):
+        getattr(updater, run_cmd)()

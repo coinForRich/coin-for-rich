@@ -79,7 +79,7 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-   CALL refresh_continuous_aggregate('ohlcvs_summary_5min', NULL, '2021-06-26');
+CALL refresh_continuous_aggregate('ohlcvs_summary_5min', NULL, '2021-06-26');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_5min',
    start_offset => INTERVAL '15 minutes',

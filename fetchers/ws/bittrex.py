@@ -1,8 +1,6 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+# Adapted from Bittrex Python WS client example
 #
 # Last tested 2020/09/24 on Python 3.8.5
-#
 # Note: This file is intended solely for testing purposes and may only be used
 #   as an example to debug and compare with your code. The 3rd party libraries
 #   used in this example may not be suitable for your production use cases.
@@ -10,9 +8,9 @@
 #   3rd party library used in your code.
 
 # https://github.com/slazarov/python-signalr-client
-from signalr_aio import Connection
-from base64 import b64decode
-from zlib import decompress, MAX_WBITS
+
+
+import sys
 import hashlib
 import hmac
 import json
@@ -20,6 +18,9 @@ import asyncio
 import time
 import uuid
 import redis
+from signalr_aio import Connection
+from base64 import b64decode
+from zlib import decompress, MAX_WBITS
 from common.config.constants import (
     REDIS_HOST,
     REDIS_PASSWORD,
@@ -31,16 +32,12 @@ from fetchers.config.constants import (
     WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY, WS_SUB_LIST_REDIS_KEY
 )
 from fetchers.rest.bittrex import BittrexOHLCVFetcher, EXCHANGE_NAME
+from fetchers.utils.exceptions import ConnectionClosedOK
 
 
 URI = 'https://socket-v3.bittrex.com/signalr'
 API_KEY = ''
 API_SECRET = ''
-
-HUB = None
-LOCK = asyncio.Lock()
-INVOCATION_EVENT = None
-INVOCATION_RESPONSE = None
 
 class BittrexOHLCVWebsocket:
     def __init__(self):
@@ -60,7 +57,11 @@ class BittrexOHLCVWebsocket:
         # Rest fetcher for convenience
         self.rest_fetcher = BittrexOHLCVFetcher()
 
+        # Latest timestamp with data
+        self.latest_ts = None
+
     async def connect(self):
+        self.latest_ts = time.time()
         connection = Connection(URI)
         self.signalr_hub = connection.register_hub('c3')
         connection.received += self.on_message
@@ -129,9 +130,11 @@ class BittrexOHLCVWebsocket:
             self.invocation_event.set()
 
     async def on_error(self, msg):
+        self.latest_ts = time.time()
         print(msg)
 
     async def on_heartbeat(self, msg):
+        self.latest_ts = time.time()
         print('\u2661')
 
     async def on_auth_expiring(self, msg):
@@ -139,9 +142,11 @@ class BittrexOHLCVWebsocket:
         asyncio.create_task(self.authenticate())
 
     async def on_trade(self, msg):
+        self.latest_ts = time.time()
         await self.decode_message('Trade', msg)
 
     async def on_candle(self, msg):
+        self.latest_ts = time.time()
         respj = await self.decode_message('Candle', msg)
         try:
             # If resp is dict, process and push to Redis
@@ -225,16 +230,22 @@ class BittrexOHLCVWebsocket:
         '''
         Subscribes to some symbols
         '''
-        
-        await self.connect()
-        if API_SECRET != '':
-            await self.authenticate()
-        else:
-            print('Authentication skipped because API key was not provided')
-        symbols = ["ETH-BTC", "BTC-EUR"]
-        await self.subscribe(symbols)
-        forever = asyncio.Event()
-        await forever.wait()
+
+        while True:
+            try:
+                await self.connect()
+                if API_SECRET != '':
+                    await self.authenticate()
+                else:
+                    print('Authentication skipped because API key was not provided')
+                symbols = ["ETH-BTC", "BTC-EUR"]
+                await self.subscribe(symbols)
+                forever = asyncio.Event()
+                await forever.wait()
+            except ConnectionClosedOK:
+                print(f"EXCEPTION: ConnectionClosedOK")
+            except Exception as exc:
+                print(f"EXCEPTION: {exc}")
     
     async def mutual_basequote(self):
         '''
@@ -245,20 +256,42 @@ class BittrexOHLCVWebsocket:
         symbols_dict = self.rest_fetcher.get_mutual_basequote()
         self.rest_fetcher.close_connections()
 
-        await self.connect()
-        if API_SECRET != '':
-            await self.authenticate()
-        else:
-            print('Authentication skipped because API key was not provided')
-        await self.subscribe(symbols_dict.keys())
-        forever = asyncio.Event()
-        await forever.wait()
+        while True:
+            try:
+                # Connect or reconnect if the SignalR hub is None
+                #   or now is more than 60 secs later than latest ts
+                now = time.time()
+                if self.signalr_hub is None or (now - self.latest_ts) > 60:
+                    await self.connect()
+                    if API_SECRET != '':
+                        await self.authenticate()
+                    else:
+                        print('Authentication skipped because API key was not provided')
+                    await self.subscribe(symbols_dict.keys())
+                    # forever = asyncio.Event()
+                    # await forever.wait()
+            except Exception as exc:
+                print(f"EXCEPTION: {exc}")
+            await asyncio.sleep(1)
 
     def run_main(self):
         asyncio.run(self.main())
 
     def run_mutual_basequote(self):
-        asyncio.run(self.mutual_basequote())
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            asyncio.set_event_loop(asyncio.new_event_loop())
+            loop = asyncio.get_event_loop()
+        try:
+            loop.create_task(self.mutual_basequote())
+            loop.run_forever()
+        finally:
+            loop.close()
+        # asyncio.run(self.mutual_basequote())
 
-# if __name__ == "__main__":
-#     asyncio.run(main())
+
+if __name__ == "__main__":
+    run_cmd = sys.argv[1]
+    ws_bittrex = BittrexOHLCVWebsocket()
+    if getattr(ws_bittrex, run_cmd):
+        getattr(ws_bittrex, run_cmd)()
