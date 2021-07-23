@@ -4,6 +4,10 @@
 PSQL_INSERT_IGNOREDUP_QUERY = "INSERT INTO {table} VALUES %s ON CONFLICT DO NOTHING;"
 
 # Insert query into ohlcvs that updates the existing rows with new ones
+PSQL_INSERT_UPDATE_QUERY = '''
+INSERT INTO {table} VALUES %s
+ON CONFLICT ({}) DO UPDATE SET ({}) = ({});
+'''
 
 # Get latest timestamp for each exchange-base-quote
 #  combination

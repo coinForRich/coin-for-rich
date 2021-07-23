@@ -12,7 +12,7 @@ app.config_from_object('celery_app.celery_config')
 # Periodic OHLCV update, every 1 minute
 app.conf.beat_schedule = {
     'bitfinex_ohlcv_1min': {
-        'task': "celery_app.celery_tasks.bitfinex_fetch_ohlcvs_mutual_basequote",
-        'schedule': 3600.0
+        'task': "celery_app.celery_tasks.bitfinex_fetch_ohlcvs_mutual_basequote_1min",
+        'schedule': 60.0
     }
 }

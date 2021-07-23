@@ -25,6 +25,9 @@ task_routes = {
     'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_mutual_basequote': {
         'queue': 'bitfinex_rest'
     },
+    'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_mutual_basequote_1min': {
+        'queue': 'bitfinex_rest'
+    },
     'celery_app.celery_tasks.binance_fetch_ohlcvs_all_symbols': {
         'queue': 'binance_rest'
     },

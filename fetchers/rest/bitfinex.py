@@ -16,7 +16,8 @@ from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.helpers.asynciohelpers import *
 from fetchers.config.constants import *
 from fetchers.config.queries import (
-    PSQL_INSERT_IGNOREDUP_QUERY, MUTUAL_BASE_QUOTE_QUERY
+    PSQL_INSERT_IGNOREDUP_QUERY, MUTUAL_BASE_QUOTE_QUERY,
+    PSQL_INSERT_UPDATE_QUERY
 )
 
 
@@ -142,7 +143,7 @@ class BitfinexOHLCVFetcher:
             `end_date_mls`: int - datetime obj converted into milliseconds
             `sort`: int (1 or -1)
 
-        example: https://api-pub.bitfinex.com/v2/candles/trade:1m:tBTSE:USD/hist?limit=10000&start=1577836800000&sort=1
+        example: https://api-pub.bitfinex.com/v2/candles/trade:1m:tBTCUSD/hist?limit=10000&start=1577836800000&sort=1
         '''
 
         # Has to check for hist or last of OHLCV section
@@ -304,7 +305,7 @@ class BitfinexOHLCVFetcher:
                     f'EXCEPTION: Request error while requesting {ohlcv_url}'
                 )
 
-    async def get_and_parse_ohlcv(self, params):
+    async def get_and_parse_ohlcv(self, params, update: bool=False):
         '''
         Gets and parses ohlcvs from consumed params
 
@@ -345,13 +346,27 @@ class BitfinexOHLCVFetcher:
         if exc_type is None:
             try:
                 # Copy to PSQL if parsed successfully
+                # Perform update if `update` is True
                 # Get the latest date in OHLCVS list,
                 #   if latest date > start_date, update start_date
                 ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id, ohlcv_section)
                 if ohlcvs_parsed:
-                    psql_bulk_insert(
-                        self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY
-                    )
+                    if update:
+                        psql_bulk_insert(
+                            self.psql_conn,
+                            ohlcvs_parsed,
+                            OHLCVS_TABLE,
+                            insert_update_query = PSQL_INSERT_UPDATE_QUERY,
+                            unique_cols = OHLCV_UNIQUE_COLUMNS,
+                            update_cols = OHLCV_UPDATE_COLUMNS
+                        )
+                    else:
+                        psql_bulk_insert(
+                            self.psql_conn,
+                            ohlcvs_parsed,
+                            OHLCVS_TABLE,
+                            insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
+                        )
                     ohlcvs_last_date = datetime_to_milliseconds(ohlcvs_parsed[-1][0])
                     if ohlcvs_last_date > start_date_mls:
                         start_date_mls = ohlcvs_last_date
@@ -367,7 +382,10 @@ class BitfinexOHLCVFetcher:
                     symbol, start_date_mls, end_date_mls, time_frame, ohlcv_section, resp_status_code, exc_type, exception_msg
                 )
                 psql_bulk_insert(
-                    self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY
+                    self.psql_conn,
+                    error_tuple,
+                    OHLCVS_ERRORS_TABLE,
+                    insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
                 )
                 start_date_mls += (60000 * OHLCV_LIMIT)
         else:
@@ -376,8 +394,10 @@ class BitfinexOHLCVFetcher:
                 symbol, start_date_mls, end_date_mls, time_frame, ohlcv_section, resp_status_code, exc_type, exception_msg
             )
             psql_bulk_insert(
-                self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE,
-                PSQL_INSERT_IGNOREDUP_QUERY
+                self.psql_conn,
+                error_tuple,
+                OHLCVS_ERRORS_TABLE,
+                insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
             )
             start_date_mls += (60000 * OHLCV_LIMIT)
         
@@ -430,7 +450,7 @@ class BitfinexOHLCVFetcher:
         self.feeding = False
         print("Redis: Successfully initialized feeding params")
 
-    async def consume_ohlcvs_redis(self):
+    async def consume_ohlcvs_redis(self, update: bool=False):
         '''
         Consumes OHLCV parameters from the to-fetch Redis set
         '''
@@ -466,7 +486,7 @@ class BitfinexOHLCVFetcher:
                 if params_list:
                     self.redis_client.sadd(OHLCVS_BITFINEX_FETCHING_REDIS, *params_list)
                     get_parse_tasks = [
-                        self.get_and_parse_ohlcv(params) for params in params_list
+                        self.get_and_parse_ohlcv(params, update) for params in params_list
                     ]
                     task_results = await asyncio.gather(*get_parse_tasks)
                     new_tofetch_params_notnone = [
@@ -479,7 +499,7 @@ class BitfinexOHLCVFetcher:
                         )
                     self.redis_client.srem(OHLCVS_BITFINEX_FETCHING_REDIS, *params_list)
     
-    async def fetch_ohlcvs_symbols(self, symbols, start_date_dt, end_date_dt):
+    async def fetch_ohlcvs_symbols(self, symbols, start_date_dt, end_date_dt, update: bool=False):
         '''
         Function to get OHLCVs of symbols
         
@@ -500,10 +520,10 @@ class BitfinexOHLCVFetcher:
             self.init_tofetch_redis(
                 symbols, start_date_dt, end_date_dt, OHLCV_TIMEFRAME, OHLCV_LIMIT, 1
             ),
-            self.consume_ohlcvs_redis()
+            self.consume_ohlcvs_redis(update)
         )
     
-    async def resume_fetch(self):
+    async def resume_fetch(self, update: bool=False):
         '''
         Resumes fetching tasks if there're params inside Redis sets
         '''
@@ -511,7 +531,7 @@ class BitfinexOHLCVFetcher:
         # Asyncio gather 1 task:
         # - Consume from Redis to-fetch
         await asyncio.gather(
-            self.consume_ohlcvs_redis()
+            self.consume_ohlcvs_redis(update)
         )
     
     def fetch_symbol_data(self):
@@ -520,8 +540,10 @@ class BitfinexOHLCVFetcher:
             for symbol, bq in self.symbol_data.items()
         ]
         psql_bulk_insert(
-            self.psql_conn, rows, SYMBOL_EXCHANGE_TABLE,
-            PSQL_INSERT_IGNOREDUP_QUERY
+            self.psql_conn,
+            rows,
+            SYMBOL_EXCHANGE_TABLE,
+            insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
         )
 
     def get_mutual_basequote(self):
@@ -546,7 +568,7 @@ class BitfinexOHLCVFetcher:
             }
         return ret
 
-    def run_fetch_ohlcvs(self, symbols, start_date_dt, end_date_dt):
+    def run_fetch_ohlcvs(self, symbols, start_date_dt, end_date_dt, update: bool=False):
         '''
         Runs fetching OHLCVS
         params:
@@ -563,13 +585,13 @@ class BitfinexOHLCVFetcher:
         try:
             print("Run_fetch_ohlcvs: Fetching OHLCVS for indicated symbols")
             loop.run_until_complete(
-                self.fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt)
+                self.fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt, update)
             )
         finally:
             print("Run_fetch_ohlcvs: Finished fetching OHLCVS for indicated symbols")
             loop.close()
 
-    def run_fetch_ohlcvs_all(self, start_date_dt, end_date_dt):
+    def run_fetch_ohlcvs_all(self, start_date_dt, end_date_dt, update: bool=False):
         '''
         Runs the fetching OHLCVS for all symbols
         params:
@@ -583,7 +605,7 @@ class BitfinexOHLCVFetcher:
         self.fetch_symbol_data()
         symbols = self.symbol_data.keys()
 
-        self.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt)
+        self.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt, update)
         print("Run_fetch_ohlcvs_all: Finished fetching OHLCVS for all symbols")
 
     def run_resume_fetch(self):
@@ -603,7 +625,7 @@ class BitfinexOHLCVFetcher:
             print("Run_resume_fetch: Finished fetching OHLCVS")
             loop.close()
 
-    def run_fetch_ohlcvs_mutual_basequote(self, start_date_dt, end_date_dt):
+    def run_fetch_ohlcvs_mutual_basequote(self, start_date_dt, end_date_dt, update: bool=False):
         '''
         Runs the fetching of the 30 mutual base-quote symbols
         :params:
@@ -615,7 +637,7 @@ class BitfinexOHLCVFetcher:
         self.fetch_symbol_data()
         
         symbols = self.get_mutual_basequote()
-        self.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt)
+        self.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt, update)
         print("Run_fetch_ohlcvs_all: Finished fetching OHLCVS for common symbols")
 
     def close_connections(self):
