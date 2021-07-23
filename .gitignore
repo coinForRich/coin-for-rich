@@ -5,5 +5,9 @@ __pycache__/
 .pytest_cache/
 logs/*
 run/
+*/beat/
 test*
 .env
+.bak
+.dat
+.dir

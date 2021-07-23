@@ -65,7 +65,7 @@ def bitfinex_fetch_ohlcvs_mutual_basequote_1min():
     '''
 
     end = datetime.datetime.now() - datetime.timedelta(minutes=1)
-    start = end - datetime.timedelta(minutes=2)
+    start = end - datetime.timedelta(minutes=1)
     print(f"Celery: Fetching OHLCVs from {start} to {end}")
     bitfinex_fetcher = BitfinexOHLCVFetcher()
     bitfinex_fetcher.fetch_symbol_data()
