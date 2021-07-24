@@ -16,4 +16,8 @@ docker run -d --name coin-redis -p 6379:6379 -v /root/coin_data/_redisdata:/data
 
 ### Run them all together
 Websocket subscribers and updaters are run in different terminals
+
 REST updaters are run with Celery
+
+### Run tests
+`python -m pytest`

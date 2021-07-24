@@ -61,11 +61,12 @@ def bitfinex_fetch_ohlcvs_mutual_basequote(start_date, end_date):
 @app.task
 def bitfinex_fetch_ohlcvs_mutual_basequote_1min():
     '''
-    Fetches OHLCVs on Bitfinex of mutual symbols for the last 1 minute
+    Fetches OHLCVs on Bitfinex of mutual symbols
+        from 5 minutes before to 1 minute before
     '''
 
     end = datetime.datetime.now() - datetime.timedelta(minutes=1)
-    start = end - datetime.timedelta(minutes=1)
+    start = end - datetime.timedelta(minutes=4)
     print(f"Celery: Fetching OHLCVs from {start} to {end}")
     bitfinex_fetcher = BitfinexOHLCVFetcher()
     bitfinex_fetcher.fetch_symbol_data()

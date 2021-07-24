@@ -8,11 +8,11 @@ pkill -9 -f 'celery_app.celery_main'
 
 celery -A celery_app.celery_main worker -Q bitfinex_rest -n bitfinexRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n_$(date +'%Y-%m-%dT%H:%M:%S').log"
 
-celery -A celery_app.celery_main worker -Q binance_rest -n binanceRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log"
+celery -A celery_app.celery_main worker -Q binance_rest -n binanceRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log"
 
-celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log"
+celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log"
 
-celery -A celery_app.celery_main worker -Q updater -c 4 -n updateWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log"
+celery -A celery_app.celery_main worker -Q updater -c 4 -n updateWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log"
 
 # Celery beat for period tasks
 celery -A celery_app.celery_main beat -s ./celery_app/beat/celery_beat

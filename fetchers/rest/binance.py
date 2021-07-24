@@ -313,6 +313,9 @@ class BinanceOHLCVFetcher:
         retries = 0
         while retries < 12:
             await self.rw_man.aweight_one()
+            
+            print(f"Fetcher instance ID {id(self)}: Fire request")
+            
             if (self.backoff_stt != 429 and self.backoff_stt != 418) \
                 or ohlcv_url == self.backoff_url:
                 async with self.async_throttler:
@@ -363,6 +366,7 @@ class BinanceOHLCVFetcher:
     async def get_and_parse_ohlcv(self, params):
         '''
         Gets and parses ohlcvs from consumed params
+
         :params:
             `params`: params consumed from Redis to-fetch set
             e.g., 'BTCTUSD;;1000000;;2000000;;1m;;1000'

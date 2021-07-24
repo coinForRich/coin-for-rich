@@ -17,8 +17,9 @@ def psql_bulk_insert(
         cursor = None
     ):
     '''
-    Bulk inserts `rows` to `table` using StringIO and CSV,
-        updates with new values on conflict;
+    Bulk inserts `rows` to `table` using StringIO and CSV;
+        
+    On conflict, either ignore or update new values;
         
     Also uses `page_size` of 1000 for inserting;
         

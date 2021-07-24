@@ -13,12 +13,14 @@ from common.helpers.datetimehelpers import (
     datetime_to_milliseconds, milliseconds_to_datetime
 )
 from fetchers.helpers.dbhelpers import psql_bulk_insert
-from fetchers.helpers.asynciohelpers import *
+from fetchers.utils.asyncioutils import *
+from fetchers.utils.ratelimit import GCRARateLimiter
 from fetchers.config.constants import *
 from fetchers.config.queries import (
     PSQL_INSERT_IGNOREDUP_QUERY, MUTUAL_BASE_QUOTE_QUERY,
     PSQL_INSERT_UPDATE_QUERY
 )
+from fetchers.rest.base import BaseOHLCVFetcher
 
 
 EXCHANGE_NAME = "bitfinex"
@@ -34,8 +36,9 @@ RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
 OHLCVS_BITFINEX_TOFETCH_REDIS = "ohlcvs_bitfinex_tofetch"
 OHLCVS_BITFINEX_FETCHING_REDIS = "ohlcvs_bitfinex_fetching"
 
-class BitfinexOHLCVFetcher:
+class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
     def __init__(self):
+        # super().__init__()...
         # Exchange info
         self.exchange_name = EXCHANGE_NAME
 
@@ -50,13 +53,13 @@ class BitfinexOHLCVFetcher:
             rate_limit = 1,
             period = RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
         )
-
+        
         # Postgres connection
         # TODO: Not sure if this is needed
         self.psql_conn = psycopg2.connect(DBCONNECTION)
         self.psql_cur = self.psql_conn.cursor()
 
-        # Redis client, startdate mls Redis key
+        # Redis client
         self.redis_client = redis.Redis(
             host=REDIS_HOST,
             username="default",
@@ -69,6 +72,14 @@ class BitfinexOHLCVFetcher:
 
         # Redis initial feeding status
         self.feeding = False
+
+        # Rate limit manager
+        self.rate_limiter = GCRARateLimiter(
+            EXCHANGE_NAME,
+            1,
+            RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN,
+            self.redis_client
+        )
 
     def load_symbol_data(self):
         '''
@@ -278,6 +289,10 @@ class BitfinexOHLCVFetcher:
             `throttler`: asyncio-throttle obj
             `exchange_name`: string - this exchange's name
         '''
+        
+        await self.rate_limiter.wait()
+
+        print(f"Fetcher instance ID {id(self)}: Fire request")
         
         async with self.async_throttler:
             try:

@@ -81,7 +81,7 @@ class OHLCVWebsocketUpdater:
                         psql_conn,
                         ohlcvs_table_insert,
                         OHLCVS_TABLE,
-                        PSQL_INSERT_IGNOREDUP_QUERY
+                        insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
                     )
                     self.redis_client.delete(WS_SUB_PROCESSING_REDIS_KEY)
                 except Exception as exc:
