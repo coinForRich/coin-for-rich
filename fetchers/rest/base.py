@@ -4,8 +4,8 @@ import time
 import redis
 import asyncio
 from common.config.constants import REDIS_HOST, REDIS_PASSWORD
+from common.utils.asyncioutils import aio_set_exception_handler
 from fetchers.config.constants import REST_RATE_LIMIT_REDIS_KEY, THROTTLER_RATE_LIMITS
-from fetchers.utils.asyncioutils import aio_set_exception_handler
 
 
 class BaseOHLCVFetcher:

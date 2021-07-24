@@ -6,20 +6,28 @@ import psycopg2
 import httpx
 import backoff
 import redis
-import time
 from asyncio_throttle import Throttler
-from common.config.constants import *
+# from common.config.constants import *
+from common.config.constants import (
+    DBCONNECTION, REDIS_HOST,
+    REDIS_PASSWORD, REDIS_DELIMITER,
+    OHLCVS_TABLE, OHLCVS_ERRORS_TABLE, SYMBOL_EXCHANGE_TABLE
+)
 from common.helpers.datetimehelpers import (
     datetime_to_milliseconds, milliseconds_to_datetime
 )
-from fetchers.helpers.dbhelpers import psql_bulk_insert
-from fetchers.utils.asyncioutils import *
-from fetchers.utils.ratelimit import GCRARateLimiter
-from fetchers.config.constants import *
+from common.utils.asyncioutils import aio_set_exception_handler
+from fetchers.config.constants import (
+    THROTTLER_RATE_LIMITS, HTTPX_MAX_CONCURRENT_CONNECTIONS,
+    OHLCV_UNIQUE_COLUMNS, OHLCV_UPDATE_COLUMNS
+)
 from fetchers.config.queries import (
     PSQL_INSERT_IGNOREDUP_QUERY, MUTUAL_BASE_QUOTE_QUERY,
     PSQL_INSERT_UPDATE_QUERY
 )
+from fetchers.helpers.dbhelpers import psql_bulk_insert
+from fetchers.utils.asyncioutils import onbackoff, onsuccessgiveup
+from fetchers.utils.ratelimit import GCRARateLimiter
 from fetchers.rest.base import BaseOHLCVFetcher
 
 

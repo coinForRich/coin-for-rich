@@ -13,6 +13,6 @@ app.config_from_object('celery_app.celery_config')
 app.conf.beat_schedule = {
     'bitfinex_ohlcv_1min': {
         'task': "celery_app.celery_tasks.bitfinex_fetch_ohlcvs_mutual_basequote_1min",
-        'schedule': 70.0
+        'schedule': 100.0
     }
 }

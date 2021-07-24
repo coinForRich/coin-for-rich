@@ -1,11 +1,11 @@
 import asyncio
 import redis
-from threading import Thread
 from typing import List
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from common.helpers.datetimehelpers import seconds
 from common.config.constants import REDIS_DELIMITER
+from common.utils.asyncioutils import AsyncLoopThread
 from fetchers.config.constants import WS_SERVE_REDIS_KEY
 from web.config.constants import OHLCV_INTERVALS, WS_SERVE_EVENT_TYPES
 import web.utils.api.rest as webapi_rest
@@ -33,20 +33,6 @@ class WSServerConnectionManager:
     #     for connection in self.active_connections:
     #         await connection.send_text(message)
 
-class AsyncLoopThread(Thread):
-    '''
-    Async loop thread for adding coroutines to
-        a different OS thread
-    '''
-
-    def __init__(self):
-        super().__init__(daemon=True)
-        self.loop = asyncio.new_event_loop()
-
-    def run(self):
-        asyncio.set_event_loop(self.loop)
-        self.loop.run_forever()
-        return self.loop
 
 class WSServerSender:
     '''
@@ -132,7 +118,6 @@ class WSServerSender:
                         print(f"Sending {data}")
                     except Exception as exc:
                         print(f"Serve OHLC: EXCEPTION: {exc}")
-                        print(data)
                 if interval == "5m":
                     await asyncio.sleep(5)
                 elif interval == "15m":
