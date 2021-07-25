@@ -40,6 +40,9 @@ task_routes = {
     'celery_app.celery_tasks.binance_fetch_ohlcvs_mutual_basequote': {
         'queue': 'binance_rest'
     },
+    'celery_app.celery_tasks.binance_fetch_ohlcvs_mutual_basequote_1min': {
+        'queue': 'binance_rest'   
+    },
     'celery_app.celery_tasks.bittrex_fetch_ohlcvs_all_symbols': {
         'queue': 'bittrex_rest'
     },

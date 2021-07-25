@@ -167,3 +167,18 @@ def binance_fetch_ohlcvs_mutual_basequote(start_date, end_date):
     binance_fetcher.fetch_symbol_data()
     binance_fetcher.run_fetch_ohlcvs_mutual_basequote(start_date, end_date)
     binance_fetcher.close_connections()
+
+@app.task
+def binance_fetch_ohlcvs_mutual_basequote_1min():
+    '''
+    Fetches OHLCVs on Binance of mutual symbols
+        from 4 minutes before to 1 minute before
+    '''
+
+    end = datetime.datetime.now() - datetime.timedelta(minutes=1)
+    start = end - datetime.timedelta(minutes=4)
+    print(f"Celery: Fetching OHLCVs from {start} to {end}")
+    binance_fetcher = BinanceOHLCVFetcher()
+    binance_fetcher.fetch_symbol_data()
+    binance_fetcher.run_fetch_ohlcvs_mutual_basequote(start, end, update=True)
+    binance_fetcher.close_connections()

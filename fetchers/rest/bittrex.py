@@ -17,6 +17,8 @@ from fetchers.config.constants import *
 from fetchers.config.queries import (
     PSQL_INSERT_IGNOREDUP_QUERY, MUTUAL_BASE_QUOTE_QUERY
 )
+from fetchers.utils.ratelimit import GCRARateLimiter
+from fetchers.rest.base import BaseOHLCVFetcher
 
 
 # Bittrex returns:
@@ -36,8 +38,10 @@ OHLCVS_BITTREX_TOFETCH_REDIS = "ohlcvs_bittrex_tofetch"
 OHLCVS_BITTREX_FETCHING_REDIS = "ohlcvs_bittrex_fetching"
 DATETIME_STR_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
-class BittrexOHLCVFetcher:
-    def __init__(self):
+class BittrexOHLCVFetcher(BaseOHLCVFetcher):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         # Exchange info
         self.exchange_name = EXCHANGE_NAME
 
@@ -66,11 +70,11 @@ class BittrexOHLCVFetcher:
             decode_responses=True
         )
 
-        # Load market data
-        self.load_symbol_data()
-
         # Redis initial feeding status
         self.feeding = False
+
+        # Load market data
+        self.load_symbol_data()
 
     def load_symbol_data(self):
         '''
@@ -371,9 +375,16 @@ class BittrexOHLCVFetcher:
         for date in list_days_fromto(start_date, end_date):
             date_fmted = datetime_to_str(date, DEFAULT_DATETIME_STR_QUERY)
             params_list = [
-                self.make_tofetch_params(symbol, date_fmted, end_date_fmted, interval) for symbol in symbols
+                self.make_tofetch_params(
+                    symbol, date_fmted, end_date_fmted, interval
+                ) for symbol in symbols
             ]
             self.redis_client.sadd(OHLCVS_BITTREX_TOFETCH_REDIS, *params_list)
+            
+            # Asyncio sleep to release event loop for the consume-ohlcvs task
+            await asyncio.sleep(
+                RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
+            )
         self.feeding = False
         print("Redis: Successfully initialized feeding params")
 
@@ -497,23 +508,6 @@ class BittrexOHLCVFetcher:
         finally:
             print("Run_fetch_ohlcvs: Finished fetching OHLCVS for indicated symbols")
             loop.close()
-
-    def run_fetch_ohlcvs_all(self, start_date_dt, end_date_dt):
-        '''
-        Runs the fetching OHLCVS for all symbols
-        params:
-            `symbols`: list of symbol string
-            `start_date_dt`: datetime obj - for start date
-            `end_date_dt`: datetime obj - for end date
-        '''
-
-        # Have to fetch symbol data first to
-        # make sure it's up-to-date
-        self.fetch_symbol_data()
-        symbols = self.symbol_data.keys()
-
-        self.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt)
-        print("Run_fetch_ohlcvs_all: Finished fetching OHLCVS for all symbols")
 
     def run_resume_fetch(self):
         '''

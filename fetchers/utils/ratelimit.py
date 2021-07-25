@@ -11,6 +11,8 @@ class GCRARateLimiter:
 
     Applicable for multiple instances of a requesting object (e.g., a fetcher)
         sharing the same Redis rate-limiter key
+
+    See GCRA explanation: https://blog.ian.stapletoncordas.co/2018/12/understanding-generic-cell-rate-limiting.html
     '''
     
     def __init__(
@@ -35,15 +37,13 @@ class GCRARateLimiter:
         self.period = period
         self.increment = self.period / self.rate_limit
    
-    async def _is_limited(self):
+    def _is_limited(self):
         '''
         Different version
 
         Checks if the requesting function is rate-limited
 
         Source: https://dev.to/astagi/rate-limiting-using-python-and-redis-58gk
-        
-        See GCRA explanation: https://blog.ian.stapletoncordas.co/2018/12/understanding-generic-cell-rate-limiting.html
         '''
 
         t = self.redis_client.time()[0]
@@ -65,12 +65,12 @@ class GCRARateLimiter:
 
     async def wait(self):
         '''
-        API to wait until the requesting function is not rate-limited
+        API call to wait until the requesting function is not rate-limited
         '''
         
         while True:
-            blocked, retry_after = await self._is_limited()
-            if not blocked:
+            limited, retry_after = self._is_limited()
+            if not limited:
                 break
             # print(f"GCRARateLimiter: Sleeping for {round(retry_after, 2)} seconds")
             await asyncio.sleep(retry_after)
