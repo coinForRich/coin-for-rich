@@ -28,7 +28,7 @@ from fetchers.config.queries import (
 )
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.utils.asyncioutils import onbackoff, onsuccessgiveup
-from fetchers.utils.ratelimit import GCRARateLimiter
+from fetchers.utils.ratelimit import GCRARateLimiter, LeakyBucketRateLimiter
 from fetchers.rest.base import BaseOHLCVFetcher
 
 
@@ -81,15 +81,18 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
         self.feeding = False
 
         # Rate limit manager
-        self.rate_limiter = GCRARateLimiter(
+        self.rate_limiter = LeakyBucketRateLimiter(
             EXCHANGE_NAME,
-            1,
-            RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN,
-            self.redis_client
+            RATE_LIMIT_HITS_PER_MIN,
+            RATE_LIMIT_SECS_PER_MIN,
+            redis_client = self.redis_client
         )
 
         # Load market data
         self.load_symbol_data()
+
+        # For testing
+        # self.redis_client.flushdb()
 
     def load_symbol_data(self):
         '''
@@ -300,35 +303,35 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
             `exchange_name`: string - this exchange's name
         '''
         
-        await self.rate_limiter.wait()
-
-        print(f"Fetcher instance ID {id(self)}: Fire request")
-        
+        async with self.rate_limiter:
         # async with self.async_throttler:
-        try:
-            ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
-            ohlcvs_resp.raise_for_status()
-            return (
-                ohlcvs_resp.status_code,
-                ohlcvs_resp.json(),
-                None,
-                None
-            )
-        except httpx.HTTPStatusError as exc:
-            resp_status_code = exc.response.status_code
-            return (
-                resp_status_code,
-                None,
-                type(exc),
-                f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
-            )
-        except Exception as exc:
-            return (
-                None,
-                None,
-                type(exc),
-                f'EXCEPTION: Request error while requesting {ohlcv_url}'
-            )
+
+            print(f"Fetcher instance ID {id(self)}: Fire request")
+            
+            try:
+                ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
+                ohlcvs_resp.raise_for_status()
+                return (
+                    ohlcvs_resp.status_code,
+                    ohlcvs_resp.json(),
+                    None,
+                    None
+                )
+            except httpx.HTTPStatusError as exc:
+                resp_status_code = exc.response.status_code
+                return (
+                    resp_status_code,
+                    None,
+                    type(exc),
+                    f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
+                )
+            except Exception as exc:
+                return (
+                    None,
+                    None,
+                    type(exc),
+                    f'EXCEPTION: Request error while requesting {ohlcv_url}'
+                )
 
     async def get_and_parse_ohlcv(self, params, update: bool=False):
         '''

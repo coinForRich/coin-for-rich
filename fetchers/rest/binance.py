@@ -22,7 +22,7 @@ from fetchers.config.queries import (
     PSQL_INSERT_UPDATE_QUERY,
     MUTUAL_BASE_QUOTE_QUERY    
 )
-from fetchers.utils.ratelimit import GCRARateLimiter
+from fetchers.utils.ratelimit import GCRARateLimiter, LeakyBucketRateLimiter, AsyncThrottler
 from fetchers.rest.base import BaseOHLCVFetcher
 
 
@@ -60,10 +60,6 @@ class RequestWeightManager:
         self.key_ts = f'weight_limit_timestamp_{EXCHANGE_NAME}'
         self.key_rw = f'weight_limit_value_{EXCHANGE_NAME}'
 
-        # Weights of different requests
-        self.rw_1 = 1
-        self.rw_10 = 10
-
         # Redis client
         if not redis_client:
             redis_client = redis.Redis(
@@ -73,26 +69,6 @@ class RequestWeightManager:
                 decode_responses=True
             )
         self.redis_client = redis_client
-
-    # def _reset(self):
-    #     print(f'''
-    #         Current request weight is {self.redis_client.get(self.key_rw)}
-    #     ''')
-    #     now = self.redis_client.time()[0]
-    #     try:
-    #         with self.redis_client.lock(
-    #             f'lock:{self.key_ts}'
-    #         ) as lock:
-    #             self.redis_client.setnx(self.key_ts, now)
-    #             self.redis_client.setnx(self.key_rw, self.full_weight_limit)
-    #             # Reset timestamp and request weight if `period` of time
-    #             #   has passed since last timestamp
-    #             if now - float(self.redis_client.get(self.key_ts)) > self.period:
-    #                 self.redis_client.set(self.key_ts, now)
-    #                 self.redis_client.set(self.key_rw, self.full_weight_limit)
-    #     except LockError:
-    #         pass
-    #     return now
     
     def _is_enough(self, weight: int):
         '''
@@ -106,7 +82,8 @@ class RequestWeightManager:
         now = self.redis_client.time()[0]
         try:
             with self.redis_client.lock(
-                f'lock:{self.key_ts}'
+                f'lock:{self.key_ts}',
+                blocking_timeout=0.01
             ) as lock:
                 # Initialize
                 self.redis_client.setnx(self.key_ts, now)
@@ -123,48 +100,50 @@ class RequestWeightManager:
                 if request_weight >= weight:
                     self.redis_client.decrby(self.key_rw, weight)
                     return (True, None)
+                else:
+                    return (
+                        False,
+                        self.period - (now - float(self.redis_client.get(self.key_ts)))
+                    )
         except LockError:
-            (
+            return (
                 False,
                 self.period - (now - float(self.redis_client.get(self.key_ts)))
             )
+        except Exception as exc:
+            print(f"RequestWeightManager: EXCEPTION: {exc}")
 
-    def weight_ten(self):
+    def _wait(self, weight: int):
         '''
         To be inserted at the very beginning of a request function
             that costs 10 weight units (non-async)
         '''
 
         while True:
-            enough, wait_time = self._is_enough(self.rw_10)
+            enough, wait_time = self._is_enough(weight)
             if enough:
                 break
             time.sleep(wait_time)
 
-    async def aweight_one(self):
+    async def _await(self, weight: int):
         '''
         To be inserted at the very beginning of a request function
             that costs 1 weight unit
         '''
 
         while True:
-            enough, wait_time = self._is_enough(self.rw_1)
+            enough, wait_time = self._is_enough(weight)
             if enough:
                 break
             await asyncio.sleep(wait_time)
-    
-    async def aweight_ten(self):
-        '''
-        To be inserted at the very beginning of a request function
-            that costs 10 weight units
-        '''
 
-        while True:
-            enough, wait_time = self._is_enough(self.rw_10)
-            if enough:
-                break
-            await asyncio.sleep(wait_time)
+    def check(self, weight: int):
+        self._wait(weight)
     
+    async def acheck(self, weight: int):
+        await self._await(weight)
+
+
 class BinanceOHLCVFetcher(BaseOHLCVFetcher):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -208,15 +187,18 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
         )
 
         # Rate limit manager
-        self.rate_limiter = GCRARateLimiter(
+        self.rate_limiter = LeakyBucketRateLimiter(
             EXCHANGE_NAME,
-            1,
-            RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN,
-            self.redis_client
+            RATE_LIMIT_HITS_PER_MIN,
+            RATE_LIMIT_SECS_PER_MIN,
+            redis_client = self.redis_client
         )
 
         # Load market data
         self.load_symbol_data()
+
+        # For testing
+        self.redis_client.flushdb()
 
     def load_symbol_data(self):
         '''
@@ -240,7 +222,7 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
         # Only processes trading symbols
         self.symbol_data = {}
         with httpx.Client(timeout=None) as client:
-            self.rw_manager.weight_ten()
+            self.rw_manager.check(10)
             exch_info_resp = client.get(f'{BASE_URL}/exchangeInfo') \
                 or client.get(f'{BASE_URL_1}/exchangeInfo') \
                 or client.get(f'{BASE_URL_2}/exchangeInfo') \
@@ -375,59 +357,51 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
             `throttler`: asyncio throttler obj
         '''
         
-        # Wait for weight units to be available
-        # Check common backoff status to collectively backoff
-        #   or check if this ohlcv_url is the one that initialized
-        #   the backoff status
-        # If there's no 429/418 or ohlcv_url is the original one, continue request
-        #   Else, sleep until end of backoff duration
-        # Only backoff for max 12 times/retries
         retries = 0
         while retries < 12:
-            await self.rw_manager.aweight_one()
-            
-            print(f"Fetcher instance ID {id(self)}: Fire request")
-            
+            await self.rw_manager.acheck(1)
             if (self.backoff_stt != 429 and self.backoff_stt != 418) \
                 or ohlcv_url == self.backoff_url:
-                await self.rate_limiter.wait()
+                async with self.rate_limiter:
                 # async with self.async_throttler:
-                try:
-                    ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
-                    ohlcvs_resp.raise_for_status()
-                    self.reset_backoff()
-                    return (
-                        ohlcvs_resp.status_code,
-                        ohlcvs_resp.json(),
-                        None,
-                        None
-                    )
-                except httpx.HTTPStatusError as exc:
-                    resp_status_code = exc.response.status_code
-                    if resp_status_code == 429 or resp_status_code == 418:
-                        self.backoff_stt = resp_status_code
-                        self.backoff_url = ohlcv_url
-                        self.backoff_time = time.monotonic()
-                        self.backoff_duration = exc.response.headers['Retry-After']
-                        self.async_throttler.period *= 2
-                        print(f"get_ohlcv_data: EXCEPTION: Backing off - setting throttler to 1 request every {round(self.async_throttler.period, 2)} seconds")
-                        asyncio.sleep(self.backoff_duration)
-                    else:
+                    print(f"Fetcher instance ID {id(self)}: Fire request")
+                
+                    try:
+                        ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
+                        ohlcvs_resp.raise_for_status()
                         self.reset_backoff()
                         return (
-                            resp_status_code,
+                            ohlcvs_resp.status_code,
+                            ohlcvs_resp.json(),
+                            None,
+                            None
+                        )
+                    except httpx.HTTPStatusError as exc:
+                        resp_status_code = exc.response.status_code
+                        if resp_status_code == 429 or resp_status_code == 418:
+                            self.backoff_stt = resp_status_code
+                            self.backoff_url = ohlcv_url
+                            self.backoff_time = time.monotonic()
+                            self.backoff_duration = exc.response.headers['Retry-After']
+                            self.async_throttler.period *= 2
+                            print(f"get_ohlcv_data: EXCEPTION: Backing off - setting throttler to 1 request every {round(self.async_throttler.period, 2)} seconds")
+                            asyncio.sleep(self.backoff_duration)
+                        else:
+                            self.reset_backoff()
+                            return (
+                                resp_status_code,
+                                None,
+                                type(exc),
+                                f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
+                            )
+                    except Exception as exc:
+                        self.reset_backoff()
+                        return (
+                            None,
                             None,
                             type(exc),
-                            f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
+                            f'EXCEPTION: Request error while requesting {exc.request.url}'
                         )
-                except Exception as exc:
-                    self.reset_backoff()
-                    return (
-                        None,
-                        None,
-                        type(exc),
-                        f'EXCEPTION: Request error while requesting {exc.request.url}'
-                    )
             else:
                 print("get_ohlcv_data: backing off")
                 asyncio.sleep(

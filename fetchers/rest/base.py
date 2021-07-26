@@ -155,4 +155,4 @@ class BaseOHLCVFetcher:
         
         symbols = self.get_mutual_basequote()
         self.run_fetch_ohlcvs(symbols.keys(), start_date_dt, end_date_dt, update)
-        print("Run_fetch_ohlcvs_all: Finished fetching OHLCVS for mutual symbols")
+        print("Run_fetch_ohlcvs_mutual_basequote: Finished fetching OHLCVS for mutual symbols")
