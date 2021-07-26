@@ -48,7 +48,7 @@ class GCRARateLimiter:
         Source: https://dev.to/astagi/rate-limiting-using-python-and-redis-58gk
         '''
 
-        t = self.redis_client.time()[0]
+        t = time.monotonic()
         try:
             with self.redis_client.lock(
                 f'lock:{self.key}',
@@ -71,25 +71,19 @@ class GCRARateLimiter:
         '''
         API call to wait until the requesting function is not rate-limited
         '''
-        
-        start = self.redis_client.time()[0]
-        print(f"Wait: start time: {start}")
 
         while True:
             limited, retry_after = self._is_limited()
             if not limited:
                 break
-            # print(f"GCRARateLimiter: Sleeping for {round(retry_after, 2)} seconds")
-            await asyncio.sleep(retry_after + random.random() / 10)
-        
-        end = self.redis_client.time()[0]
-        print(f"Wait: end time: {end}")
+            await asyncio.sleep(retry_after)
         
     async def __aenter__(self):
         await self.wait()
 
     async def __aexit__(self, exc_type, exc, tb):
         pass
+
 
 class LeakyBucketRateLimiter:
     '''
@@ -120,6 +114,12 @@ class LeakyBucketRateLimiter:
         self.retry_interval = 0.01
         
     async def _is_limited(self):
+        '''
+        Checks if the requesting function is rate-limited
+
+        Source: https://dev.to/astagi/rate-limiting-using-python-and-redis-58gk
+        '''
+        
         try:
             with self.redis_client.lock(
                 f'lock:{self.key}',
@@ -130,6 +130,7 @@ class LeakyBucketRateLimiter:
                 bucket_val = self.redis_client.get(self.key)
                 if bucket_val and int(bucket_val) > 0:
                     self.redis_client.decrby(self.key, 1)
+                    # Sleep to smooth out the requests
                     await asyncio.sleep(self.separation)
                     return False
                 return True
@@ -151,7 +152,14 @@ class LeakyBucketRateLimiter:
     async def __aexit__(self, exc_type, exc, tb):
         pass
 
+
 class AsyncThrottler:
+    '''
+    An asyncio throttler using Redis
+
+    Based on: https://github.com/hallazzang/asyncio-throttle
+    '''
+    
     def __init__(
         self,
         exchange_name: str,
@@ -175,7 +183,7 @@ class AsyncThrottler:
         self.retry_interval = retry_interval
 
     def flush(self):
-        now = self.redis_client.time()[0]
+        now = time.monotonic()
         try:
             with self.redis_client.lock(
                 f'lock:{self.key}',
@@ -190,17 +198,12 @@ class AsyncThrottler:
             pass
 
     async def acquire(self):
-        start = self.redis_client.time()[0]
-        print(f"Acquire: start time: {start}")
         while True:
             self.flush()
             if int(self.redis_client.llen(self.key)) < self.rate_limit:
                 break
             await asyncio.sleep(self.retry_interval)
-        
-        self.redis_client.rpush(self.key, self.redis_client.time()[0])
-        end = self.redis_client.time()[0]
-        print(f"Acquire: end time: {end}")
+        self.redis_client.rpush(self.key, time.monotonic())
 
     async def __aenter__(self):
         await self.acquire()

@@ -198,7 +198,7 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
         self.load_symbol_data()
 
         # For testing
-        self.redis_client.flushdb()
+        # self.redis_client.flushdb()
 
     def load_symbol_data(self):
         '''
