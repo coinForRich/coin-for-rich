@@ -10,7 +10,10 @@ from fetchers.config.constants import THROTTLER_RATE_LIMITS, ASYNC_SIGNALS
 # Asyncio exception handler for async tasks
 def aio_handle_exception(loop, context):
     '''
-    Asyncio exception handler
+    Asyncio exception handler, for use with
+        `aio_shutdown` and `aio_set_exception_handler`
+
+    Source: https://www.roguelynn.com/words/asyncio-exception-handling/
     '''
 
     # context["message"] will always be there;

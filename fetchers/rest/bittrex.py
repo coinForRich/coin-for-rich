@@ -7,16 +7,24 @@ import httpx
 import backoff
 import redis
 from asyncio_throttle import Throttler
-from common.config.constants import *
+from common.config.constants import (
+    DBCONNECTION, REDIS_HOST,
+    REDIS_PASSWORD, REDIS_DELIMITER,
+    OHLCVS_TABLE, OHLCVS_ERRORS_TABLE,
+    DEFAULT_DATETIME_STR_QUERY
+)
 from common.helpers.datetimehelpers import (
     datetime_to_str, str_to_datetime, list_days_fromto
 )
-from fetchers.helpers.dbhelpers import psql_bulk_insert
-from fetchers.helpers.asynciohelpers import *
-from fetchers.config.constants import *
-from fetchers.config.queries import (
-    PSQL_INSERT_IGNOREDUP_QUERY, MUTUAL_BASE_QUOTE_QUERY
+from fetchers.config.constants import (
+    THROTTLER_RATE_LIMITS, HTTPX_MAX_CONCURRENT_CONNECTIONS,
+    OHLCV_UNIQUE_COLUMNS, OHLCV_UPDATE_COLUMNS
 )
+from fetchers.config.queries import (
+    PSQL_INSERT_IGNOREDUP_QUERY, PSQL_INSERT_UPDATE_QUERY
+)
+from fetchers.helpers.dbhelpers import psql_bulk_insert
+from fetchers.utils.asyncioutils import onbackoff, onsuccessgiveup
 from fetchers.utils.ratelimit import GCRARateLimiter
 from fetchers.rest.base import BaseOHLCVFetcher
 
@@ -72,6 +80,14 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
 
         # Redis initial feeding status
         self.feeding = False
+
+        # Rate limit manager
+        self.rate_limiter = GCRARateLimiter(
+            EXCHANGE_NAME,
+            1,
+            RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN,
+            redis_client = self.redis_client
+        )
 
         # Load market data
         self.load_symbol_data()
@@ -247,7 +263,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
             `exchange_name`: string - this exchange's name
         '''
 
-        async with self.async_throttler:
+        async with self.rate_limiter:
             try:
                 ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
                 ohlcvs_resp.raise_for_status()
@@ -273,7 +289,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                     f'EXCEPTION: Request error while requesting {exc.request.url}'
                 )
 
-    async def get_and_parse_ohlcv(self, params):
+    async def get_and_parse_ohlcv(self, params, update: bool=False):
         '''
         Gets and parses ohlcvs from consumed params
         
@@ -312,27 +328,47 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                 #   if latest date > start_date, update start_date
                 ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id)
                 if ohlcvs_parsed:
-                    psql_bulk_insert(
-                        self.psql_conn, ohlcvs_parsed, OHLCVS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY
-                    )
+                    if update:
+                        psql_bulk_insert(
+                            self.psql_conn,
+                            ohlcvs_parsed,
+                            OHLCVS_TABLE,
+                            insert_update_query = PSQL_INSERT_UPDATE_QUERY,
+                            unique_cols = OHLCV_UNIQUE_COLUMNS,
+                            update_cols = OHLCV_UPDATE_COLUMNS
+                        )
+                    else:
+                        psql_bulk_insert(
+                            self.psql_conn,
+                            ohlcvs_parsed,
+                            OHLCVS_TABLE,
+                            insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
+                        )
             except Exception as exc:
                 exc_type = type(exc)
                 exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
                 print(exception_msg)
                 error_tuple = self.make_error_tuple(
-                    symbol, start_date, end_date, interval, historical, resp_status_code, exc_type, exception_msg
+                    symbol, start_date, end_date, interval, historical,
+                    resp_status_code, exc_type, exception_msg
                 )
                 psql_bulk_insert(
-                    self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE, PSQL_INSERT_IGNOREDUP_QUERY
+                    self.psql_conn,
+                    error_tuple,
+                    OHLCVS_ERRORS_TABLE,
+                    insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
                 )
         else:
             print(exception_msg)
             error_tuple = self.make_error_tuple(
-                symbol, start_date, end_date, interval, historical, resp_status_code, exc_type, exception_msg
+                symbol, start_date, end_date, interval, historical,
+                resp_status_code, exc_type, exception_msg
             )
             psql_bulk_insert(
-                self.psql_conn, error_tuple, OHLCVS_ERRORS_TABLE,
-                PSQL_INSERT_IGNOREDUP_QUERY
+                    self.psql_conn,
+                    error_tuple,
+                    OHLCVS_ERRORS_TABLE,
+                    insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
             )
         
         # PSQL Commit
@@ -388,7 +424,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         self.feeding = False
         print("Redis: Successfully initialized feeding params")
 
-    async def consume_ohlcvs_redis(self):
+    async def consume_ohlcvs_redis(self, update: bool=False):
         '''
         Consumes OHLCV parameters from the to-fetch Redis set
         '''
@@ -414,19 +450,27 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                     if params_list:
                         self.redis_client.sadd(OHLCVS_BITTREX_FETCHING_REDIS, *params_list)
                         get_parse_tasks = [
-                            self.get_and_parse_ohlcv(params) for params in params_list
+                            self.get_and_parse_ohlcv(params, update) for params in params_list
                         ]
                         await asyncio.gather(*get_parse_tasks)
                         self.redis_client.srem(OHLCVS_BITTREX_FETCHING_REDIS, *params_list)
 
-    async def fetch_ohlcvs_symbols(self, symbols, start_date_dt, end_date_dt):
+    async def fetch_ohlcvs_symbols(
+        self,
+        symbols: list,
+        start_date_dt: datetime.datetime,
+        end_date_dt: datetime.datetime,
+        update: bool=False
+    ):
         '''
         Function to get OHLCVs of symbols
         
         params:
-            `symbol`: list of symbol string
+            `symbols`: list of symbol string
             `start_date_dt`: datetime obj - for start date
             `end_date_dt`: datetime obj - for end date
+            `update`: boolean - whether to update when inserting
+                to PSQL database
         '''
 
         # Set feeding status so the consume
@@ -440,110 +484,5 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
             self.init_tofetch_redis(
                 symbols, start_date_dt, end_date_dt, OHLCV_INTERVAL
             ),
-            self.consume_ohlcvs_redis()
+            self.consume_ohlcvs_redis(update)
         )
-
-    async def resume_fetch(self):
-        '''
-        Resumes fetching tasks if there're params inside Redis sets
-        '''
-
-        # Asyncio gather 1 task:
-        # - Consume from Redis to-fetch
-        await asyncio.gather(
-            self.consume_ohlcvs_redis()
-        )
-
-    def fetch_symbol_data(self):
-        rows = [
-            (EXCHANGE_NAME, bq['base_id'], bq['quote_id'], symbol) \
-            for symbol, bq in self.symbol_data.items()
-        ]
-        psql_bulk_insert(
-            self.psql_conn, rows, SYMBOL_EXCHANGE_TABLE,
-            PSQL_INSERT_IGNOREDUP_QUERY
-        )
-
-    def get_mutual_basequote(self):
-        '''
-        Returns a dict of the 30 mutual base-quote symbols
-            in this form:
-                {
-                    'BTC-USD': {
-                        'base_id': 'BTC',
-                        'quote_id': 'USD'
-                    }
-                }
-        '''
-        
-        self.psql_cur.execute(MUTUAL_BASE_QUOTE_QUERY, (EXCHANGE_NAME,))
-        results = self.psql_cur.fetchall()
-        ret = {}
-        for result in results:
-            ret[result[0]] = {
-                'base_id': self.symbol_data[result[0]]['base_id'],
-                'quote_id': self.symbol_data[result[0]]['quote_id']
-            }
-        return ret
-
-    def run_fetch_ohlcvs(self, symbols, start_date_dt, end_date_dt):
-        '''
-        Runs fetching OHLCVS
-        params:
-            `symbols`: list of symbol string
-            `start_date_dt`: datetime obj - for start date
-            `end_date_dt`: datetime obj - for end date
-        '''
-
-        loop = asyncio.get_event_loop()
-        if loop.is_closed():
-            asyncio.set_event_loop(asyncio.new_event_loop())
-            loop = asyncio.get_event_loop()
-        aio_set_exception_handler(loop)
-        try:
-            print("Run_fetch_ohlcvs: Fetching OHLCVS for indicated symbols")
-            loop.run_until_complete(
-                self.fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt)
-            )
-        finally:
-            print("Run_fetch_ohlcvs: Finished fetching OHLCVS for indicated symbols")
-            loop.close()
-
-    def run_resume_fetch(self):
-        '''
-        Runs the resuming of fetching tasks
-        '''
-
-        loop = asyncio.get_event_loop()
-        if loop.is_closed():
-            asyncio.set_event_loop(asyncio.new_event_loop())
-            loop = asyncio.get_event_loop()
-        aio_set_exception_handler(loop)
-        try:
-            print("Run_resume_fetch: Resuming fetching tasks from Redis sets")
-            loop.run_until_complete(self.resume_fetch())
-        finally:
-            print("Run_resume_fetch: Finished fetching OHLCVS")
-            loop.close()
-
-    def run_fetch_ohlcvs_mutual_basequote(self, start_date_dt, end_date_dt):
-        '''
-        Runs the fetching of the 30 mutual base-quote symbols
-        :params:
-            `start_date_dt`: datetime obj
-            `end_date_dt`: datetime obj
-        '''
-        # Have to fetch symbol data first to
-        # make sure it's up-to-date
-        self.fetch_symbol_data()
-        
-        symbols = self.get_mutual_basequote()
-        self.run_fetch_ohlcvs(symbols, start_date_dt, end_date_dt)
-        print("Run_fetch_ohlcvs_all: Finished fetching OHLCVS for common symbols")
-
-    def close_connections(self):
-        '''
-        Close all connections (e.g., PSQL)
-        '''
-
-        self.psql_conn.close()

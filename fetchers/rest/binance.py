@@ -4,26 +4,30 @@ import asyncio
 import datetime
 import psycopg2
 import httpx
-import backoff
 import redis
 import time
 import random
 from redis.exceptions import LockError
 from asyncio_throttle import Throttler
-from common.config.constants import *
+from common.config.constants import (
+    DBCONNECTION, REDIS_HOST,
+    REDIS_PASSWORD, REDIS_DELIMITER,
+    OHLCVS_TABLE, OHLCVS_ERRORS_TABLE
+)
 from common.helpers.datetimehelpers import (
     milliseconds_to_datetime, datetime_to_milliseconds,
     microseconds_to_seconds
 )
-from fetchers.helpers.dbhelpers import psql_bulk_insert
-from fetchers.helpers.asynciohelpers import *
-from fetchers.config.constants import *
-from fetchers.config.queries import (
-    PSQL_INSERT_IGNOREDUP_QUERY,
-    PSQL_INSERT_UPDATE_QUERY,
-    MUTUAL_BASE_QUOTE_QUERY    
+from fetchers.config.constants import (
+    THROTTLER_RATE_LIMITS, HTTPX_MAX_CONCURRENT_CONNECTIONS,
+    OHLCV_UNIQUE_COLUMNS, OHLCV_UPDATE_COLUMNS
 )
-from fetchers.utils.ratelimit import GCRARateLimiter, LeakyBucketRateLimiter, AsyncThrottler
+from fetchers.config.queries import (
+    PSQL_INSERT_IGNOREDUP_QUERY, PSQL_INSERT_UPDATE_QUERY    
+)
+from fetchers.helpers.dbhelpers import psql_bulk_insert
+from fetchers.utils.ratelimit import GCRARateLimiter
+from fetchers.utils.exceptions import MaximumRetriesReached
 from fetchers.rest.base import BaseOHLCVFetcher
 
 
@@ -415,7 +419,12 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                 )
             retries += 1
         self.reset_backoff()
-        return None
+        return (
+            None,
+            None,
+            MaximumRetriesReached,
+            f'EXCEPTION: Maximum retries reached while requesting {ohlcv_url}'
+        )
 
     async def get_and_parse_ohlcv(self, params, update: bool=False):
         '''
