@@ -12,7 +12,8 @@ from redis.exceptions import LockError
 from asyncio_throttle import Throttler
 from common.config.constants import *
 from common.helpers.datetimehelpers import (
-    milliseconds_to_datetime, datetime_to_milliseconds
+    milliseconds_to_datetime, datetime_to_milliseconds,
+    microseconds_to_seconds
 )
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.helpers.asynciohelpers import *
@@ -41,6 +42,7 @@ RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
 OHLCVS_BINANCE_TOFETCH_REDIS = "ohlcvs_binance_tofetch"
 OHLCVS_BINANCE_FETCHING_REDIS = "ohlcvs_binance_fetching"
 OHLCVS_STARTDATEMLS_REDIS = "binance_startdate_mls"
+LOCK_TIMEOUT_SECS = 5
 
 class RequestWeightManager:
     '''
@@ -79,10 +81,15 @@ class RequestWeightManager:
         print(f'''
             Current request weight is {self.redis_client.get(self.key_rw)}
         ''')
-        now = self.redis_client.time()[0]
+        secs, mics = self.redis_client.time()
+        now = int(secs) + microseconds_to_seconds(float(mics))
+
+        print(f"Now: {now}")
+
         try:
             with self.redis_client.lock(
                 f'lock:{self.key_ts}',
+                timeout=LOCK_TIMEOUT_SECS,
                 blocking_timeout=0.01
             ) as lock:
                 # Initialize
@@ -116,7 +123,7 @@ class RequestWeightManager:
     def _wait(self, weight: int):
         '''
         To be inserted at the very beginning of a request function
-            that costs 10 weight units (non-async)
+            that costs `weight` weight units (non-async)
         '''
 
         while True:
@@ -128,7 +135,7 @@ class RequestWeightManager:
     async def _await(self, weight: int):
         '''
         To be inserted at the very beginning of a request function
-            that costs 1 weight unit
+            that costs `weight` weight units
         '''
 
         while True:
@@ -187,10 +194,10 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
         )
 
         # Rate limit manager
-        self.rate_limiter = LeakyBucketRateLimiter(
+        self.rate_limiter = GCRARateLimiter(
             EXCHANGE_NAME,
-            RATE_LIMIT_HITS_PER_MIN,
-            RATE_LIMIT_SECS_PER_MIN,
+            1,
+            RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN,
             redis_client = self.redis_client
         )
 
@@ -364,7 +371,6 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                 or ohlcv_url == self.backoff_url:
                 async with self.rate_limiter:
                 # async with self.async_throttler:
-                    print(f"Fetcher instance ID {id(self)}: Fire request")
                 
                     try:
                         ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)

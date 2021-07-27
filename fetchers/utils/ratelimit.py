@@ -4,7 +4,11 @@ import random
 import time
 from redis.exceptions import LockError
 from common.config.constants import REDIS_HOST, REDIS_PASSWORD
+from common.helpers.datetimehelpers import microseconds_to_seconds
 from fetchers.config.constants import REST_RATE_LIMIT_REDIS_KEY
+
+
+LOCK_TIMEOUT_SECS = 5
 
 
 class GCRARateLimiter:
@@ -48,10 +52,13 @@ class GCRARateLimiter:
         Source: https://dev.to/astagi/rate-limiting-using-python-and-redis-58gk
         '''
 
-        t = time.monotonic()
+        # t = time.monotonic()
+        secs, mics = self.redis_client.time()
+        t = int(secs) + microseconds_to_seconds(float(mics))
         try:
             with self.redis_client.lock(
                 f'lock:{self.key}',
+                timeout=LOCK_TIMEOUT_SECS,
                 blocking_timeout=0.01
             ) as lock:
                 self.redis_client.setnx(self.key, t)
@@ -90,6 +97,9 @@ class LeakyBucketRateLimiter:
     Client-side request rate-limiter using the leaky bucket algorithm with Redis
     '''
 
+    #TODO: Currently there is a bug where the key value is reduced to -1
+    #   and thus the fetcher refuses to proceed
+
     def __init__(
         self,
         exchange_name: str,
@@ -123,6 +133,7 @@ class LeakyBucketRateLimiter:
         try:
             with self.redis_client.lock(
                 f'lock:{self.key}',
+                timeout=LOCK_TIMEOUT_SECS,
                 blocking_timeout=0.01
             ) as lock:
                 if self.redis_client.setnx(self.key, self.rate_limit):
@@ -183,10 +194,13 @@ class AsyncThrottler:
         self.retry_interval = retry_interval
 
     def flush(self):
-        now = time.monotonic()
+        # now = time.monotonic()
+        secs, mics = self.redis_client.time()
+        now = int(secs) + microseconds_to_seconds(float(mics))
         try:
             with self.redis_client.lock(
                 f'lock:{self.key}',
+                timeout=LOCK_TIMEOUT_SECS,
                 blocking_timeout=0.01
             ) as lock:
                 while int(self.redis_client.llen(self.key)) > 0:
@@ -203,7 +217,10 @@ class AsyncThrottler:
             if int(self.redis_client.llen(self.key)) < self.rate_limit:
                 break
             await asyncio.sleep(self.retry_interval)
-        self.redis_client.rpush(self.key, time.monotonic())
+        
+        secs, mics = self.redis_client.time()
+        now = int(secs) + microseconds_to_seconds(float(mics))
+        self.redis_client.rpush(self.key, now)
 
     async def __aenter__(self):
         await self.acquire()

@@ -2,7 +2,7 @@
 
 import json
 import datetime
-from celery_app.celery_main import app
+from celery_app.celery_main import app, bitfinex_fetcher, binance_fetcher
 from fetchers.rest.bitfinex import BitfinexOHLCVFetcher
 from fetchers.rest.bittrex import BittrexOHLCVFetcher
 from fetchers.rest.binance import BinanceOHLCVFetcher
@@ -67,9 +67,7 @@ def bitfinex_fetch_ohlcvs_mutual_basequote_1min():
     end = datetime.datetime.now() - datetime.timedelta(minutes=1)
     start = end - datetime.timedelta(minutes=4)
     print(f"Celery: Fetching OHLCVs from {start} to {end}")
-    bitfinex_fetcher = BitfinexOHLCVFetcher()
     bitfinex_fetcher.run_fetch_ohlcvs_mutual_basequote(start, end, update=True)
-    bitfinex_fetcher.close_connections()
 
 # Binance
 @app.task
@@ -127,9 +125,7 @@ def binance_fetch_ohlcvs_mutual_basequote_1min():
     end = datetime.datetime.now() - datetime.timedelta(minutes=1)
     start = end - datetime.timedelta(minutes=4)
     print(f"Celery: Fetching OHLCVs from {start} to {end}")
-    binance_fetcher = BinanceOHLCVFetcher()
     binance_fetcher.run_fetch_ohlcvs_mutual_basequote(start, end, update=True)
-    binance_fetcher.close_connections()
 
 # Bittrex
 @app.task

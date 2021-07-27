@@ -17,6 +17,15 @@ def seconds(mls):
     '''
     return int(mls / 1000)
 
+def microseconds_to_seconds(mic: float):
+    '''
+    returns seconds from `mic` microseconds
+    
+    :params:
+        `mic`: float of microseconds
+    '''
+    return mic / 1000000
+
 def datetime_to_seconds(dt):
     '''
     converts a datetime.datetime object to seconds, represented in float

@@ -81,10 +81,10 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
         self.feeding = False
 
         # Rate limit manager
-        self.rate_limiter = LeakyBucketRateLimiter(
+        self.rate_limiter = GCRARateLimiter(
             EXCHANGE_NAME,
-            RATE_LIMIT_HITS_PER_MIN,
-            RATE_LIMIT_SECS_PER_MIN,
+            1,
+            RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN,
             redis_client = self.redis_client
         )
 
@@ -305,8 +305,6 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
         
         async with self.rate_limiter:
         # async with self.async_throttler:
-
-            print(f"Fetcher instance ID {id(self)}: Fire request")
             
             try:
                 ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)

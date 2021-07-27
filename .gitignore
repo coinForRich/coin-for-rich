@@ -6,7 +6,6 @@ __pycache__/
 logs/*
 run/
 */beat/
-test*
 .env
 .bak
 .dat
