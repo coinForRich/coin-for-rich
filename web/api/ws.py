@@ -8,7 +8,7 @@ from common.config.constants import REDIS_DELIMITER
 from common.utils.asyncioutils import AsyncLoopThread
 from fetchers.config.constants import WS_SERVE_REDIS_KEY
 from web.config.constants import OHLCV_INTERVALS, WS_SERVE_EVENT_TYPES
-import web.utils.api.rest as webapi_rest
+import web.api.rest as webapi_rest
 
 
 class WSServerConnectionManager:

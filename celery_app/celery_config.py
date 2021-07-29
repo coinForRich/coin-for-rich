@@ -59,6 +59,9 @@ task_routes = {
         'queue': 'bittrex_rest'
     },
     'celery_app.celery_tasks.ohlcv_websocket_update': {
-        'queue': 'updater'
+        'queue': 'all_rest'
+    },
+    'celery_app.celery_tasks.all_fetch_symbol_data': {
+        'queue': 'all_rest'
     }
 }

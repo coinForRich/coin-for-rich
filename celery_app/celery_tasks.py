@@ -14,13 +14,20 @@ bitfinex_fetcher = BitfinexOHLCVFetcher()
 binance_fetcher = BinanceOHLCVFetcher()
 bittrex_fetcher = BittrexOHLCVFetcher()
 
+# Fetch symbol data to get all symbols into
+#   symbol_exchange psql table
+@app.task
+def all_fetch_symbol_data():
+    bitfinex_fetcher.fetch_symbol_data()
+    binance_fetcher.fetch_symbol_data()
+    bittrex_fetcher.fetch_symbol_data()
+
 # Bitfinex
 @app.task
 def bitfinex_fetch_ohlcvs_all_symbols(start_date, end_date):
     # The dates need to be de-serialized
     start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
     end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
-    bitfinex_fetcher.fetch_symbol_data()
     bitfinex_fetcher.run_fetch_ohlcvs_all(start_date, end_date)
     bitfinex_fetcher.close_connections()
 
@@ -67,9 +74,6 @@ def bitfinex_fetch_ohlcvs_mutual_basequote_1min():
     end = datetime.datetime.now() - datetime.timedelta(minutes=1)
     start = end - datetime.timedelta(minutes=4)
     print(f"Celery: Fetching OHLCVs from {start} to {end}")
-    print(f"Celery: ID of Bitfinex fetcher is {id(bitfinex_fetcher)}")
-    print(f"Celery: ID of Binance fetcher is {id(binance_fetcher)}")
-    print(f"Celery: ID of Bittrex fetcher is {id(bittrex_fetcher)}")
     bitfinex_fetcher.run_fetch_ohlcvs_mutual_basequote(start, end, update=True)
 
 # Binance
@@ -78,7 +82,6 @@ def binance_fetch_ohlcvs_all_symbols(start_date, end_date):
     # The dates need to be de-serialized
     start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
     end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
-    binance_fetcher.fetch_symbol_data()
     binance_fetcher.run_fetch_ohlcvs_all(start_date, end_date)
     binance_fetcher.close_connections()
 
@@ -124,9 +127,6 @@ def binance_fetch_ohlcvs_mutual_basequote_1min():
     end = datetime.datetime.now() - datetime.timedelta(minutes=1)
     start = end - datetime.timedelta(minutes=4)
     print(f"Celery: Fetching OHLCVs from {start} to {end}")
-    print(f"Celery: ID of Bitfinex fetcher is {id(bitfinex_fetcher)}")
-    print(f"Celery: ID of Binance fetcher is {id(binance_fetcher)}")
-    print(f"Celery: ID of Bittrex fetcher is {id(bittrex_fetcher)}")
     binance_fetcher.run_fetch_ohlcvs_mutual_basequote(start, end, update=True)
 
 # Bittrex
@@ -135,7 +135,6 @@ def bittrex_fetch_ohlcvs_all_symbols(start_date, end_date):
     # The dates need to be de-serialized
     start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
     end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
-    bittrex_fetcher.fetch_symbol_data()
     bittrex_fetcher.run_fetch_ohlcvs_all(start_date, end_date)
     bittrex_fetcher.close_connections()
 
@@ -181,7 +180,4 @@ def bittrex_fetch_ohlcvs_mutual_basequote_1min():
     end = datetime.datetime.now() - datetime.timedelta(minutes=1)
     start = end - datetime.timedelta(minutes=4)
     print(f"Celery: Fetching OHLCVs from {start} to {end}")
-    print(f"Celery: ID of Bitfinex fetcher is {id(bitfinex_fetcher)}")
-    print(f"Celery: ID of Binance fetcher is {id(binance_fetcher)}")
-    print(f"Celery: ID of Bittrex fetcher is {id(bittrex_fetcher)}")
     bittrex_fetcher.run_fetch_ohlcvs_mutual_basequote(start, end, update=True)

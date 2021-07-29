@@ -21,8 +21,8 @@ from fetchers.config.constants import WS_SERVE_REDIS_KEY
 from web import models
 from web.helpers import dbhelpers
 from web.database import SessionLocal, engine
-from web.utils.api.ws import WSServerConnectionManager, WSServerSender
-import web.utils.api.rest as webapi_rest
+from web.api.ws import WSServerConnectionManager, WSServerSender
+import web.api.rest as webapi_rest
 from web.config.constants import WS_SERVE_EVENT_TYPES
 
 
@@ -50,7 +50,7 @@ def get_db():
 async def root():
     return {"message": "Hello World"}
 
-@app.get("/testws/", response_class=HTMLResponse)
+@app.get("/testws", response_class=HTMLResponse)
 async def testws(
     request: Request,
     exchange: str,

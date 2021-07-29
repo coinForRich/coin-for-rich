@@ -42,8 +42,8 @@ OHLCV_INTERVAL = "MINUTE_1"
 OHLCV_SECTION_HIST = "historical"
 RATE_LIMIT_HITS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN'][EXCHANGE_NAME]
 RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
-OHLCVS_BITTREX_TOFETCH_REDIS = "ohlcvs_bittrex_tofetch"
-OHLCVS_BITTREX_FETCHING_REDIS = "ohlcvs_bittrex_fetching"
+OHLCVS_BITTREX_TOFETCH_REDIS = "ohlcvs_tofetch_bittrex"
+OHLCVS_BITTREX_FETCHING_REDIS = "ohlcvs_fetching_bittrex"
 DATETIME_STR_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 class BittrexOHLCVFetcher(BaseOHLCVFetcher):
@@ -231,8 +231,9 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         '''
         
         return [
-            (EXCHANGE_NAME,symbol,start_date,end_date,interval,historical, \
-            resp_status_code,str(exception_class),exception_msg)
+            (EXCHANGE_NAME, symbol, start_date, end_date,
+            interval, historical, resp_status_code,
+            str(exception_class),exception_msg)
         ]
 
     @backoff.on_predicate(

@@ -39,8 +39,8 @@ OHLCV_SECTION_LAST = "last"
 OHLCV_LIMIT = 9500
 RATE_LIMIT_HITS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN'][EXCHANGE_NAME]
 RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
-OHLCVS_BITFINEX_TOFETCH_REDIS = "ohlcvs_bitfinex_tofetch"
-OHLCVS_BITFINEX_FETCHING_REDIS = "ohlcvs_bitfinex_fetching"
+OHLCVS_BITFINEX_TOFETCH_REDIS = "ohlcvs_tofetch_bitfinex"
+OHLCVS_BITFINEX_FETCHING_REDIS = "ohlcvs_fetching_bitfinex"
 
 class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
     def __init__(self, *args, **kwargs):
@@ -269,8 +269,9 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
             end_date = milliseconds_to_datetime(end_date)
 
         return [
-            (EXCHANGE_NAME,symbol,start_date,end_date,time_frame,ohlcv_section, \
-            resp_status_code,str(exception_class),exception_msg)
+            (EXCHANGE_NAME, symbol, start_date, end_date,
+            time_frame, ohlcv_section, resp_status_code,
+            str(exception_class),exception_msg)
         ]
 
     @backoff.on_predicate(

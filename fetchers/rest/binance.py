@@ -43,9 +43,12 @@ OHLCV_LIMIT = 1000
 DEFAULT_WEIGHT_LIMIT = 1200
 RATE_LIMIT_HITS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN'][EXCHANGE_NAME]
 RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
-OHLCVS_BINANCE_TOFETCH_REDIS = "ohlcvs_binance_tofetch"
-OHLCVS_BINANCE_FETCHING_REDIS = "ohlcvs_binance_fetching"
-OHLCVS_STARTDATEMLS_REDIS = "binance_startdate_mls"
+OHLCVS_BINANCE_TOFETCH_REDIS = "ohlcvs_tofetch_binance"
+OHLCVS_BINANCE_FETCHING_REDIS = "ohlcvs_fetching_binance"
+
+OHLCVS_CONSUME_BATCH_SIZE = 120
+#TODO: There is a bug with the consume batch size where consume_ohlcvs_redis would not proceed if the size is big enough (>= 500)
+
 LOCK_TIMEOUT_SECS = 5
 
 class RequestWeightManager:
@@ -338,9 +341,9 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
             end_date = milliseconds_to_datetime(end_date)
 
         return [
-            (EXCHANGE_NAME,symbol,start_date,end_date,
-                interval,ohlcv_section, resp_status_code,
-                str(exception_class),exception_msg)
+            (EXCHANGE_NAME, symbol, start_date, end_date,
+            interval, ohlcv_section, resp_status_code,
+            str(exception_class),exception_msg)
         ]
 
     def reset_backoff(self):
@@ -557,6 +560,7 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
         - key: OHLCVS_binance_TOFETCH_REDIS
         - value: symbol;;start_date_mls;;end_date_mls;;time_frame;;limit;;sort
         '''
+
         # Set feeding status
         # Convert datetime with tzinfo to non-tzinfo, if any
         self.feeding = True
@@ -608,7 +612,7 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                 #   Add these params to Redis to-fetch set, if not None
                 # Finally, remove params list from Redis fetching set
                 params_list = self.redis_client.spop(
-                    OHLCVS_BINANCE_TOFETCH_REDIS, RATE_LIMIT_HITS_PER_MIN
+                    OHLCVS_BINANCE_TOFETCH_REDIS, OHLCVS_CONSUME_BATCH_SIZE
                 )
                 if params_list:
                     self.redis_client.sadd(OHLCVS_BINANCE_FETCHING_REDIS, *params_list)
@@ -624,6 +628,7 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                         self.redis_client.sadd(
                             OHLCVS_BINANCE_TOFETCH_REDIS, *new_tofetch_params_notnone
                         )
+                       
                     self.redis_client.srem(OHLCVS_BINANCE_FETCHING_REDIS, *params_list)
     
     async def fetch_ohlcvs_symbols(
