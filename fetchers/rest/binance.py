@@ -8,7 +8,7 @@ import redis
 import time
 import random
 from redis.exceptions import LockError
-from asyncio_throttle import Throttler
+# from asyncio_throttle import Throttler
 from common.config.constants import (
     DBCONNECTION, REDIS_HOST,
     REDIS_PASSWORD, REDIS_DELIMITER,
@@ -16,7 +16,7 @@ from common.config.constants import (
 )
 from common.helpers.datetimehelpers import (
     milliseconds_to_datetime, datetime_to_milliseconds,
-    microseconds_to_seconds
+    microseconds_to_seconds, redis_time
 )
 from fetchers.config.constants import (
     THROTTLER_RATE_LIMITS, HTTPX_MAX_CONCURRENT_CONNECTIONS,
@@ -45,9 +45,13 @@ RATE_LIMIT_HITS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN'][EXCHA
 RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
 OHLCVS_BINANCE_TOFETCH_REDIS = "ohlcvs_tofetch_binance"
 OHLCVS_BINANCE_FETCHING_REDIS = "ohlcvs_fetching_binance"
+BACKOFF_STT_REDIS = "backoff_stt_binance" # Common Backoff status
+BACKOFF_URL_REDIS = "backoff_url_binance" # Common Backoff url
+BACKOFF_TIME_REDIS = "backoff_time_binance" # Common Backoff time
+BACKOFF_DUR_REDIS = "backoff_dur_binance" # Common Backoff duration
 
-OHLCVS_CONSUME_BATCH_SIZE = 120
-#TODO: There is a bug with the consume batch size where consume_ohlcvs_redis would not proceed if the size is big enough (>= 500)
+OHLCVS_CONSUME_BATCH_SIZE = 500
+#TODO: Bug seems to be gone when increasing the maximum concurrent http connection (httpx limits)
 
 LOCK_TIMEOUT_SECS = 5
 
@@ -88,10 +92,7 @@ class RequestWeightManager:
         print(f'''
             Current request weight is {self.redis_client.get(self.key_rw)}
         ''')
-        secs, mics = self.redis_client.time()
-        now = int(secs) + microseconds_to_seconds(float(mics))
-
-        print(f"Now: {now}")
+        now = redis_time(self.redis_client)
 
         try:
             with self.redis_client.lock(
@@ -172,10 +173,10 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
         # self.async_httpx_client = httpx.AsyncClient(timeout=None, limits=httpx_limits)
 
         # Async throttler
-        self.async_throttler = Throttler(
-            rate_limit = 1,
-            period = RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
-        )
+        # self.async_throttler = Throttler(
+        #     rate_limit = 1,
+        #     period = RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
+        # )
 
         # Postgres connection
         # TODO: Not sure if this is needed
@@ -348,13 +349,15 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
 
     def reset_backoff(self):
         '''
-        resets self backoff attributes
+        resets Redis backoff attributes
         '''
 
-        self.backoff_stt = None
-        self.backoff_url = None
-        self.backoff_time = None
-        self.backoff_duration = None
+        self.redis_client.delete(
+            BACKOFF_STT_REDIS,
+            BACKOFF_URL_REDIS,
+            BACKOFF_TIME_REDIS,
+            BACKOFF_DUR_REDIS
+        )
 
     async def get_ohlcv_data(self, ohlcv_url):
         '''
@@ -374,8 +377,12 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
         retries = 0
         while retries < 12:
             await self.rw_manager.acheck(1)
-            if (self.backoff_stt != 429 and self.backoff_stt != 418) \
-                or ohlcv_url == self.backoff_url:
+            backoff_stt = self.redis_client.get(BACKOFF_STT_REDIS)
+            backoff_url = self.redis_client.get(BACKOFF_URL_REDIS)
+            backoff_duration = self.redis_client.get(BACKOFF_DUR_REDIS)
+            backoff_time = self.redis_client.get(BACKOFF_TIME_REDIS)
+            if (backoff_stt != "429" and backoff_stt != "418") \
+                or ohlcv_url == backoff_url:
                 async with self.rate_limiter:
                 # async with self.async_throttler:
                 
@@ -392,13 +399,17 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                     except httpx.HTTPStatusError as exc:
                         resp_status_code = exc.response.status_code
                         if resp_status_code == 429 or resp_status_code == 418:
-                            self.backoff_stt = resp_status_code
-                            self.backoff_url = ohlcv_url
-                            self.backoff_time = time.monotonic()
-                            self.backoff_duration = exc.response.headers['Retry-After']
-                            self.async_throttler.period *= 2
-                            print(f"get_ohlcv_data: EXCEPTION: Backing off - setting throttler to 1 request every {round(self.async_throttler.period, 2)} seconds")
-                            asyncio.sleep(self.backoff_duration)
+                            retry_after = exc.response.headers['Retry-After']
+
+                            self.redis_client.set(BACKOFF_STT_REDIS, resp_status_code)
+                            self.redis_client.set(BACKOFF_URL_REDIS, ohlcv_url)
+                            self.redis_client.set(BACKOFF_DUR_REDIS, retry_after)
+                            self.redis_client.set(
+                                BACKOFF_TIME_REDIS, redis_time(self.redis_client)
+                            )
+
+                            print(f"get_ohlcv_data: Backing off...")
+                            asyncio.sleep(float(retry_after))
                         else:
                             self.reset_backoff()
                             return (
@@ -416,10 +427,13 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                             f'EXCEPTION: Request error while requesting {exc.request.url}'
                         )
             else:
-                print("get_ohlcv_data: backing off")
-                asyncio.sleep(
-                    min(self.backoff_duration - (time.monotonic() - self.backoff_time) + random.random(), RATE_LIMIT_SECS_PER_MIN)
-                )
+                print("get_ohlcv_data: Backing off...")
+                if backoff_duration and backoff_time:
+                    asyncio.sleep(
+                        min(float(backoff_duration) - (redis_time(self.redis_client) - float(backoff_time)) + 10 * random.random(), RATE_LIMIT_SECS_PER_MIN)
+                    )
+                else:
+                    asyncio.sleep(RATE_LIMIT_SECS_PER_MIN)
             retries += 1
         self.reset_backoff()
         return (
@@ -584,13 +598,11 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
         Consumes OHLCV parameters from the to-fetch Redis set
         '''
 
-        # Reset all self-backoff attributes
-        # Move all params from fetching set to to-fetch set
+        # When start, move all params from fetching set to to-fetch set
         # Only create http client when consuming, hence the context manager
         # Keep looping and processing in batch if either:
         # - self.feeding or
         # - there are elements in to-fetch set or fetching set
-        self.reset_backoff()        
         fetching_params = self.redis_client.spop(
             OHLCVS_BINANCE_FETCHING_REDIS,
             self.redis_client.scard(OHLCVS_BINANCE_FETCHING_REDIS)

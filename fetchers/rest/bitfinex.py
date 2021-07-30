@@ -6,7 +6,7 @@ import psycopg2
 import httpx
 import backoff
 import redis
-from asyncio_throttle import Throttler
+# from asyncio_throttle import Throttler
 from common.config.constants import (
     DBCONNECTION, REDIS_HOST,
     REDIS_PASSWORD, REDIS_DELIMITER,
@@ -42,6 +42,8 @@ RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
 OHLCVS_BITFINEX_TOFETCH_REDIS = "ohlcvs_tofetch_bitfinex"
 OHLCVS_BITFINEX_FETCHING_REDIS = "ohlcvs_fetching_bitfinex"
 
+OHLCVS_CONSUME_BATCH_SIZE = 500
+
 class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -56,10 +58,10 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
         # self.async_httpx_client = httpx.AsyncClient(timeout=None, limits=httpx_limits)
 
         # Async throttler
-        self.async_throttler = Throttler(
-            rate_limit = 1,
-            period = RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
-        )
+        # self.async_throttler = Throttler(
+        #     rate_limit = 1,
+        #     period = RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
+        # )
         
         # Postgres connection
         # TODO: Not sure if this is needed
@@ -479,7 +481,7 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
         Consumes OHLCV parameters from the to-fetch Redis set
         '''
 
-        # Move all params from fetching set to to-fetch set
+        # When start, move all params from fetching set to to-fetch set
         # Only create http client when consuming, hence the context manager
         # Keep looping and processing in batch if either:
         # - self.feeding or
@@ -505,7 +507,7 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
                 #   Add these params to Redis to-fetch set, if not None
                 # Finally, remove params list from Redis fetching set
                 params_list = self.redis_client.spop(
-                    OHLCVS_BITFINEX_TOFETCH_REDIS, RATE_LIMIT_HITS_PER_MIN
+                    OHLCVS_BITFINEX_TOFETCH_REDIS, OHLCVS_CONSUME_BATCH_SIZE
                 )
                 if params_list:
                     self.redis_client.sadd(OHLCVS_BITFINEX_FETCHING_REDIS, *params_list)
@@ -521,6 +523,7 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
                         self.redis_client.sadd(
                             OHLCVS_BITFINEX_TOFETCH_REDIS, *new_tofetch_params_notnone
                         )
+
                     self.redis_client.srem(OHLCVS_BITFINEX_FETCHING_REDIS, *params_list)
     
     async def fetch_ohlcvs_symbols(

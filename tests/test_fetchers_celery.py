@@ -11,18 +11,14 @@ from fetchers.rest.binance import BinanceOHLCVFetcher
 from celery_app.celery_tasks import *
 
 
-start_date_dt=datetime.datetime(2019, 11, 1, 0, 0, 0)
-end_date_dt=datetime.datetime(2020, 1, 1, 0, 0, 0)
+start_date_dt=datetime.datetime(2021, 7, 28, 0, 0, 0)
+end_date_dt=datetime.datetime(2021, 7, 29, 0, 0, 0)
 
 def run_tasks():
     # bitfinex_fetch_ohlcvs_all_symbols.delay(
     #     start_date = start_date_dt,
     #     end_date = end_date_dt
     # )
-    # bitfinex_resume_fetch.delay()
-    # bitfinex_fetcher = BitfinexOHLCVFetcher()
-    # bitfinex_fetcher.run_fetch_ohlcvs_all(start_date_dt, end_date_dt)
-    # bitfinex_fetcher.close_connections()
     # bitfinex_fetch_ohlcvs_mutual_basequote.delay(
     #     start_date = start_date_dt,
     #     end_date = end_date_dt
@@ -32,9 +28,6 @@ def run_tasks():
     #     start_date = start_date_dt,
     #     end_date = end_date_dt
     # )
-    # binance_fetcher = BinanceOHLCVFetcher()
-    # binance_fetcher.run_fetch_ohlcvs_all(start_date_dt, end_date_dt)
-    # binance_fetcher.close_connections()
     # binance_fetch_ohlcvs_mutual_basequote.delay(
     #     start_date = start_date_dt,
     #     end_date = end_date_dt
@@ -48,8 +41,6 @@ def run_tasks():
     #     start_date = start_date_dt,
     #     end_date = end_date_dt
     # )
-
-    # ohlcv_websocket_update.delay()
     pass
 
 

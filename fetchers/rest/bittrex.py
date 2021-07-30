@@ -6,7 +6,7 @@ import psycopg2
 import httpx
 import backoff
 import redis
-from asyncio_throttle import Throttler
+# from asyncio_throttle import Throttler
 from common.config.constants import (
     DBCONNECTION, REDIS_HOST,
     REDIS_PASSWORD, REDIS_DELIMITER,
@@ -46,6 +46,8 @@ OHLCVS_BITTREX_TOFETCH_REDIS = "ohlcvs_tofetch_bittrex"
 OHLCVS_BITTREX_FETCHING_REDIS = "ohlcvs_fetching_bittrex"
 DATETIME_STR_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
+OHLCVS_CONSUME_BATCH_SIZE = 100
+
 class BittrexOHLCVFetcher(BaseOHLCVFetcher):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -60,10 +62,10 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         # self.async_httpx_client = httpx.AsyncClient(timeout=None, limits=httpx_limits)
 
         # Async throttler
-        self.async_throttler = Throttler(
-            rate_limit = 1,
-            period = RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
-        )
+        # self.async_throttler = Throttler(
+        #     rate_limit = 1,
+        #     period = RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
+        # )
 
         # Postgres connection
         # TODO: Not sure if this is needed
@@ -430,9 +432,19 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         Consumes OHLCV parameters from the to-fetch Redis set
         '''
 
+        # When start, move all params from fetching set to to-fetch set
+        # Only create http client when consuming, hence the context manager
         # Keep looping if either:
         # - self.feeding or
         # - there are elements in to-fetch set or fetching set
+        fetching_params = self.redis_client.spop(
+            OHLCVS_BITTREX_FETCHING_REDIS,
+            self.redis_client.scard(OHLCVS_BITTREX_FETCHING_REDIS)
+        )
+        if fetching_params:
+            self.redis_client.sadd(
+                OHLCVS_BITTREX_TOFETCH_REDIS, *fetching_params
+            )
         async with httpx.AsyncClient(timeout=None, limits=self.httpx_limits) as client:
             self.async_httpx_client = client
             while self.feeding or \
@@ -446,7 +458,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                 #   Add these params to Redis to-fetch set, if not None
                 # Finally, remove params list from Redis fetching set
                     params_list = self.redis_client.spop(
-                        OHLCVS_BITTREX_TOFETCH_REDIS, RATE_LIMIT_HITS_PER_MIN
+                        OHLCVS_BITTREX_TOFETCH_REDIS, OHLCVS_CONSUME_BATCH_SIZE
                     )
                     if params_list:
                         self.redis_client.sadd(OHLCVS_BITTREX_FETCHING_REDIS, *params_list)
@@ -454,6 +466,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                             self.get_and_parse_ohlcv(params, update) for params in params_list
                         ]
                         await asyncio.gather(*get_parse_tasks)
+
                         self.redis_client.srem(OHLCVS_BITTREX_FETCHING_REDIS, *params_list)
 
     async def fetch_ohlcvs_symbols(

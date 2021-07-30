@@ -16,9 +16,9 @@ THROTTLER_RATE_LIMITS = {
     'RATE_LIMIT_SECS_PER_MIN': 60
 }
 HTTPX_MAX_CONCURRENT_CONNECTIONS = {
-    'bittrex': 55,
-    'bitfinex': 85,
-    'binance': 32
+    'bittrex': 100, # increased from 55
+    'bitfinex': 100, # increased from 85
+    'binance': 100 # decreased from 500
 }
 
 # Asyncio signals

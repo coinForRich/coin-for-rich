@@ -1,21 +1,40 @@
 # This module contains db helpers
 
+import sys
 import csv
 import psycopg2
 from psycopg2 import sql, extras
 from io import StringIO
 
 
+def print_psycopg2_exception(err: Exception):
+    # get details about the exception
+    err_type, err_obj, traceback = sys.exc_info()
+
+    # get the line number when exception occured
+    line_num = traceback.tb_lineno
+
+    # print the connect() error
+    print ("\npsycopg2 ERROR:", err, "on line number:", line_num)
+    print ("psycopg2 traceback:", traceback, "-- type:", err_type)
+
+    # psycopg2 extensions.Diagnostics object attribute
+    # print ("\nextensions.Diagnostics:", err.diag)
+
+    # print the pgcode and pgerror exceptions
+    print ("pgerror:", err.pgerror)
+    print ("pgcode:", err.pgcode, "\n")
+
 def psql_bulk_insert(
-        conn,
-        rows: tuple,
-        table: str,
-        insert_update_query: str = None,
-        insert_ignoredup_query: str = None,
-        unique_cols: tuple = None,
-        update_cols: tuple = None,
-        cursor = None
-    ):
+    conn,
+    rows: tuple,
+    table: str,
+    insert_update_query: str = None,
+    insert_ignoredup_query: str = None,
+    unique_cols: tuple = None,
+    update_cols: tuple = None,
+    cursor = None
+):
     '''
     Bulk inserts `rows` to `table` using StringIO and CSV;
         
@@ -83,11 +102,12 @@ def psql_bulk_insert(
             cursor.close()
         return True
     except Exception as exc:
-        print(f'PSQL Bulk Insert: EXCEPTION: {exc}')
         conn.rollback()
+        print(f'PSQL Bulk Insert: EXCEPTION: \n')
+        print_psycopg2_exception(exc)
         if cursor:
             cursor.close()
-        raise exc
+        # raise exc
 
 def psql_query_format(query, *args):
     '''

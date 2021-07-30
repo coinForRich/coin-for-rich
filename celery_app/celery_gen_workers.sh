@@ -12,7 +12,7 @@ celery -A celery_app.celery_main worker -Q binance_rest -n binanceRestWorker@h -
 
 celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log"
 
-celery -A celery_app.celery_main worker -Q all_rest -c 4 -n updateWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log"
+celery -A celery_app.celery_main worker -Q all_rest -c 4 -n allRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log"
 
 # Celery beat for period tasks
 celery -A celery_app.celery_main beat -s ./celery_app/beat/celery_beat

@@ -58,9 +58,6 @@ task_routes = {
     'celery_app.celery_tasks.bittrex_fetch_ohlcvs_mutual_basequote_1min': {
         'queue': 'bittrex_rest'
     },
-    'celery_app.celery_tasks.ohlcv_websocket_update': {
-        'queue': 'all_rest'
-    },
     'celery_app.celery_tasks.all_fetch_symbol_data': {
         'queue': 'all_rest'
     }
