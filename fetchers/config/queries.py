@@ -36,6 +36,12 @@ inner join symbol_exchange as symexch
 where symexch.exchange = %s;
 '''
 
+# Get all symbols from an exchange
+ALL_SYMBOLS_EXCHANGE_QUERY = '''
+select symbol from symbol_exchange where exchange=%s order by base_id, quote_id;
+'''
+
+# Get timestamp gaps
 TS_GAPS_QUERY = '''
 select row_to_json(results)
 from (

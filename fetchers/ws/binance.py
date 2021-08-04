@@ -1,11 +1,14 @@
 ### This module uses websocket to fetch binance 1-minute OHLCV data in real time
 
+
 import sys
-import time
+import random
+import logging
 import asyncio
 import json
 import redis
 import websockets
+from typing import Iterable
 from common.config.constants import (
     REDIS_HOST, REDIS_PASSWORD, REDIS_DELIMITER
 )
@@ -16,7 +19,10 @@ from fetchers.rest.binance import BinanceOHLCVFetcher, EXCHANGE_NAME
 from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosedOK
 
 
+# Binance only allows up to 1024 subscriptions per ws connection
+#   However, so far only a max value of 200 works...
 URI = "wss://stream.binance.com:9443/ws"
+MAX_SUB_PER_CONN = 200
 
 class BinanceOHLCVWebsocket:
     def __init__(self):
@@ -32,10 +38,21 @@ class BinanceOHLCVWebsocket:
 
         # Rest fetcher for convenience
         self.rest_fetcher = BinanceOHLCVFetcher()
+
+        # Logging
+        self.logger = logging.getLogger('websockets')
+        self.logger.setLevel(logging.INFO)
+        log_handler = logging.StreamHandler()
+        log_handler.setLevel(logging.INFO)
+        log_formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        log_handler.setFormatter(log_formatter)
+        self.logger.addHandler(log_handler)
     
-    async def subscribe(self, symbols):
+    async def subscribe(self, symbols: Iterable, i: int = 0):
         '''
         Subscribes to Binance WS for `symbols`
+
         :params:
             `symbols`: list of symbols (not tsymbol)
                 e.g., [ETHBTC]
@@ -43,6 +60,8 @@ class BinanceOHLCVWebsocket:
 
         while True:
             try:
+                # Delay before making a connection
+                await asyncio.sleep(5 + random.random() * 5)
                 async with websockets.connect(URI) as ws:
                     # Binance requires WS symbols to be lowercase
                     params = [
@@ -53,9 +72,10 @@ class BinanceOHLCVWebsocket:
                         {
                             "method": "SUBSCRIBE",
                             "params": params,
-                            "id": self.ws_msg_ids["subscribe"]
+                            "id": i
                         })
                     )
+                    self.logger.info(f"Connection {i}: Successful")
                     while True:
                         resp = await ws.recv()
                         respj = json.loads(resp)
@@ -65,7 +85,7 @@ class BinanceOHLCVWebsocket:
                                     if respj['result'] is not None:
                                         raise UnsuccessfulConnection
                                 else:
-                                    print(f'At time {round(time.time(), 2)}, response: {respj}')
+                                    # self.logger.info(f"Response: {respj}")
                                     symbol = respj['s']
                                     timestamp = int(respj['k']['t'])
                                     open_ = respj['k']['o']
@@ -92,8 +112,8 @@ class BinanceOHLCVWebsocket:
                                         base_id = base_id,
                                         quote_id = quote_id)
 
-                                    print(f'ws sub redis key: {ws_sub_redis_key}')
-                                    print(f'ws serve redis key: {ws_serve_redis_key}')
+                                    # print(f'ws sub redis key: {ws_sub_redis_key}')
+                                    # print(f'ws serve redis key: {ws_serve_redis_key}')
 
                                     # Add ws sub key to set of all ws sub keys
                                     # Set hash value for ws sub key
@@ -120,20 +140,37 @@ class BinanceOHLCVWebsocket:
                                             }
                                         )
                         except Exception as exc:
-                            print(f"EXCEPTION: {exc}")
+                            self.logger.warning(f"EXCEPTION: {exc}")
+                        await asyncio.sleep(0.01)
             except ConnectionClosedOK:
                 pass
             except Exception as exc:
-                print(f"EXCEPTION: {exc}")
+                raise Exception(exc)
 
     async def mutual_basequote(self):
         symbols_dict = self.rest_fetcher.get_mutual_basequote()
         self.rest_fetcher.close_connections()
         # symbols_dict = ["ETHBTC", "BTCEUR"]
         await asyncio.gather(self.subscribe(symbols_dict.keys()))
+
+    async def all(self):
+        '''
+        Subscribes to WS channels of all symbols
+        '''
+
+        self.rest_fetcher.fetch_symbol_data()
+        symbols =  tuple(self.rest_fetcher.symbol_data.keys())
+
+        # Subscribe to `MAX_SUB_PER_CONN` per connection (e.g., 1024)
+        await asyncio.gather(
+            *(self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], i)
+                for i in range(0, len(symbols), MAX_SUB_PER_CONN)))
     
     def run_mutual_basequote(self):
         asyncio.run(self.mutual_basequote())
+
+    def run_all(self):
+        asyncio.run(self.all())
 
 
 if __name__ == "__main__":

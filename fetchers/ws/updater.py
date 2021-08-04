@@ -16,7 +16,7 @@ from fetchers.config.queries import PSQL_INSERT_IGNOREDUP_QUERY
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 
 
-UPDATE_FREQUENCY_SECS = 10
+UPDATE_FREQUENCY_SECS = 60
 
 class OHLCVWebsocketUpdater:
     def __init__(self):

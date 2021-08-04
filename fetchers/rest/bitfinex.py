@@ -18,7 +18,8 @@ from common.helpers.datetimehelpers import (
 from common.utils.asyncioutils import aio_set_exception_handler
 from fetchers.config.constants import (
     THROTTLER_RATE_LIMITS, HTTPX_MAX_CONCURRENT_CONNECTIONS,
-    OHLCV_UNIQUE_COLUMNS, OHLCV_UPDATE_COLUMNS
+    OHLCV_UNIQUE_COLUMNS, OHLCV_UPDATE_COLUMNS,
+    REST_RATE_LIMIT_REDIS_KEY
 )
 from fetchers.config.queries import (
     PSQL_INSERT_IGNOREDUP_QUERY, PSQL_INSERT_UPDATE_QUERY
@@ -79,9 +80,9 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
         # Redis initial feeding status
         self.feeding = False
 
-        # Rate limit manager
+        # Rate limiter
         self.rate_limiter = GCRARateLimiter(
-            EXCHANGE_NAME,
+            REST_RATE_LIMIT_REDIS_KEY.format(exchange = EXCHANGE_NAME),
             1,
             RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN,
             redis_client = self.redis_client

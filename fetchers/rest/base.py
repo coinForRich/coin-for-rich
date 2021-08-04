@@ -2,10 +2,11 @@
 
 import datetime
 import asyncio
-from common.config.constants import REDIS_HOST, REDIS_PASSWORD, SYMBOL_EXCHANGE_TABLE
+from common.config.constants import SYMBOL_EXCHANGE_TABLE
 from common.utils.asyncioutils import aio_set_exception_handler
-from fetchers.config.constants import REST_RATE_LIMIT_REDIS_KEY, THROTTLER_RATE_LIMITS
-from fetchers.config.queries import MUTUAL_BASE_QUOTE_QUERY, PSQL_INSERT_IGNOREDUP_QUERY
+from fetchers.config.queries import (
+    MUTUAL_BASE_QUOTE_QUERY, ALL_SYMBOLS_EXCHANGE_QUERY, PSQL_INSERT_IGNOREDUP_QUERY
+)
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 
 
@@ -49,6 +50,52 @@ class BaseOHLCVFetcher:
         '''
         
         self.psql_cur.execute(MUTUAL_BASE_QUOTE_QUERY, (self.exchange_name,))
+        results = self.psql_cur.fetchall()
+        ret = {}
+        for result in results:
+            ret[result[0]] = {
+                'base_id': self.symbol_data[result[0]]['base_id'],
+                'quote_id': self.symbol_data[result[0]]['quote_id']
+            }
+        return ret
+
+    def get_all_symbols(self):
+        '''
+        Returns a dict of the all symbols
+            in this form:
+                {
+                    'ETHBTC': {
+                        'base_id': 'ETH',
+                        'quote_id': 'BTC'
+                    }
+                }
+        '''
+
+        self.psql_cur.execute(ALL_SYMBOLS_EXCHANGE_QUERY, (self.exchange_name,))
+        results = self.psql_cur.fetchall()
+        ret = {}
+        for result in results:
+            ret[result[0]] = {
+                'base_id': self.symbol_data[result[0]]['base_id'],
+                'quote_id': self.symbol_data[result[0]]['quote_id']
+            }
+        return ret
+
+    def get_symbols_from_exch(self, query: str):
+        '''
+        Returns a dict of symbols from a pre-constructed query
+            in this form:
+                {
+                    'ETHBTC': {
+                        'base_id': 'ETH',
+                        'quote_id': 'BTC'
+                    }
+                }
+            
+        The query must have a `%s` placeholder for the exchange
+        '''
+
+        self.psql_cur.execute(query, (self.exchange_name,))
         results = self.psql_cur.fetchall()
         ret = {}
         for result in results:

@@ -23,11 +23,19 @@ class GCRARateLimiter:
     
     def __init__(
         self,
-        exchange_name: str,
+        rate_limit_key: str,
         rate_limit: float,
         period: float,
         redis_client: redis.Redis = None
     ):
+        '''
+        :params:
+            `rate_limit_key`: unique key for this rate limiter
+            `rate_limit`:
+            `period`:
+            `redis_client`:
+        '''
+    
         if not redis_client:
             redis_client = redis.Redis(
                 host=REDIS_HOST,
@@ -36,23 +44,18 @@ class GCRARateLimiter:
                 decode_responses=True
             )
         self.redis_client = redis_client
-        self.key = REST_RATE_LIMIT_REDIS_KEY.format(
-            exchange = exchange_name
-        )
+        self.key = rate_limit_key
         self.rate_limit = rate_limit
         self.period = period
         self.increment = self.period / self.rate_limit
    
     def _is_limited(self):
         '''
-        Different version
-
         Checks if the requesting function is rate-limited
 
         Source: https://dev.to/astagi/rate-limiting-using-python-and-redis-58gk
         '''
 
-        # t = time.monotonic()
         secs, mics = self.redis_client.time()
         t = int(secs) + microseconds_to_seconds(float(mics))
         try:
@@ -91,79 +94,6 @@ class GCRARateLimiter:
     async def __aexit__(self, exc_type, exc, tb):
         pass
 
-
-class LeakyBucketRateLimiter:
-    '''
-    Client-side request rate-limiter using the leaky bucket algorithm with Redis
-    '''
-
-    #TODO: Currently there is a bug where the key value is reduced to -1
-    #   and thus the fetcher refuses to proceed
-
-    def __init__(
-        self,
-        exchange_name: str,
-        rate_limit: int,
-        period: int,
-        redis_client: redis.Redis = None
-    ):
-        if not redis_client:
-            redis_client = redis.Redis(
-                host=REDIS_HOST,
-                username="default",
-                password=REDIS_PASSWORD,
-                decode_responses=True
-            )
-        self.redis_client = redis_client
-        self.key = REST_RATE_LIMIT_REDIS_KEY.format(
-            exchange = exchange_name
-        )
-        self.rate_limit = rate_limit
-        self.period = period
-        self.separation = period / rate_limit
-        self.retry_interval = 0.01
-        
-    async def _is_limited(self):
-        '''
-        Checks if the requesting function is rate-limited
-
-        Source: https://dev.to/astagi/rate-limiting-using-python-and-redis-58gk
-        '''
-        
-        try:
-            with self.redis_client.lock(
-                f'lock:{self.key}',
-                timeout=LOCK_TIMEOUT_SECS,
-                blocking_timeout=0.01
-            ) as lock:
-                if self.redis_client.setnx(self.key, self.rate_limit):
-                    self.redis_client.expire(self.key, self.period)
-                bucket_val = self.redis_client.get(self.key)
-                if bucket_val and int(bucket_val) > 0:
-                    self.redis_client.decrby(self.key, 1)
-                    # Sleep to smooth out the requests
-                    await asyncio.sleep(self.separation)
-                    return False
-                return True
-        except LockError:
-            return True
-        except Exception as exc:
-            print(f"LeakyBucketRateLimiter: EXCEPTION: {exc}")
-
-    async def wait(self):
-        while True:
-            limited = await self._is_limited()
-            if not limited:
-                break
-            await asyncio.sleep(self.retry_interval)
-
-    async def __aenter__(self):
-        await self.wait()
-
-    async def __aexit__(self, exc_type, exc, tb):
-        pass
-
-
 class AsyncThrottler:
     '''
     An asyncio throttler using Redis
@@ -173,7 +103,7 @@ class AsyncThrottler:
     
     def __init__(
         self,
-        exchange_name: str,
+        rate_limit_key: str,
         rate_limit: int,
         period: float,
         retry_interval: float = 0.01,
@@ -187,14 +117,13 @@ class AsyncThrottler:
                 decode_responses=True
             )
         self.redis_client = redis_client
-        self.key = f'async_throttle_{exchange_name}'
+        self.key = rate_limit_key
         self.rate_limit = rate_limit
         self.period = period
         self.increment = period / rate_limit
         self.retry_interval = retry_interval
 
     def flush(self):
-        # now = time.monotonic()
         secs, mics = self.redis_client.time()
         now = int(secs) + microseconds_to_seconds(float(mics))
         try:

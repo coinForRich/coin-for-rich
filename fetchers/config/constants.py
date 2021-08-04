@@ -24,8 +24,9 @@ HTTPX_MAX_CONCURRENT_CONNECTIONS = {
 # Asyncio signals
 ASYNC_SIGNALS = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
 
-# REST Redis keys
-REST_RATE_LIMIT_REDIS_KEY = "rate_limit_{exchange}"
+# REST/WS rate limit Redis keys
+REST_RATE_LIMIT_REDIS_KEY = "rest_rate_limit_{exchange}"
+WS_RATE_LIMIT_REDIS_KEY = "ws_rate_limit_{exchange}"
 
 # Websocket Redis keys
 # Sub is for storing temp subscribed ws data to update psql db later
