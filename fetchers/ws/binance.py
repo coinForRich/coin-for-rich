@@ -40,7 +40,7 @@ class BinanceOHLCVWebsocket:
         self.rest_fetcher = BinanceOHLCVFetcher()
 
         # Logging
-        self.logger = logging.getLogger('websockets')
+        self.logger = logging.getLogger(f'{EXCHANGE_NAME}_websocket')
         self.logger.setLevel(logging.INFO)
         log_handler = logging.StreamHandler()
         log_handler.setLevel(logging.INFO)
@@ -105,12 +105,14 @@ class BinanceOHLCVWebsocket:
                                         exchange = EXCHANGE_NAME,
                                         delimiter = REDIS_DELIMITER,
                                         base_id = base_id,
-                                        quote_id = quote_id)
+                                        quote_id = quote_id
+                                    )
                                     ws_serve_redis_key = WS_SERVE_REDIS_KEY.format(
                                         exchange = EXCHANGE_NAME,
                                         delimiter = REDIS_DELIMITER,
                                         base_id = base_id,
-                                        quote_id = quote_id)
+                                        quote_id = quote_id
+                                    )
 
                                     # print(f'ws sub redis key: {ws_sub_redis_key}')
                                     # print(f'ws serve redis key: {ws_serve_redis_key}')
@@ -118,14 +120,11 @@ class BinanceOHLCVWebsocket:
                                     # Add ws sub key to set of all ws sub keys
                                     # Set hash value for ws sub key
                                     self.redis_client.sadd(
-                                        WS_SUB_LIST_REDIS_KEY, ws_sub_redis_key
-                                    )
+                                        WS_SUB_LIST_REDIS_KEY, ws_sub_redis_key)
                                     self.redis_client.hset(
-                                        ws_sub_redis_key, timestamp, sub_val
-                                    )
+                                        ws_sub_redis_key, timestamp, sub_val)
                                     current_timestamp = self.redis_client.hget(
-                                        ws_serve_redis_key,
-                                        'time')
+                                        ws_serve_redis_key, 'time')
                                     if current_timestamp is None or \
                                         timestamp >= int(current_timestamp):
                                         self.redis_client.hset(

@@ -23,7 +23,7 @@ from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosedOK
 
 # Bitfinex only allows up to 30 subscriptions per ws connection
 URI = "wss://api-pub.bitfinex.com/ws/2"
-MAX_SUB_PER_CONN = 25
+MAX_SUB_PER_CONN = 20
 
 class BitfinexOHLCVWebsocket:
     def __init__(self):
@@ -42,7 +42,7 @@ class BitfinexOHLCVWebsocket:
         self.rest_fetcher = BitfinexOHLCVFetcher()
 
         # Logging
-        self.logger = logging.getLogger('websockets')
+        self.logger = logging.getLogger(f'{EXCHANGE_NAME}_websocket')
         self.logger.setLevel(logging.INFO)
         log_handler = logging.StreamHandler()
         log_handler.setLevel(logging.INFO)
@@ -129,12 +129,14 @@ class BitfinexOHLCVWebsocket:
                                             exchange = EXCHANGE_NAME,
                                             delimiter = REDIS_DELIMITER,
                                             base_id = base_id,
-                                            quote_id = quote_id)
+                                            quote_id = quote_id
+                                        )
                                         ws_serve_redis_key = WS_SERVE_REDIS_KEY.format(
                                             exchange = EXCHANGE_NAME,
                                             delimiter = REDIS_DELIMITER,
                                             base_id = base_id,
-                                            quote_id = quote_id)
+                                            quote_id = quote_id
+                                        )
 
                                         # logging.info(f'ws sub redis key: {ws_sub_redis_key}')
                                         # logging.info(f'ws serve redis key: {ws_serve_redis_key}')
@@ -144,11 +146,9 @@ class BitfinexOHLCVWebsocket:
                                         # Replace ws serve key hash if this timestamp
                                         #   is more up-to-date
                                         self.redis_client.sadd(
-                                            WS_SUB_LIST_REDIS_KEY, ws_sub_redis_key
-                                        )
+                                            WS_SUB_LIST_REDIS_KEY, ws_sub_redis_key)
                                         self.redis_client.hset(
-                                            ws_sub_redis_key, timestamp, sub_val
-                                        )
+                                            ws_sub_redis_key, timestamp, sub_val)
                                         current_timestamp = self.redis_client.hget(
                                             ws_serve_redis_key,
                                             'time')
@@ -167,10 +167,11 @@ class BitfinexOHLCVWebsocket:
                                             )
                             except Exception as exc:
                                 self.logger.warning(f"EXCEPTION: {exc}")
-                            await asyncio.sleep(0.01)
+                            await asyncio.sleep(0.1)
             except ConnectionClosedOK:
                 pass
             except Exception as exc:
+                self.logger.warning(f"EXCEPTION: {exc}")
                 raise Exception(exc)
 
     async def mutual_basequote(self):
