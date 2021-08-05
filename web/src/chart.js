@@ -46,8 +46,8 @@ var candles_ws = null
 var data = null
 var data_loading = false
 var bar_latest = null
-var chartWidth = 1000
-var chartHeight = 300
+var chartWidth = 1400
+var chartHeight = 500
 var chart = LightweightCharts.createChart(document.getElementById('chart'), {
     width: chartWidth,
     height: chartHeight,

@@ -2,12 +2,17 @@
 
 import sys
 import csv
+import logging
 import psycopg2
 from psycopg2 import sql, extras
 from io import StringIO
 
 
-def print_psycopg2_exception(err: Exception):
+def log_psycopg2_exc(err: Exception):
+    '''
+    Logs details about a psycopg2 Exception
+    '''
+    
     # get details about the exception
     err_type, err_obj, traceback = sys.exc_info()
 
@@ -15,15 +20,15 @@ def print_psycopg2_exception(err: Exception):
     line_num = traceback.tb_lineno
 
     # print the connect() error
-    print ("\npsycopg2 ERROR:", err, "on line number:", line_num)
-    print ("psycopg2 traceback:", traceback, "-- type:", err_type)
+    logging.error("\npsycopg2 ERROR:", err, "on line number:", line_num)
+    logging.error("psycopg2 traceback:", traceback, "-- type:", err_type)
 
     # psycopg2 extensions.Diagnostics object attribute
     # print ("\nextensions.Diagnostics:", err.diag)
 
     # print the pgcode and pgerror exceptions
-    print ("pgerror:", err.pgerror)
-    print ("pgcode:", err.pgcode, "\n")
+    logging.error("pgerror:", err.pgerror)
+    logging.error("pgcode:", err.pgcode, "\n")
 
 def psql_bulk_insert(
     conn,
@@ -76,7 +81,7 @@ def psql_bulk_insert(
     except psycopg2.IntegrityError:
         conn.rollback()
         if insert_update_query is not None:
-            print("PSQL Bulk Insert: Performing insert with update")
+            logging.info("PSQL Bulk Insert: Performing insert with update")
             ex_cols = ("excluded" for _ in update_cols)
             insert_query = sql.SQL(insert_update_query).format(
                 sql.SQL(", ").join(map(sql.Identifier, unique_cols)),
@@ -85,7 +90,7 @@ def psql_bulk_insert(
                 table = sql.Identifier(table)
             )
         elif insert_ignoredup_query is not None:
-            print("PSQL Bulk Insert: Performing insert without update")
+            logging.info("PSQL Bulk Insert: Performing insert without update")
             insert_query = sql.SQL(insert_ignoredup_query).format(
                 table = sql.Identifier(table)
             )
@@ -97,16 +102,17 @@ def psql_bulk_insert(
             )
         extras.execute_values(cursor, insert_query, rows, page_size=1000)
         conn.commit()
-        print(f'PSQL Bulk Insert: Successfully inserted rows to table {table}')
+        logging.info(f'PSQL Bulk Insert: Successfully inserted rows to table {table}')
         if cursor:
             cursor.close()
         return True
     except Exception as exc:
         conn.rollback()
-        print(f'PSQL Bulk Insert: EXCEPTION: \n')
-        print_psycopg2_exception(exc)
+        logging.warning(f'PSQL Bulk Insert: EXCEPTION: \n')
+        log_psycopg2_exc(exc)
         if cursor:
             cursor.close()
+        return False
         # raise exc
 
 def psql_query_format(query, *args):

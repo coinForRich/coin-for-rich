@@ -11,6 +11,7 @@ from typing import Iterable
 from common.config.constants import (
     REDIS_HOST, REDIS_PASSWORD, REDIS_DELIMITER
 )
+from common.utils.asyncioutils import AsyncLoopThread
 from fetchers.config.constants import (
     WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY,
     WS_SUB_LIST_REDIS_KEY, WS_RATE_LIMIT_REDIS_KEY
@@ -23,7 +24,7 @@ from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosedOK
 
 # Bitfinex only allows up to 30 subscriptions per ws connection
 URI = "wss://api-pub.bitfinex.com/ws/2"
-MAX_SUB_PER_CONN = 20
+MAX_SUB_PER_CONN = 25
 
 class BitfinexOHLCVWebsocket:
     def __init__(self):
@@ -58,6 +59,10 @@ class BitfinexOHLCVWebsocket:
             3,
             redis_client = self.redis_client
         )
+
+        # Loop
+        self.loop_handler = AsyncLoopThread(daemon=None)
+        self.loop_handler.start()
 
     async def subscribe_one(self, symbol, ws_client):
         '''
@@ -109,7 +114,7 @@ class BitfinexOHLCVWebsocket:
                                             self.chanid_mapping[respj['chanId']] = symbol
                                 if isinstance(respj, list):
                                     if len(respj[1]) == 6:
-                                        # logging.info(f'At time {round(time.time(), 2)}, response: {respj}')
+                                        # self.logger.info(f"Response: {respj}")
                                         symbol = self.chanid_mapping[respj[0]]
                                         timestamp = int(respj[1][0])
                                         open_ = respj[1][1]
@@ -171,7 +176,7 @@ class BitfinexOHLCVWebsocket:
             except ConnectionClosedOK:
                 pass
             except Exception as exc:
-                self.logger.warning(f"EXCEPTION: {exc}")
+                self.logger.warning(f"EXCEPTION in connection {i}: {exc}")
                 raise Exception(exc)
 
     async def mutual_basequote(self):
@@ -185,7 +190,13 @@ class BitfinexOHLCVWebsocket:
         # symbols = ["ETHBTC", "BTCEUR"]
         await asyncio.gather(self.subscribe(symbols_dict.keys()))
 
-    async def all(self):
+    async def coroutine(self, sec, i):
+        print(f'?????')
+        await asyncio.sleep(sec)
+        print(f'Coro {i} has finished')
+
+    # async def all(self):
+    def all(self):
         '''
         Subscribes to WS channels of all symbols
         '''
@@ -193,16 +204,24 @@ class BitfinexOHLCVWebsocket:
         self.rest_fetcher.fetch_symbol_data()
         symbols =  tuple(self.rest_fetcher.symbol_data.keys())
 
+        for i in range(0, len(symbols), MAX_SUB_PER_CONN):
+            asyncio.run_coroutine_threadsafe(
+                self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], i),
+                # self.coroutine(5, i),
+                self.loop_handler.loop
+            )
+
         # Subscribe to `MAX_SUB_PER_CONN` per connection (e.g., 30)
-        await asyncio.gather(
-            *(self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], i)
-                for i in range(0, len(symbols), MAX_SUB_PER_CONN)))
+        # await asyncio.gather(
+        #     *(self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], i)
+        #         for i in range(0, len(symbols), MAX_SUB_PER_CONN)))
             
     def run_mutual_basequote(self):
         asyncio.run(self.mutual_basequote())
 
     def run_all(self):
-        asyncio.run(self.all())
+        # asyncio.run(self.all())
+        self.all()
 
 
 if __name__ == "__main__":

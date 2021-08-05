@@ -16,7 +16,7 @@ import hmac
 import json
 import logging
 import asyncio
-import time
+import random
 import uuid
 import redis
 from typing import Iterable
@@ -29,7 +29,7 @@ from common.config.constants import (
     REDIS_DELIMITER,
     DEFAULT_DATETIME_STR_RESULT
 )
-from common.helpers.datetimehelpers import str_to_milliseconds
+from common.helpers.datetimehelpers import str_to_milliseconds, redis_time
 from fetchers.config.constants import (
     WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY, WS_SUB_LIST_REDIS_KEY
 )
@@ -74,7 +74,7 @@ class BittrexOHLCVWebsocket:
         self.logger.addHandler(log_handler)
 
     async def connect(self):
-        self.latest_ts = time.time()
+        self.latest_ts = redis_time(self.redis_client)
         connection = Connection(URI)
         self.signalr_hub = connection.register_hub('c3')
         connection.received += self.on_message
@@ -83,7 +83,7 @@ class BittrexOHLCVWebsocket:
         self.logger.info('Connected')
 
     async def authenticate(self):
-        timestamp = str(int(time.time()) * 1000)
+        timestamp = str(int(redis_time(self.redis_client)) * 1000)
         random_content = str(uuid.uuid4())
         content = timestamp + random_content
         signed_content = hmac.new(
@@ -141,23 +141,23 @@ class BittrexOHLCVWebsocket:
             self.invocation_event.set()
 
     async def on_error(self, msg):
-        self.latest_ts = time.time()
+        self.latest_ts = redis_time(self.redis_client)
         self.logger.warning(msg)
 
     async def on_heartbeat(self, msg):
-        self.latest_ts = time.time()
-        self.logger.info('\u2661')
+        self.latest_ts = redis_time(self.redis_client)
+        # self.logger.info('\u2661')
 
     async def on_auth_expiring(self, msg):
         self.logger.info('Authentication expiring...')
         asyncio.create_task(self.authenticate())
 
     async def on_trade(self, msg):
-        self.latest_ts = time.time()
+        self.latest_ts = redis_time(self.redis_client)
         await self.decode_message('Trade', msg)
 
     async def on_candle(self, msg):
-        self.latest_ts = time.time()
+        self.latest_ts = redis_time(self.redis_client)
         respj = await self.decode_message('Candle', msg)
         try:
             # If resp is dict, process and push to Redis
@@ -269,7 +269,7 @@ class BittrexOHLCVWebsocket:
             try:
                 # Connect or reconnect if the SignalR hub is None
                 #   or now is more than 60 secs later than latest ts
-                now = time.time()
+                now = redis_time(self.redis_client)
                 if self.signalr_hub is None or (now - self.latest_ts) > 60:
                     await self.connect()
                     if API_SECRET != '':
@@ -281,7 +281,7 @@ class BittrexOHLCVWebsocket:
                     # await forever.wait()
             except Exception as exc:
                 self.logger.warning(f"EXCEPTION: {exc}")
-            await asyncio.sleep(1)
+            await asyncio.sleep(5 + random.random() * 5)
 
     async def all(self):
         '''
@@ -293,7 +293,7 @@ class BittrexOHLCVWebsocket:
 
         while True:
             try:
-                now = time.time()
+                now = redis_time(self.redis_client)
                 if self.signalr_hub is None or (now - self.latest_ts) > 60:
                     await self.connect()
                     if API_SECRET != '':
@@ -301,13 +301,10 @@ class BittrexOHLCVWebsocket:
                     else:
                         self.logger.info('Authentication skipped because API key was not provided')
                     await self.subscribe(symbols)
-                    # await asyncio.gather(
-                    #     *(self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], i)
-                    #         for i in range(0, len(symbols), MAX_SUB_PER_CONN)))
             except Exception as exc:
                 self.logger.warning(f"EXCEPTION: {exc}")
                 raise(exc)
-            await asyncio.sleep(1)
+            await asyncio.sleep(5 + random.random() * 5)
 
     def run_main(self):
         asyncio.run(self.main())

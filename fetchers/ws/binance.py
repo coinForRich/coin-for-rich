@@ -60,8 +60,6 @@ class BinanceOHLCVWebsocket:
 
         while True:
             try:
-                # Delay before making a connection
-                await asyncio.sleep(5 + random.random() * 5)
                 async with websockets.connect(URI) as ws:
                     # Binance requires WS symbols to be lowercase
                     params = [
@@ -85,7 +83,7 @@ class BinanceOHLCVWebsocket:
                                     if respj['result'] is not None:
                                         raise UnsuccessfulConnection
                                 else:
-                                    # self.logger.info(f"Response: {respj}")
+                                    self.logger.info(f"Response: {respj}")
                                     symbol = respj['s']
                                     timestamp = int(respj['k']['t'])
                                     open_ = respj['k']['o']
@@ -142,7 +140,9 @@ class BinanceOHLCVWebsocket:
                             self.logger.warning(f"EXCEPTION: {exc}")
                         await asyncio.sleep(0.01)
             except ConnectionClosedOK:
-                pass
+                # pass
+                # Delay before making a connection
+                await asyncio.sleep(5 + random.random() * 5)
             except Exception as exc:
                 raise Exception(exc)
 

@@ -36,16 +36,16 @@ class WSServerConnectionManager:
 
 class WSServerSender:
     '''
-    Websocket sender for clients that subscribe to our web
+    Websocket sender for clients that view chart
     '''
 
     def __init__(
-        self,
-        ws_manager: WSServerConnectionManager,
-        ws: WebSocket,
-        redis_client: redis.Redis,
-        db: Session
-    ):
+            self,
+            ws_manager: WSServerConnectionManager,
+            ws: WebSocket,
+            redis_client: redis.Redis,
+            db: Session
+        ):
         self.loop_handler = AsyncLoopThread()
         self.loop_handler.start()
         self.ws_manager = ws_manager
@@ -69,6 +69,7 @@ class WSServerSender:
             await self.ws.send_json({
                 'message': "interval must be in the determined list"
             })
+        # TODO: This serving_id is not unique among different users/clients
         serving_id = f'ohlc_{exchange}_{base_id}_{quote_id}_{interval}'
         self.serving_ids.append(serving_id)
         while self.ws in self.ws_manager.active_connections and \
@@ -76,6 +77,7 @@ class WSServerSender:
             # If `interval` == "1m", use "fresh" data from Redis,
             #   otherwise use data from REST API
             # Sleep between messages according to `interval` as well
+            # TODO: add heartbeat
             if interval == "1m":
                 ws_serve_redis_key = WS_SERVE_REDIS_KEY.format(
                     exchange = exchange,
@@ -134,6 +136,25 @@ class WSServerSender:
                     await asyncio.sleep(1440)
                 elif interval == "7D":
                     await asyncio.sleep(10080)
+   
+    async def _unserve_ohlc(
+            self,
+            exchange: str,
+            base_id: str,
+            quote_id: str,
+            interval: str
+        ):
+        '''
+        Stops serving OHLC for `exchange`, `base_id`, quote_id`, `interval`
+        '''
+        
+        if interval not in OHLCV_INTERVALS:
+            await self.ws.send_json({
+                'message': "interval must be in the determined list"
+            })
+            return
+        serving_id = f'ohlc_{exchange}_{base_id}_{quote_id}_{interval}'
+        self.serving_ids.remove(serving_id)
 
     def serve_ohlc(
             self, exchange: str, base_id: str, quote_id: str, interval: str
@@ -148,33 +169,14 @@ class WSServerSender:
             ),
             self.loop_handler.loop
         )
-    
-    async def _unserve_ohlc(
-        self,
-        exchange: str,
-        base_id: str,
-        quote_id: str,
-        interval: str
-    ):
-        '''
-        Stops serving OHLC for `exchange`, `base_id`, quote_id`, `interval`
-        '''
-        
-        if interval not in OHLCV_INTERVALS:
-            await self.ws.send_json({
-                'message': "interval must be in the determined list"
-            })
-            return
-        serving_id = f'ohlc_{exchange}_{base_id}_{quote_id}_{interval}'
-        self.serving_ids.remove(serving_id)
 
     def unserve_ohlc(
-        self,
-        exchange: str,
-        base_id: str,
-        quote_id: str,
-        interval: str
-    ):
+            self,
+            exchange: str,
+            base_id: str,
+            quote_id: str,
+            interval: str
+        ):
         '''
         Websocket API for stopping serving OHLC
         '''

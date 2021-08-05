@@ -35,8 +35,7 @@ redis_client = redis.Redis(
     host=REDIS_HOST,
     username="default",
     password=REDIS_PASSWORD,
-    decode_responses=True
-)
+    decode_responses=True)
 
 # Dependency
 def get_db():
@@ -52,10 +51,10 @@ async def root():
 
 @app.get("/testws", response_class=HTMLResponse)
 async def testws(
-    request: Request,
-    exchange: str,
-    base_id: str,
-    quote_id: str
+        request: Request,
+        exchange: str,
+        base_id: str,
+        quote_id: str
     ):
     return templates.TemplateResponse(
         "viewsymbol.html", {
@@ -68,15 +67,15 @@ async def testws(
 
 @app.get("/ohlc/", name="read_ohlc")
 async def read_ohlcv(
-    exchange: str,
-    base_id: str,
-    quote_id: str,
-    interval: str,
-    start: Optional[Union[str, int]] = None,
-    end: Optional[Union[str, int]] = None,
-    mls: Optional[bool] = True,
-    limit: Optional[int] = 500,
-    db: Session = Depends(get_db)
+        exchange: str,
+        base_id: str,
+        quote_id: str,
+        interval: str,
+        start: Optional[Union[str, int]] = None,
+        end: Optional[Union[str, int]] = None,
+        mls: Optional[bool] = True,
+        limit: Optional[int] = 500,
+        db: Session = Depends(get_db)
     ):
     '''
     Reads OHLC from database, max 500 data points
@@ -116,8 +115,8 @@ async def read_ohlcv(
 
 @app.websocket("/candles")
 async def websocket_endpoint(
-    websocket: WebSocket,
-    db: Session = Depends(get_db)
+        websocket: WebSocket,
+        db: Session = Depends(get_db)
     ):
     await ws_manager.connect(websocket)
     ws_sender = WSServerSender(ws_manager, websocket, redis_client, db)

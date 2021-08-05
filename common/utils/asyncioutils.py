@@ -67,8 +67,8 @@ class AsyncLoopThread(Thread):
     Source: https://stackoverflow.com/questions/34499400/how-to-add-a-coroutine-to-a-running-asyncio-loop
     '''
 
-    def __init__(self):
-        super().__init__(daemon=True)
+    def __init__(self, daemon: bool = True):
+        super().__init__(daemon=daemon)
         self.loop = asyncio.new_event_loop()
 
     def run(self):
