@@ -16,7 +16,7 @@ from fetchers.config.constants import (
     WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY, WS_SUB_LIST_REDIS_KEY
 )
 from fetchers.rest.binance import BinanceOHLCVFetcher, EXCHANGE_NAME
-from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosedOK
+from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosed, ConnectionClosedOK
 
 
 # Binance only allows up to 1024 subscriptions per ws connection
@@ -139,11 +139,12 @@ class BinanceOHLCVWebsocket:
                         except Exception as exc:
                             self.logger.warning(f"EXCEPTION: {exc}")
                         await asyncio.sleep(0.01)
-            except ConnectionClosedOK:
-                # pass
-                # Delay before making a connection
+            except ConnectionClosed as exc:
+                self.logger.warning(f"Connection {i} closed with reason: {exc} - reconnecting...")
+                # Delay before reconnecting
                 await asyncio.sleep(5 + random.random() * 5)
             except Exception as exc:
+                self.logger.warning(f"EXCEPTION in connection {i}: {exc}")
                 raise Exception(exc)
 
     async def mutual_basequote(self):
@@ -172,8 +173,8 @@ class BinanceOHLCVWebsocket:
         asyncio.run(self.all())
 
 
-if __name__ == "__main__":
-    run_cmd = sys.argv[1]
-    ws_binance = BinanceOHLCVWebsocket()
-    if getattr(ws_binance, run_cmd):
-        getattr(ws_binance, run_cmd)()
+# if __name__ == "__main__":
+#     run_cmd = sys.argv[1]
+#     ws_binance = BinanceOHLCVWebsocket()
+#     if getattr(ws_binance, run_cmd):
+#         getattr(ws_binance, run_cmd)()

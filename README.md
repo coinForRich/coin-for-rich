@@ -13,6 +13,12 @@ COMMON_HOST=yourLocalhost
 In the `celery_app` folder, create a new folder named `beat`
 
 In the root folder of the project, create a new folder with another folder inside so they are like this: `logs/celery`
+
+### Install dependencies
+The following are required to install psycopg2 (?)
+```
+sudo apt install gcc libpq-dev
+```
 ### Setup a Postgresql/Timescaledb database
 Remember to bind-mount data volume to make it persistent
 ```
@@ -53,10 +59,10 @@ Websocket subscribers and updater are run in different terminals
 To run websocket subscribers and updater:
 - Open 4 tmux terminals panes, activate your virtual environment if any
 - In the first 3 terminals, run this command in each:
-    - `python -m fetchers.ws.<exchange name> run_mutual_basequote`
-    - For example, `python -m fetchers.ws.bitfinex run_mutual_basequote` for Bitfinex
+    - `python -m commands.fetchws exchange -E <exchange name>`
+    - For example, `python -m commands.fetchws exchange -E bitfinex` for Bitfinex
 - In the last terminal, run this command:
-    - `python -m fetchers.ws.updater update`
+    - `python -m commands.fetchws updater`
 
 ### Run tests
 `python -m pytest`

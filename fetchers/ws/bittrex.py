@@ -280,7 +280,7 @@ class BittrexOHLCVWebsocket:
                     # forever = asyncio.Event()
                     # await forever.wait()
             except Exception as exc:
-                self.logger.warning(f"EXCEPTION: {exc}")
+                self.logger.warning(f"EXCEPTION: {exc} - reconnecting...")
             await asyncio.sleep(5 + random.random() * 5)
 
     async def all(self):
@@ -302,7 +302,7 @@ class BittrexOHLCVWebsocket:
                         self.logger.info('Authentication skipped because API key was not provided')
                     await self.subscribe(symbols)
             except Exception as exc:
-                self.logger.warning(f"EXCEPTION: {exc}")
+                self.logger.warning(f"EXCEPTION: {exc} - reconnecting...")
                 raise(exc)
             await asyncio.sleep(5 + random.random() * 5)
 
@@ -334,8 +334,8 @@ class BittrexOHLCVWebsocket:
         asyncio.run(self.all())
 
 
-if __name__ == "__main__":
-    run_cmd = sys.argv[1]
-    ws_bittrex = BittrexOHLCVWebsocket()
-    if getattr(ws_bittrex, run_cmd):
-        getattr(ws_bittrex, run_cmd)()
+# if __name__ == "__main__":
+#     run_cmd = sys.argv[1]
+#     ws_bittrex = BittrexOHLCVWebsocket()
+#     if getattr(ws_bittrex, run_cmd):
+#         getattr(ws_bittrex, run_cmd)()

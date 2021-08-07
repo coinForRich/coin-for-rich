@@ -1,4 +1,4 @@
-from websockets.exceptions import ConnectionClosedOK
+from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
 
 
 class UnsuccessfulConnection(Exception):

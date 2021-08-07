@@ -6,6 +6,7 @@
 -- Create OHLCVS table
 -- Create Symbol exchange table
 -- Create OHLCVS errors table
+-- Create test table (resembles OHLCVS)
 CREATE TABLE ohlcvs (
    time TIMESTAMPTZ NOT NULL,
    exchange VARCHAR(100) NOT NULL,
@@ -37,6 +38,14 @@ CREATE TABLE ohlcvs_errors (
    exception_message TEXT
 );
 
+CREATE TABLE test (
+   id NUMERIC NOT NULL,
+   b VARCHAR(20) NOT NULL,
+   q VARCHAR(20) NOT NULL,
+   o NUMERIC,
+   c NUMERIC
+)
+
 
 -- Create primary key constraints
 ALTER TABLE ohlcvs
@@ -47,6 +56,9 @@ ADD PRIMARY KEY (exchange, base_id, quote_id);
 
 ALTER TABLE ohlcvs_errors
 ADD PRIMARY KEY (exception_class, exchange, symbol, start_date, end_date, time_frame);
+
+ALTER TABLE test
+ADD PRIMARY KEY (id, b, q);
 
 
 -- Create foreign key constraints

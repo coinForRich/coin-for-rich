@@ -100,8 +100,8 @@ class OHLCVWebsocketUpdater:
             psql_conn.close()
 
 
-if __name__ == "__main__":
-    run_cmd = sys.argv[1]
-    updater = OHLCVWebsocketUpdater()
-    if getattr(updater, run_cmd):
-        getattr(updater, run_cmd)()
+# if __name__ == "__main__":
+#     run_cmd = sys.argv[1]
+#     updater = OHLCVWebsocketUpdater()
+#     if getattr(updater, run_cmd):
+#         getattr(updater, run_cmd)()

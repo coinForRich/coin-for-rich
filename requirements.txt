@@ -1,53 +1,64 @@
-# This file may be used to create an environment using:
-# $ conda create --name <env> --file <this file>
-# platform: linux-64
-_libgcc_mutex=0.1=main
-asyncio-throttle=1.0.2=pypi_0
-backoff=1.10.0=pypi_0
-brotlipy=0.7.0=py38h27cfd23_1003
-ca-certificates=2021.5.25=h06a4308_1
-certifi=2021.5.30=py38h06a4308_0
-cffi=1.14.3=py38h261ae71_2
-chardet=3.0.4=py38h06a4308_1003
-conda-package-handling=1.7.2=py38h03888b9_0
-cryptography=3.2.1=py38h3c74f83_1
-h11=0.12.0=pyhd3eb1b0_0
-h2=3.2.0=py38_1
-hpack=3.0.0=py_0
-httpcore=0.13.3=pyhd3eb1b0_0
-httpx=0.18.1=pyhd3eb1b0_0
-hyperframe=5.2.0=py_0
-idna=2.10=py_0
-krb5=1.17.1=h173b8e3_0
-ld_impl_linux-64=2.33.1=h53a641e_7
-libedit=3.1.20191231=h14c3975_1
-libffi=3.3=he6710b0_2
-libgcc-ng=9.1.0=hdf63c60_0
-libpq=12.2=h20c2e04_0
-libstdcxx-ng=9.1.0=hdf63c60_0
-ncurses=6.2=he6710b0_1
-openssl=1.1.1k=h27cfd23_0
-pip=20.2.4=py38h06a4308_0
-psycopg2=2.8.6=py38h3c74f83_1
-pycosat=0.6.3=py38h7b6447c_1
-pycparser=2.20=py_2
-pyopenssl=19.1.0=pyhd3eb1b0_1
-pysocks=1.7.1=py38h06a4308_0
-python=3.8.5=h7579374_1
-python-dotenv=0.17.1=pypi_0
-readline=8.0=h7b6447c_0
-redis=3.5.3=pypi_0
-requests=2.24.0=py_0
-rfc3986=1.4.0=py_0
-ruamel_yaml=0.15.87=py38h7b6447c_1
-setuptools=50.3.1=py38h06a4308_1
-six=1.15.0=py38h06a4308_0
-sniffio=1.2.0=py38h06a4308_1
-sqlite=3.33.0=h62c20be_0
-tk=8.6.10=hbc83047_0
-tqdm=4.51.0=pyhd3eb1b0_0
-urllib3=1.25.11=py_0
-wheel=0.35.1=pyhd3eb1b0_0
-xz=5.2.5=h7b6447c_0
-yaml=0.2.5=h7b6447c_0
-zlib=1.2.11=h7b6447c_3
+aiofiles==0.7.0
+amqp==5.0.6
+anyio==3.3.0
+asgiref==3.4.1
+asyncio-throttle==1.0.2
+attrs==21.2.0
+autopep8 @ file:///tmp/build/80754af9/autopep8_1620866417880/work
+backoff==1.10.0
+billiard==3.6.4.0
+brotlipy==0.7.0
+celery==5.1.2
+certifi==2021.5.30
+cffi @ file:///tmp/build/80754af9/cffi_1605538068321/work
+chardet @ file:///tmp/build/80754af9/chardet_1605303185383/work
+click==7.1.2
+click-didyoumean==0.0.3
+click-plugins==1.1.1
+click-repl==0.2.0
+conda-package-handling @ file:///tmp/build/80754af9/conda-package-handling_1603018141399/work
+cryptography @ file:///tmp/build/80754af9/cryptography_1605544487601/work
+fastapi==0.68.0
+greenlet==1.1.1
+h11==0.12.0
+httpcore==0.13.6
+httpx==0.18.2
+idna @ file:///tmp/build/80754af9/idna_1593446292537/work
+inflect==5.3.0
+iniconfig==1.1.1
+Jinja2==2.11.2
+kombu==5.1.0
+MarkupSafe @ file:///tmp/build/80754af9/markupsafe_1621528148836/work
+packaging==21.0
+pluggy==0.13.1
+prompt-toolkit==3.0.19
+psycopg2==2.9.1
+py==1.10.0
+pycodestyle @ file:///tmp/build/80754af9/pycodestyle_1615748559966/work
+pycosat==0.6.3
+pycparser @ file:///tmp/build/80754af9/pycparser_1594388511720/work
+pydantic==1.8.2
+pyOpenSSL @ file:///tmp/build/80754af9/pyopenssl_1605545627475/work
+pyparsing==2.4.7
+PySocks @ file:///tmp/build/80754af9/pysocks_1605305779399/work
+pytest==6.2.4
+python-dotenv==0.17.1
+pytz==2021.1
+redis==3.5.3
+requests @ file:///tmp/build/80754af9/requests_1592841827918/work
+rfc3986==1.5.0
+ruamel-yaml==0.15.87
+signalr-client-aio==0.0.1.6.2
+six @ file:///tmp/build/80754af9/six_1605205327372/work
+sniffio==1.2.0
+sqlacodegen==2.3.0
+SQLAlchemy==1.4.22
+starlette==0.14.2
+toml @ file:///tmp/build/80754af9/toml_1616166611790/work
+tqdm @ file:///tmp/build/80754af9/tqdm_1605303662894/work
+typing-extensions==3.10.0.0
+urllib3 @ file:///tmp/build/80754af9/urllib3_1603305693037/work
+uvicorn==0.14.0
+vine==5.0.0
+wcwidth==0.2.5
+websockets==9.1

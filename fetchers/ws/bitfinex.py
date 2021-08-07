@@ -19,7 +19,7 @@ from fetchers.config.constants import (
 from fetchers.config.queries import ALL_SYMBOLS_EXCHANGE_QUERY, MUTUAL_BASE_QUOTE_QUERY
 from fetchers.rest.bitfinex import BitfinexOHLCVFetcher, EXCHANGE_NAME
 from fetchers.utils.ratelimit import AsyncThrottler
-from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosedOK
+from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosed
 
 
 # Bitfinex only allows up to 30 subscriptions per ws connection
@@ -61,8 +61,8 @@ class BitfinexOHLCVWebsocket:
         )
 
         # Loop
-        self.loop_handler = AsyncLoopThread(daemon=None)
-        self.loop_handler.start()
+        # self.loop_handler = AsyncLoopThread(daemon=None)
+        # self.loop_handler.start()
 
     async def subscribe_one(self, symbol, ws_client):
         '''
@@ -91,7 +91,6 @@ class BitfinexOHLCVWebsocket:
         while True:
             try:
                 # Delay before making a connection
-                # await asyncio.sleep(5 + random.random() * 5)
                 async with self.rate_limiter:
                     async with websockets.connect(URI) as ws:
                         await asyncio.gather(
@@ -173,8 +172,8 @@ class BitfinexOHLCVWebsocket:
                             except Exception as exc:
                                 self.logger.warning(f"EXCEPTION: {exc}")
                             await asyncio.sleep(0.1)
-            except ConnectionClosedOK:
-                pass
+            except ConnectionClosed as exc:
+                self.logger.warning(f"Connection {i} closed with reason: {exc} - reconnecting...")
             except Exception as exc:
                 self.logger.warning(f"EXCEPTION in connection {i}: {exc}")
                 raise Exception(exc)
@@ -195,8 +194,8 @@ class BitfinexOHLCVWebsocket:
         await asyncio.sleep(sec)
         print(f'Coro {i} has finished')
 
-    # async def all(self):
-    def all(self):
+    async def all(self):
+    # def all(self):
         '''
         Subscribes to WS channels of all symbols
         '''
@@ -204,28 +203,29 @@ class BitfinexOHLCVWebsocket:
         self.rest_fetcher.fetch_symbol_data()
         symbols =  tuple(self.rest_fetcher.symbol_data.keys())
 
-        for i in range(0, len(symbols), MAX_SUB_PER_CONN):
-            asyncio.run_coroutine_threadsafe(
-                self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], i),
-                # self.coroutine(5, i),
-                self.loop_handler.loop
-            )
+        # TODO: probably running in different threads is not needed
+        # for i in range(0, len(symbols), MAX_SUB_PER_CONN):
+        #     asyncio.run_coroutine_threadsafe(
+        #         self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], i),
+        #         # self.coroutine(5, i),
+        #         self.loop_handler.loop
+        #     )
 
         # Subscribe to `MAX_SUB_PER_CONN` per connection (e.g., 30)
-        # await asyncio.gather(
-        #     *(self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], i)
-        #         for i in range(0, len(symbols), MAX_SUB_PER_CONN)))
+        await asyncio.gather(
+            *(self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], i)
+                for i in range(0, len(symbols), MAX_SUB_PER_CONN)))
             
     def run_mutual_basequote(self):
         asyncio.run(self.mutual_basequote())
 
     def run_all(self):
-        # asyncio.run(self.all())
-        self.all()
+        asyncio.run(self.all())
+        # self.all()
 
 
-if __name__ == "__main__":
-    run_cmd = sys.argv[1]
-    ws_bitfinex = BitfinexOHLCVWebsocket()
-    if getattr(ws_bitfinex, run_cmd):
-        getattr(ws_bitfinex, run_cmd)()
+# if __name__ == "__main__":
+#     run_cmd = sys.argv[1]
+#     ws_bitfinex = BitfinexOHLCVWebsocket()
+#     if getattr(ws_bitfinex, run_cmd):
+#         getattr(ws_bitfinex, run_cmd)()
