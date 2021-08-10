@@ -21,7 +21,7 @@ arg_parser.add_argument(
 )
 
 arg_parser.add_argument(
-    '-E',
+    '--exchange',
     metavar='exchange',
     type=str,
     help='name of the exchange'

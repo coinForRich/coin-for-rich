@@ -1,18 +1,22 @@
-# Helpers for asyncio including backoff, etc.
+# Utils for asyncio that may be used in any module
 
-import asyncio
-import backoff
 import traceback
+import asyncio
+from signal import Signals
 from threading import Thread
-from fetchers.config.constants import THROTTLER_RATE_LIMITS, ASYNC_SIGNALS
+from typing import Any
+from fetchers.config.constants import ASYNC_SIGNALS
 
 
-# Asyncio exception handler for async tasks
-def aio_handle_exception(loop, context):
+def aio_handle_exception(loop: asyncio.AbstractEventLoop, context: Any) -> None:
     '''
     Asyncio exception handler, for use with
         `aio_shutdown` and `aio_set_exception_handler`
 
+    :params:
+        `loop`: asyncio event loop
+        `context`: ..?
+    
     Source: https://www.roguelynn.com/words/asyncio-exception-handling/
     '''
 
@@ -20,13 +24,12 @@ def aio_handle_exception(loop, context):
     # but context["exception"] may not
     msg = context.get("exception", context["message"])
     print(f"Caught exception: {msg}")
-    # print("Printing traceback...")
-    # traceback.print_stack()
+    print("Printing traceback...")
+    traceback.print_stack()
     print("Shutting down...")
     asyncio.create_task(aio_shutdown(loop))
 
-# Asyncio shutdown function for async tasks
-async def aio_shutdown(loop, signal=None):
+async def aio_shutdown(loop: asyncio.AbstractEventLoop, signal: Signals=None) -> None:
     '''
     Cleans tasks tied to the service's shutdown
     '''
@@ -46,10 +49,11 @@ async def aio_shutdown(loop, signal=None):
     print(f"Flushing metrics")
     loop.stop()
 
-# Asyncio set exception handler for a loop
-def aio_set_exception_handler(loop):
+def aio_set_exception_handler(loop: asyncio.AbstractEventLoop) -> None:
     '''
     Sets exception handler for a loop
+
+    Source: https://www.roguelynn.com/words/asyncio-exception-handling/
     '''
 
     for s in ASYNC_SIGNALS:
@@ -71,6 +75,6 @@ class AsyncLoopThread(Thread):
         super().__init__(daemon=daemon)
         self.loop = asyncio.new_event_loop()
 
-    def run(self):
+    def run(self) -> None:
         asyncio.set_event_loop(self.loop)
         self.loop.run_forever()

@@ -106,6 +106,7 @@ def psql_bulk_insert(
         if cursor:
             cursor.close()
         return True
+    #TODO: is it fine to catch ANY exception?
     except Exception as exc:
         conn.rollback()
         logging.warning(f'PSQL Bulk Insert: EXCEPTION: \n')
@@ -113,6 +114,7 @@ def psql_bulk_insert(
         if cursor:
             cursor.close()
         return False
+        # Not want to raise exception because this function is used in mass-fetching
         # raise exc
 
 def psql_query_format(query, *args):

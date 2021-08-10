@@ -8,7 +8,7 @@ import asyncio
 import json
 import redis
 import websockets
-from typing import Iterable
+from typing import Iterable, NoReturn
 from common.config.constants import (
     REDIS_HOST, REDIS_PASSWORD, REDIS_DELIMITER
 )
@@ -49,7 +49,7 @@ class BinanceOHLCVWebsocket:
         log_handler.setFormatter(log_formatter)
         self.logger.addHandler(log_handler)
     
-    async def subscribe(self, symbols: Iterable, i: int = 0):
+    async def subscribe(self, symbols: Iterable, i: int = 0) -> NoReturn:
         '''
         Subscribes to Binance WS for `symbols`
 
@@ -143,17 +143,17 @@ class BinanceOHLCVWebsocket:
                 self.logger.warning(f"Connection {i} closed with reason: {exc} - reconnecting...")
                 # Delay before reconnecting
                 await asyncio.sleep(5 + random.random() * 5)
-            except Exception as exc:
-                self.logger.warning(f"EXCEPTION in connection {i}: {exc}")
-                raise Exception(exc)
+            # except Exception as exc:
+            #     self.logger.warning(f"EXCEPTION in connection {i}: {exc}")
+            #     raise Exception(exc)
 
-    async def mutual_basequote(self):
+    async def mutual_basequote(self) -> None:
         symbols_dict = self.rest_fetcher.get_mutual_basequote()
         self.rest_fetcher.close_connections()
         # symbols_dict = ["ETHBTC", "BTCEUR"]
         await asyncio.gather(self.subscribe(symbols_dict.keys()))
 
-    async def all(self):
+    async def all(self) -> None:
         '''
         Subscribes to WS channels of all symbols
         '''
@@ -163,18 +163,14 @@ class BinanceOHLCVWebsocket:
 
         # Subscribe to `MAX_SUB_PER_CONN` per connection (e.g., 1024)
         await asyncio.gather(
-            *(self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], i)
-                for i in range(0, len(symbols), MAX_SUB_PER_CONN)))
+            *(
+                self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], int(i/MAX_SUB_PER_CONN))
+                    for i in range(0, len(symbols), MAX_SUB_PER_CONN)
+            )
+        )
     
-    def run_mutual_basequote(self):
+    def run_mutual_basequote(self) -> None:
         asyncio.run(self.mutual_basequote())
 
-    def run_all(self):
+    def run_all(self) -> None:
         asyncio.run(self.all())
-
-
-# if __name__ == "__main__":
-#     run_cmd = sys.argv[1]
-#     ws_binance = BinanceOHLCVWebsocket()
-#     if getattr(ws_binance, run_cmd):
-#         getattr(ws_binance, run_cmd)()

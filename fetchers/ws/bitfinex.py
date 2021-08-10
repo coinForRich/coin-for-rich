@@ -7,7 +7,7 @@ import asyncio
 import json
 import redis
 import websockets
-from typing import Iterable
+from typing import Any, Iterable, NoReturn
 from common.config.constants import (
     REDIS_HOST, REDIS_PASSWORD, REDIS_DELIMITER
 )
@@ -64,7 +64,11 @@ class BitfinexOHLCVWebsocket:
         # self.loop_handler = AsyncLoopThread(daemon=None)
         # self.loop_handler.start()
 
-    async def subscribe_one(self, symbol, ws_client):
+    async def subscribe_one(
+        self,
+        symbol: str,
+        ws_client: Any
+    ) -> None:
         '''
         Connects to WS endpoint for a symbol
 
@@ -79,7 +83,7 @@ class BitfinexOHLCVWebsocket:
         msg = {'event': 'subscribe',  'channel': 'candles', 'key': ws_symbol}
         await ws_client.send(json.dumps(msg))
 
-    async def subscribe(self, symbols: Iterable, i: int = 0):
+    async def subscribe(self, symbols: Iterable, i: int = 0) -> NoReturn:
         '''
         Subscribes to Bitfinex WS for `symbols`
 
@@ -174,11 +178,11 @@ class BitfinexOHLCVWebsocket:
                             await asyncio.sleep(0.1)
             except ConnectionClosed as exc:
                 self.logger.warning(f"Connection {i} closed with reason: {exc} - reconnecting...")
-            except Exception as exc:
-                self.logger.warning(f"EXCEPTION in connection {i}: {exc}")
-                raise Exception(exc)
+            # except Exception as exc:
+            #     self.logger.warning(f"EXCEPTION in connection {i}: {exc}")
+            #     raise Exception(exc)
 
-    async def mutual_basequote(self):
+    async def mutual_basequote(self) -> None:
         '''
         Subscribes to WS channels of the mutual symbols
             among all exchanges
@@ -189,12 +193,7 @@ class BitfinexOHLCVWebsocket:
         # symbols = ["ETHBTC", "BTCEUR"]
         await asyncio.gather(self.subscribe(symbols_dict.keys()))
 
-    async def coroutine(self, sec, i):
-        print(f'?????')
-        await asyncio.sleep(sec)
-        print(f'Coro {i} has finished')
-
-    async def all(self):
+    async def all(self) -> None:
     # def all(self):
         '''
         Subscribes to WS channels of all symbols
@@ -213,19 +212,15 @@ class BitfinexOHLCVWebsocket:
 
         # Subscribe to `MAX_SUB_PER_CONN` per connection (e.g., 30)
         await asyncio.gather(
-            *(self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], i)
-                for i in range(0, len(symbols), MAX_SUB_PER_CONN)))
+            *(
+                self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], int(i/MAX_SUB_PER_CONN))
+                    for i in range(0, len(symbols), MAX_SUB_PER_CONN)
+            )
+        )
             
-    def run_mutual_basequote(self):
+    def run_mutual_basequote(self) -> None:
         asyncio.run(self.mutual_basequote())
 
-    def run_all(self):
+    def run_all(self) -> None:
         asyncio.run(self.all())
         # self.all()
-
-
-# if __name__ == "__main__":
-#     run_cmd = sys.argv[1]
-#     ws_bitfinex = BitfinexOHLCVWebsocket()
-#     if getattr(ws_bitfinex, run_cmd):
-#         getattr(ws_bitfinex, run_cmd)()

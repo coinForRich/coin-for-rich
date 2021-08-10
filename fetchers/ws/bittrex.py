@@ -19,7 +19,7 @@ import asyncio
 import random
 import uuid
 import redis
-from typing import Iterable
+from typing import Any, Iterable, List, NoReturn, Union
 from signalr_aio import Connection
 from base64 import b64decode
 from zlib import decompress, MAX_WBITS
@@ -73,7 +73,7 @@ class BittrexOHLCVWebsocket:
         log_handler.setFormatter(log_formatter)
         self.logger.addHandler(log_handler)
 
-    async def connect(self):
+    async def connect(self) -> None:
         self.latest_ts = redis_time(self.redis_client)
         connection = Connection(URI)
         self.signalr_hub = connection.register_hub('c3')
@@ -82,7 +82,7 @@ class BittrexOHLCVWebsocket:
         connection.start()
         self.logger.info('Connected')
 
-    async def authenticate(self):
+    async def authenticate(self) -> None:
         timestamp = str(int(redis_time(self.redis_client)) * 1000)
         random_content = str(uuid.uuid4())
         content = timestamp + random_content
@@ -103,7 +103,7 @@ class BittrexOHLCVWebsocket:
         else:
             self.logger.warning('Authentication failed: ' + response['ErrorCode'])
 
-    async def subscribe(self, symbols: Iterable, i: int = 0):
+    async def subscribe(self, symbols: Iterable, i: int = 0) -> None:
         '''
         Subscribes to Bittrex WS for `symbols`
 
@@ -115,11 +115,11 @@ class BittrexOHLCVWebsocket:
         # self.signalr_hub.client.on('trade', on_trade)
         self.signalr_hub.client.on('heartbeat', self.on_heartbeat)
         self.signalr_hub.client.on('candle', self.on_candle)
-        channels = [
+        channels = (
             'heartbeat',
             # 'candle_BTC-USD_MINUTE_1'
-            *[f'candle_{symbol}_MINUTE_1' for symbol in symbols]
-        ]
+            *(f'candle_{symbol}_MINUTE_1' for symbol in symbols)
+        )
 
         response = await self.invoke('Subscribe', channels)
         for c in range(len(channels)):
@@ -128,35 +128,35 @@ class BittrexOHLCVWebsocket:
             else:
                 self.logger.info(f"Group {i}: Subscription to {channels[c]} failed: {response[c]['ErrorCode']}")
 
-    async def invoke(self, method, *args):
+    async def invoke(self, method: str, *args) -> Union[Any, None]:
         async with self.asyncio_lock:
             self.invocation_event = asyncio.Event()
             self.signalr_hub.server.invoke(method, *args)
             await self.invocation_event.wait()
             return self.invocation_response
 
-    async def on_message(self, **msg):
+    async def on_message(self, **msg) -> None:
         if 'R' in msg:
             self.invocation_response = msg['R']
             self.invocation_event.set()
 
-    async def on_error(self, msg):
+    async def on_error(self, msg) -> None:
         self.latest_ts = redis_time(self.redis_client)
         self.logger.warning(msg)
 
-    async def on_heartbeat(self, msg):
+    async def on_heartbeat(self, msg) -> None:
         self.latest_ts = redis_time(self.redis_client)
         # self.logger.info('\u2661')
 
-    async def on_auth_expiring(self, msg):
+    async def on_auth_expiring(self, msg) -> None:
         self.logger.info('Authentication expiring...')
         asyncio.create_task(self.authenticate())
 
-    async def on_trade(self, msg):
+    async def on_trade(self, msg) -> None:
         self.latest_ts = redis_time(self.redis_client)
         await self.decode_message('Trade', msg)
 
-    async def on_candle(self, msg):
+    async def on_candle(self, msg) -> None:
         self.latest_ts = redis_time(self.redis_client)
         respj = await self.decode_message('Candle', msg)
         try:
@@ -223,40 +223,19 @@ class BittrexOHLCVWebsocket:
         except Exception as exc:
             self.logger.warning(f'{exc}')
 
-    async def decode_message(self, title, msg):
+    async def decode_message(self, title, msg) -> None:
         decoded_msg = await self.process_message(msg[0])
         return decoded_msg
 
-    async def process_message(self, message):
+    async def process_message(self, message) -> None:
         try:
             decompressed_msg = decompress(
                 b64decode(message, validate=True), -MAX_WBITS)
         except SyntaxError:
             decompressed_msg = decompress(b64decode(message, validate=True))
         return json.loads(decompressed_msg.decode())
-
-    async def main(self):
-        '''
-        Subscribes to some symbols
-        '''
-
-        while True:
-            try:
-                await self.connect()
-                if API_SECRET != '':
-                    await self.authenticate()
-                else:
-                    self.logger.info('Authentication skipped because API key was not provided')
-                symbols = ["ETH-BTC", "BTC-EUR"]
-                await self.subscribe(symbols)
-                forever = asyncio.Event()
-                await forever.wait()
-            except ConnectionClosedOK:
-                self.logger.info(f"EXCEPTION: ConnectionClosedOK")
-            except Exception as exc:
-                self.logger.warning(f"EXCEPTION: {exc}")
     
-    async def mutual_basequote(self):
+    async def mutual_basequote(self) -> NoReturn:
         '''
         Subscribes to WS channels of the mutual symbols
             among all exchanges
@@ -283,7 +262,7 @@ class BittrexOHLCVWebsocket:
                 self.logger.warning(f"EXCEPTION: {exc} - reconnecting...")
             await asyncio.sleep(5 + random.random() * 5)
 
-    async def all(self):
+    async def all(self) -> NoReturn:
         '''
         Subscribes to WS channels of all symbols
         '''
@@ -301,15 +280,16 @@ class BittrexOHLCVWebsocket:
                     else:
                         self.logger.info('Authentication skipped because API key was not provided')
                     await self.subscribe(symbols)
+            # Not sure what kind of exception we will encounter
             except Exception as exc:
                 self.logger.warning(f"EXCEPTION: {exc} - reconnecting...")
                 raise(exc)
             await asyncio.sleep(5 + random.random() * 5)
 
-    def run_main(self):
+    def run_main(self) -> None:
         asyncio.run(self.main())
 
-    def run_mutual_basequote(self):
+    def run_mutual_basequote(self) -> None:
         # loop = asyncio.get_event_loop()
         # if loop.is_closed():
         #     asyncio.set_event_loop(asyncio.new_event_loop())
@@ -321,21 +301,5 @@ class BittrexOHLCVWebsocket:
         #     loop.close()
         asyncio.run(self.mutual_basequote())
 
-    def run_all(self):
-        # loop = asyncio.get_event_loop()
-        # if loop.is_closed():
-        #     asyncio.set_event_loop(asyncio.new_event_loop())
-        #     loop = asyncio.get_event_loop()
-        # try:
-        #     loop.create_task(self.all())
-        #     loop.run_forever()
-        # finally:
-        #     loop.close()
+    def run_all(self) -> None:
         asyncio.run(self.all())
-
-
-# if __name__ == "__main__":
-#     run_cmd = sys.argv[1]
-#     ws_bittrex = BittrexOHLCVWebsocket()
-#     if getattr(ws_bittrex, run_cmd):
-#         getattr(ws_bittrex, run_cmd)()
