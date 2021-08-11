@@ -150,3 +150,10 @@ WHERE
   quote_id = 'USD' AND
   "time" > '2021-07-09 08:50:00+00'::timestamp
 ORDER BY exchange, time;
+
+-- (1f) See how many distinct base-quote are in the ohlcvs table
+--    after a certain timestamp
+select count(distinct(base_id, quote_id))
+from ohlcvs
+where exchange = 'bitfinex'
+   and time > '2021-08-10 19:38:00'::timestamp;

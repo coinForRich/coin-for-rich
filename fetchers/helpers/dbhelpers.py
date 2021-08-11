@@ -5,6 +5,7 @@ import csv
 import logging
 import psycopg2
 from psycopg2 import sql, extras
+from typing import Iterable
 from io import StringIO
 
 
@@ -32,7 +33,7 @@ def log_psycopg2_exc(err: Exception):
 
 def psql_bulk_insert(
     conn,
-    rows: tuple,
+    rows: Iterable,
     table: str,
     insert_update_query: str = None,
     insert_ignoredup_query: str = None,

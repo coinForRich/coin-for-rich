@@ -18,7 +18,7 @@ THROTTLER_RATE_LIMITS = {
 HTTPX_MAX_CONCURRENT_CONNECTIONS = {
     'bittrex': 100, # increased from 55
     'bitfinex': 100, # increased from 85
-    'binance': 100 # decreased from 500
+    'binance': 200 # decreased from 500
 }
 
 # Asyncio signals
@@ -36,6 +36,10 @@ WS_SUB_REDIS_KEY = "ws_sub_{exchange}{delimiter}{base_id}{delimiter}{quote_id}"
 WS_SERVE_REDIS_KEY = "ws_serve_{exchange}{delimiter}{base_id}{delimiter}{quote_id}"
 WS_SUB_LIST_REDIS_KEY = "ws_sub_list"
 WS_SUB_PROCESSING_REDIS_KEY = "ws_sub_processing"
+
+# To-fetch and fetching Redis set keys
+OHLCVS_TOFETCH_REDIS_KEY = "ohlcvs_tofetch_{exchange}"
+OHLCVS_FETCHING_REDIS_KEY = "ohlcvs_fetching_{exchange}"
 
 # PSQL Constants
 OHLCV_UNIQUE_COLUMNS = ("time", "exchange", "base_id", "quote_id")

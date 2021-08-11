@@ -2,24 +2,19 @@
 
 import asyncio
 import datetime
-import psycopg2
 import httpx
 import backoff
-import redis
-# from asyncio_throttle import Throttler
+from typing import Any, Iterable
 from common.config.constants import (
-    DBCONNECTION, REDIS_HOST,
-    REDIS_PASSWORD, REDIS_DELIMITER,
-    OHLCVS_TABLE, OHLCVS_ERRORS_TABLE,
-    DEFAULT_DATETIME_STR_QUERY
+    REDIS_DELIMITER, OHLCVS_TABLE,
+    OHLCVS_ERRORS_TABLE, DEFAULT_DATETIME_STR_QUERY
 )
 from common.helpers.datetimehelpers import (
     datetime_to_str, str_to_datetime, list_days_fromto
 )
 from fetchers.config.constants import (
-    THROTTLER_RATE_LIMITS, HTTPX_MAX_CONCURRENT_CONNECTIONS,
-    OHLCV_UNIQUE_COLUMNS, OHLCV_UPDATE_COLUMNS,
-    REST_RATE_LIMIT_REDIS_KEY
+    THROTTLER_RATE_LIMITS, OHLCV_UNIQUE_COLUMNS,
+    OHLCV_UPDATE_COLUMNS, REST_RATE_LIMIT_REDIS_KEY
 )
 from fetchers.config.queries import (
     PSQL_INSERT_IGNOREDUP_QUERY, PSQL_INSERT_UPDATE_QUERY
@@ -46,43 +41,11 @@ RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
 OHLCVS_BITTREX_TOFETCH_REDIS = "ohlcvs_tofetch_bittrex"
 OHLCVS_BITTREX_FETCHING_REDIS = "ohlcvs_fetching_bittrex"
 DATETIME_STR_FORMAT = "%Y-%m-%dT%H:%M:%S"
-
 OHLCVS_CONSUME_BATCH_SIZE = 100
 
 class BittrexOHLCVFetcher(BaseOHLCVFetcher):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Exchange info
-        self.exchange_name = EXCHANGE_NAME
-
-        # HTTPX client
-        self.httpx_limits = httpx.Limits(
-            max_connections=HTTPX_MAX_CONCURRENT_CONNECTIONS[EXCHANGE_NAME]
-        )
-        # self.async_httpx_client = httpx.AsyncClient(timeout=None, limits=httpx_limits)
-
-        # Async throttler
-        # self.async_throttler = Throttler(
-        #     rate_limit = 1,
-        #     period = RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
-        # )
-
-        # Postgres connection
-        # TODO: Not sure if this is needed
-        self.psql_conn = psycopg2.connect(DBCONNECTION)
-        self.psql_cur = self.psql_conn.cursor()
-
-        # Redis client, startdate mls Redis key
-        self.redis_client = redis.Redis(
-            host=REDIS_HOST,
-            username="default",
-            password=REDIS_PASSWORD,
-            decode_responses=True
-        )
-
-        # Redis initial feeding status
-        self.feeding = False
+    def __init__(self, *args):
+        super().__init__(*args, exchange_name = EXCHANGE_NAME)
 
         # Rate limiter
         self.rate_limiter = GCRARateLimiter(
@@ -93,11 +56,11 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         )
 
         # Load market data
-        self.load_symbol_data()
+        self._load_symbol_data()
 
-    def load_symbol_data(self):
+    def _load_symbol_data(self) -> None:
         '''
-        loads market data into a dict of this form:
+        Loads market data into a dict of this form:
             {
                 '1INCH-USD': {
                     'base_id': "1INCH",
@@ -109,7 +72,8 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                 }
                 ...
             }
-        saves it in self.symbol_data
+        
+        Saves it in self.symbol_data
         '''
 
         self.symbol_data = {}
@@ -128,10 +92,16 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                 }
 
     @classmethod
-    def make_ohlcv_url(cls, symbol, interval, start_date):
+    def make_ohlcv_url(
+            cls,
+            symbol: str,
+            interval: str,
+            start_date: datetime.datetime
+        ) -> tuple:
         '''
-        returns tuple of string of OHLCV url and historical indicator
-        params:
+        Returns tuple of string of OHLCV url and historical indicator
+        
+        :params:
             `symbol`: string - symbol
             `interval`: string - interval type (see INTERVALS)
             `start_date`: datetime object
@@ -168,61 +138,92 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         )
 
     @classmethod
-    def make_tofetch_params(cls, symbol, start_date, end_date, interval):
+    def make_tofetch_params(
+            cls,
+            symbol: str,
+            start_date: str,
+            end_date: str,
+            interval: str
+        ) -> str:
         '''
-        makes tofetch params to feed into Redis to-fetch set
-        params:
+        Makes tofetch params to feed into Redis to-fetch set
+        
+        :params:
             `symbol`: symbol string
-            `start_date`: datetime obj or string representing datetime
-            `end_date`: datetime obj or string representing datetime
+            `start_date`: string representing datetime
+                that complies to `DEFAULT_DATETIME_STR_QUERY`
+            `end_date`: string representing datetime
+                that complies to `DEFAULT_DATETIME_STR_QUERY`
             `interval`: string
-        e.g.:
-            'BTC-USD;;2021-06-16T00:00:00;;2021-06-17T00:00:00;;MINUTE_1'
+        
+        example:
+            `BTC-USD;;2021-06-16T00:00:00;;2021-06-17T00:00:00;;MINUTE_1`
         '''
 
         return f'{symbol}{REDIS_DELIMITER}{start_date}{REDIS_DELIMITER}{end_date}{REDIS_DELIMITER}{interval}'
 
     @classmethod
-    def parse_ohlcvs(cls, ohlcvs, base_id, quote_id):
+    def parse_ohlcvs(
+            cls,
+            ohlcvs: Iterable,
+            base_id: str,
+            quote_id: str
+        ) -> list:
         '''
-        returns rows of parsed ohlcvs
+        Returns a list of rows of parsed ohlcvs
         
-        params:
-            `ohlcvs`: list of ohlcv dicts (returned from request)
+        :params:
+            `ohlcvs`: iterable of ohlcv dicts (returned from request)
             `base_id`: string
             `quote_id`: string
         '''
 
         # Ignore ohlcvs that are empty, do not raise error,
         #   as other errors are catched elsewhere
+        ohlcvs_table_insert = []
         if ohlcvs:
-            ohlcvs_table_insert = []
-            for ohlcv in ohlcvs:
-                ohlcvs_table_insert.append(
-                    (   
-                        ohlcv['startsAt'],
-                        EXCHANGE_NAME,
-                        base_id,
-                        quote_id,
-                        ohlcv['open'],
-                        ohlcv['high'],
-                        ohlcv['low'],
-                        ohlcv['close'],
-                        ohlcv['volume']
-                    )
-                )
-
-            return ohlcvs_table_insert
-        else:
-            return None
+            ohlcvs_table_insert = [
+                (
+                    ohlcv['startsAt'], EXCHANGE_NAME, base_id,
+                    quote_id, ohlcv['open'], ohlcv['high'],
+                    ohlcv['low'], ohlcv['close'], ohlcv['volume']
+                ) for ohlcv in ohlcvs
+            ]
+            
+            # for ohlcv in ohlcvs:
+            #     ohlcvs_table_insert.append(
+            #         (   
+            #             ohlcv['startsAt'],
+            #             EXCHANGE_NAME,
+            #             base_id,
+            #             quote_id,
+            #             ohlcv['open'],
+            #             ohlcv['high'],
+            #             ohlcv['low'],
+            #             ohlcv['close'],
+            #             ohlcv['volume']
+            #         )
+            #     )
+        return ohlcvs_table_insert
+        # else:
+        #     return None
     
     @classmethod
-    def make_error_tuple(cls, symbol, start_date, end_date, interval, historical, resp_status_code, exception_class, exception_msg):
+    def make_error_tuple(
+            cls,
+            symbol: str,
+            start_date: datetime.datetime,
+            end_date: datetime.datetime,
+            interval: str,
+            historical: str,
+            resp_status_code: int,
+            exception_class: str,
+            exception_msg: str
+        ) -> tuple:
         '''
-        returns a list that contains:
-            - a tuple to insert into the ohlcvs error table
+        Returns a list that contains: a tuple to insert into the ohlcvs error table
 
-        params:
+        :params:
             `symbol`: string
             `start_date`: datetime obj of start date
             `end_date`: datetime obj of end date
@@ -233,11 +234,11 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
             `exception_msg`: string
         '''
         
-        return [
+        return (
             (EXCHANGE_NAME, symbol, start_date, end_date,
             interval, historical, resp_status_code,
             str(exception_class),exception_msg)
-        ]
+        )
 
     @backoff.on_predicate(
         backoff.constant,
@@ -248,22 +249,25 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         on_giveup=onsuccessgiveup,
         interval=RATE_LIMIT_SECS_PER_MIN
     )
-    async def get_ohlcv_data(self, ohlcv_url, throttler=None, exchange_name=None):
+    async def get_ohlcv_data(
+            self,
+            ohlcv_url: str,
+            throttler: Any=None,
+            exchange_name: str=EXCHANGE_NAME
+        ) -> tuple:
         '''
-        gets ohlcv data based on url;
-            also backoffs conservatively by 60 secs
-        returns tuple:
-            (
-                http status (None if there's none),
-                ohlcvs (None if there's none),
-                exception type (None if there's none),
-                error message (None if there's none)
+        Gets ohlcv data based on url;
+            Also backoffs conservatively by 60 secs
+        
+        Returns a tuple with:
+            - http status (None if there's none),
+            - ohlcvs (None if there's none),
+            - exception type (None if there's none),
+            - error message (None if there's none)
 
-            )
-
-        params:
-            `ohlcv_url`: string - ohlcv API url
-            `throttler`: asyncio-throttle obj
+        :params:
+            `ohlcv_url`: string - ohlcvs API url
+            `throttler`: self.rate_limiter
             `exchange_name`: string - this exchange's name
         '''
 
@@ -293,11 +297,15 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                     f'EXCEPTION: Request error while requesting {exc.request.url}'
                 )
 
-    async def get_and_parse_ohlcv(self, params, update: bool=False):
+    async def get_and_parse_ohlcv(
+            self,
+            params: str,
+            update: bool=False
+        ) -> None:
         '''
         Gets and parses ohlcvs from consumed params
         
-        params:
+        :params:
             `params`: params consumed from Redis to-fetch set
         '''
 
@@ -316,7 +324,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
             symbol, interval, start_date
         )
         ohlcv_result = await self.get_ohlcv_data(
-            ohlcv_url, throttler=self.async_throttler, exchange_name=EXCHANGE_NAME
+            ohlcv_url, throttler=self.rate_limiter, exchange_name=self.exchange_name
         )
         resp_status_code = ohlcv_result[0]
         ohlcvs = ohlcv_result[1]
@@ -325,6 +333,9 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
 
         # If exc_type is None (meaning no exception), process;
         #   Else, process the error
+        # Finally, remove params only in 2 cases:
+        #   - insert is successful
+        #   - empty ohlcvs from API
         if exc_type is None:
             try:
                 # Copy to PSQL if parsed successfully
@@ -332,8 +343,9 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                 #   if latest date > start_date, update start_date
                 ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id)
                 if ohlcvs_parsed:
+                    insert_success = False
                     if update:
-                        psql_bulk_insert(
+                        insert_success = psql_bulk_insert(
                             self.psql_conn,
                             ohlcvs_parsed,
                             OHLCVS_TABLE,
@@ -342,16 +354,21 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                             update_cols = OHLCV_UPDATE_COLUMNS
                         )
                     else:
-                        psql_bulk_insert(
+                        insert_success = psql_bulk_insert(
                             self.psql_conn,
                             ohlcvs_parsed,
                             OHLCVS_TABLE,
                             insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
                         )
+
+                    if insert_success:
+                            self.redis_client.srem(self.fetching_key, params)
+                else:
+                    self.redis_client.srem(self.fetching_key, params)
             except Exception as exc:
                 exc_type = type(exc)
                 exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
-                print(exception_msg)
+                self.logger.warning(exception_msg)
                 error_tuple = self.make_error_tuple(
                     symbol, start_date, end_date, interval, historical,
                     resp_status_code, exc_type, exception_msg
@@ -363,7 +380,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                     insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
                 )
         else:
-            print(exception_msg)
+            self.logger.warning(exception_msg)
             error_tuple = self.make_error_tuple(
                 symbol, start_date, end_date, interval, historical,
                 resp_status_code, exc_type, exception_msg
@@ -378,24 +395,28 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         # PSQL Commit
         self.psql_conn.commit()
 
-        return None
-
-    async def init_tofetch_redis(self, symbols, start_date, end_date, interval):
+    async def init_tofetch_redis(
+            self,
+            symbols: Iterable,
+            start_date: datetime.datetime,
+            end_date: datetime.datetime,
+            interval: str
+        ) -> None:
         '''
         Initializes feeding params to Redis to-fetch set
         
-        params:
-            `symbols`: list of symbols
+        :params:
+            `symbols`: iterable of symbols
             `start_date`: datetime obj
             `end_date`: datetime obj
             `interval`: string
         
-        feeds the following information:
-            - key: OHLCVS_BITTREX_TOFETCH_REDIS
-            - value: symbol;;interval;;historical;;start_date_str;;end_date_str
+        Feeds the following information:
+            - key: `self.tofetch_key`
+            - value: `symbol;;interval;;historical;;start_date_str;;end_date_str`
         
-        e.g.:
-            'BTC-USD;;2021-06-16T00:00:00;;2021-06-17T00:00:00;;MINUTE_1'
+        example:
+            `BTC-USD;;2021-06-16T00:00:00;;2021-06-17T00:00:00;;MINUTE_1`
         '''
 
         # Set feeding status
@@ -426,11 +447,11 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                 RATE_LIMIT_SECS_PER_MIN / RATE_LIMIT_HITS_PER_MIN
             )
         self.feeding = False
-        print("Redis: Successfully initialized feeding params")
+        self.logger.info("Redis: Successfully initialized feeding params")
 
-    async def consume_ohlcvs_redis(self, update: bool=False):
+    async def consume_ohlcvs_redis(self, update: bool=False) -> None:
         '''
-        Consumes OHLCV parameters from the to-fetch Redis set
+        Consumes OHLCV parameters from the Redis to-fetch set
         '''
 
         # When start, move all params from fetching set to to-fetch set
@@ -468,24 +489,24 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                         ]
                         await asyncio.gather(*get_parse_tasks)
 
-                        self.redis_client.srem(OHLCVS_BITTREX_FETCHING_REDIS, *params_list)
+                        # self.redis_client.srem(self.fetching_key, *params_list)
 
-    async def fetch_ohlcvs_symbols(
-        self,
-        symbols: list,
-        start_date_dt: datetime.datetime,
-        end_date_dt: datetime.datetime,
-        update: bool=False
-    ):
+    async def _fetch_ohlcvs_symbols(
+            self,
+            symbols: list,
+            start_date_dt: datetime.datetime,
+            end_date_dt: datetime.datetime,
+            update: bool=False
+        ) -> None:
         '''
         Function to get OHLCVs of symbols
         
-        params:
+        :params:
             `symbols`: list of symbol string
             `start_date_dt`: datetime obj - for start date
             `end_date_dt`: datetime obj - for end date
             `update`: boolean - whether to update when inserting
-                to PSQL database
+                to PSQL db
         '''
 
         # Set feeding status so the consume

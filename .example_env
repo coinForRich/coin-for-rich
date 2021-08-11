@@ -1,0 +1,3 @@
+POSTGRES_PASSWORD=yourPostgresPassword
+REDIS_PASSWORD=yourRedisPassword
+COMMON_HOST=localhost

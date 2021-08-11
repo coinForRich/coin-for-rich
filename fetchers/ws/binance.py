@@ -15,6 +15,7 @@ from common.config.constants import (
 from fetchers.config.constants import (
     WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY, WS_SUB_LIST_REDIS_KEY
 )
+from fetchers.config.queries import ALL_SYMBOLS_EXCHANGE_QUERY, MUTUAL_BASE_QUOTE_QUERY
 from fetchers.rest.binance import BinanceOHLCVFetcher, EXCHANGE_NAME
 from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosed, ConnectionClosedOK
 
@@ -148,7 +149,7 @@ class BinanceOHLCVWebsocket:
             #     raise Exception(exc)
 
     async def mutual_basequote(self) -> None:
-        symbols_dict = self.rest_fetcher.get_mutual_basequote()
+        symbols_dict = self.rest_fetcher.get_symbols_from_exch(MUTUAL_BASE_QUOTE_QUERY)
         self.rest_fetcher.close_connections()
         # symbols_dict = ["ETHBTC", "BTCEUR"]
         await asyncio.gather(self.subscribe(symbols_dict.keys()))

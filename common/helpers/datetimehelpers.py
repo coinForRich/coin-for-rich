@@ -110,7 +110,7 @@ def list_days_fromto(start_date, end_date):
     for n in range((end_date - start_date).days+1):
         yield start_date + datetime.timedelta(days=n)
 
-def redis_time(r: Redis):
+def redis_time(r: Redis) -> float:
     '''
     generates the time in the Redis server - in seconds,
         including fractions of a second
