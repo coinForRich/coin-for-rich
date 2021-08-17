@@ -1,19 +1,20 @@
+import datetime
 from typing import Optional, Union
-from datetime import datetime
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from common.helpers.datetimehelpers import datetime_to_seconds, milliseconds_to_datetime
 from web import models
 from web.config.constants import OHLCV_INTERVALS
 
 
-def get_symbol_from_basequote(
+def get_symbol_from_ebq(
         db: Session,
         exchange: str,
         base_id: str,
         quote_id: str
     ):
     '''
-    Gets symbol from `base_id` and `quote_id`
+    Gets symbol from `exchange`, `base_id` and `quote_id`
     :params:
 
     '''
@@ -68,8 +69,8 @@ def get_ohlc(
         base_id: str,
         quote_id: str,
         interval: str,
-        start: Optional[Union[datetime, int]] = None,
-        end: Optional[Union[datetime, int]] = None,
+        start: Optional[Union[datetime.datetime, int]] = None,
+        end: Optional[Union[datetime.datetime, int]] = None,
         limit: int = 500
     ):
     '''
@@ -92,61 +93,106 @@ def get_ohlc(
         `start`: datetime obj or int - start time (must have same type as `end`)
         `end`: datetime obj or int - end time (must have same type as `start`)
         `limit`: maximum number of data points to return
+    
     If `interval` == `1m`: get directly from ohlcv table
     '''
 
     # TODO: Also add input data type checking
     limit = min(limit, 500)
-    if isinstance(start, int):
-        start = milliseconds_to_datetime(start)
-    if isinstance(end, int):
+    if end:
         end = milliseconds_to_datetime(end)
+    else:
+        end = datetime.datetime.now()
+    if start:
+        start = milliseconds_to_datetime(start)    
     
-    # Return ohlc from different sources based on interval
+    # Return ohlc from different tables based on interval
     if interval not in OHLCV_INTERVALS:
         raise ValueError("interval paramater must be in the defined list")
     elif interval == "1m":
+        if not start:
+            start = end - datetime.timedelta(minutes = 500)
+
         # Get max. latest 500 rows
-        if start is None and end is None:
-            results = db.query(models.Ohlcv).filter(
-                models.Ohlcv.exchange == exchange,
-                models.Ohlcv.base_id == base_id,
-                models.Ohlcv.quote_id == quote_id
-            ) \
-                .order_by(models.Ohlcv.time.desc()) \
-                .limit(limit).all()
-        # Get max. latest 500 rows with time <= `end`
-        elif start is None:
-            results = db.query(models.Ohlcv).filter(
-                models.Ohlcv.exchange == exchange,
-                models.Ohlcv.base_id == base_id,
-                models.Ohlcv.quote_id == quote_id,
-                models.Ohlcv.time <= end
-            ) \
-                .order_by(models.Ohlcv.time.desc()) \
-                .limit(limit).all()
-        # Get max. oldest 500 rows with time >= `start`
-        elif end is None:
-            results = db.query(models.Ohlcv).filter(
-                models.Ohlcv.exchange == exchange,
-                models.Ohlcv.base_id == base_id,
-                models.Ohlcv.quote_id == quote_id,
-                models.Ohlcv.time >= start
-            ) \
-                .order_by(models.Ohlcv.time.asc()) \
-                .limit(limit).all()
-        # Get max. latest 500 rows with time between `start` and `end`
-        else:
-            results = db.query(models.Ohlcv).filter(
-                models.Ohlcv.exchange == exchange,
-                models.Ohlcv.base_id == base_id,
-                models.Ohlcv.quote_id == quote_id,
-                models.Ohlcv.time >= start,
-                models.Ohlcv.time <= end
+        results = db.query(models.Ohlcv).filter(
+            models.Ohlcv.exchange == exchange,
+            models.Ohlcv.base_id == base_id,
+            models.Ohlcv.quote_id == quote_id,
+            models.Ohlcv.time >= start,
+            models.Ohlcv.time <= end
         ) \
-                .order_by(models.Ohlcv.time.desc()) \
-                .limit(limit).all()
-        return parse_ohlc(results, False)
+        .order_by(models.Ohlcv.time.desc()) \
+        .limit(limit) \
+        .subquery()
+        # .all()       
+
+        # Dummy timestamps to fill empty timestamps from db
+        # TODO: If this min, max fail, remove the limit in `results`
+        #   and use `start` and `end` for the boundaries of `generate_series`
+        dseries = db.query(
+            func.generate_series(
+                func.min(results.c.time),
+                func.max(results.c.time),
+                func.make_interval(0, 0, 0, 0, 0, 1, 0)
+            ).label('time')
+        ).subquery()
+
+        ret = db.query(
+            dseries.c.time,
+            # results.c.open,
+            # results.c.high,
+            # results.c.low,
+            # results.c.close
+            func.coalesce(results.c.open, 0).label('open'),
+            func.coalesce(results.c.high, 0).label('high'),
+            func.coalesce(results.c.low, 0).label('low'),
+            func.coalesce(results.c.close, 0).label('close')
+        ) \
+        .outerjoin(results, dseries.c.time == results.c.time) \
+        .order_by(dseries.c.time) \
+        .all()
+        
+        # if start is None and end is None:
+        #     results = db.query(models.Ohlcv).filter(
+        #         models.Ohlcv.exchange == exchange,
+        #         models.Ohlcv.base_id == base_id,
+        #         models.Ohlcv.quote_id == quote_id
+        #     ) \
+        #         .order_by(models.Ohlcv.time.desc()) \
+        #         .limit(limit).all()
+        # # Get max. latest 500 rows with time <= `end`
+        # elif start is None:
+        #     results = db.query(models.Ohlcv).filter(
+        #         models.Ohlcv.exchange == exchange,
+        #         models.Ohlcv.base_id == base_id,
+        #         models.Ohlcv.quote_id == quote_id,
+        #         models.Ohlcv.time <= end
+        #     ) \
+        #         .order_by(models.Ohlcv.time.desc()) \
+        #         .limit(limit).all()
+        # # Get max. oldest 500 rows with time >= `start`
+        # elif end is None:
+        #     results = db.query(models.Ohlcv).filter(
+        #         models.Ohlcv.exchange == exchange,
+        #         models.Ohlcv.base_id == base_id,
+        #         models.Ohlcv.quote_id == quote_id,
+        #         models.Ohlcv.time >= start
+        #     ) \
+        #         .order_by(models.Ohlcv.time.asc()) \
+        #         .limit(limit).all()
+        # # Get max. latest 500 rows with time between `start` and `end`
+        # else:
+        #     results = db.query(models.Ohlcv).filter(
+        #         models.Ohlcv.exchange == exchange,
+        #         models.Ohlcv.base_id == base_id,
+        #         models.Ohlcv.quote_id == quote_id,
+        #         models.Ohlcv.time >= start,
+        #         models.Ohlcv.time <= end
+        # ) \
+        #         .order_by(models.Ohlcv.time.desc()) \
+        #         .limit(limit).all()
+        
+        return parse_ohlc(ret, False)
     else:
         # Choose summary table according to `interval`
         # TODO: replace these `elifs` with lookup table
