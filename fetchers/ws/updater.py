@@ -29,6 +29,7 @@ class OHLCVWebsocketUpdater:
         )
 
         self.logger = create_logger("updater_websocket")
+        self.psql_conn = psycopg2.connect(DBCONNECTION)
 
     def update(self):
         '''
@@ -36,7 +37,6 @@ class OHLCVWebsocketUpdater:
             into PSQL db every `UPDATE_FREQUENCY_SECS` seconds
         '''
 
-        psql_conn = psycopg2.connect(DBCONNECTION)
         try:
             while True:
                 self.logger.info("Collecting subscribed OHLCV data in Redis")
@@ -83,7 +83,7 @@ class OHLCVWebsocketUpdater:
                 # Bulk insert
                 try:
                     success = psql_bulk_insert(
-                        psql_conn,
+                        self.psql_conn,
                         ohlcvs_table_insert,
                         OHLCVS_TABLE,
                         insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
@@ -93,11 +93,17 @@ class OHLCVWebsocketUpdater:
                     if success:
                         self.redis_client.delete(WS_SUB_PROCESSING_REDIS_KEY)
                         self.logger.info("Updated OHLCV to PSQL db")
+                except psycopg2.InterfaceError as exc:
+                    # Reconnects if connection is closed
+                    self.logger.warning(f"EXCEPTION: {exc}. Reconnecting...")
+                    self.psql_conn = psycopg2.connect(DBCONNECTION)
                 except Exception as exc:
+                    # TODO: catch specific exceptions when connection is dropped
                     self.logger.warning(f"EXCEPTION: {exc}")
+                    raise exc
                 time.sleep(UPDATE_FREQUENCY_SECS)
         finally:
-            psql_conn.close()
+            self.psql_conn.close()
 
 
 # if __name__ == "__main__":

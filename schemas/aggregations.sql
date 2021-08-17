@@ -1,6 +1,7 @@
 ---- QUERY CASES ----
 -- (2) Chart queries and aggregated
 -- (3) Continous aggregates with different resolutions
+-- (4) More aggregates for dashboard
 ----
 
 -- (2) Chart queries and aggregated
@@ -229,3 +230,53 @@ SELECT add_continuous_aggregate_policy('ohlcvs_summary_7day',
    start_offset => INTERVAL '21 days',
    end_offset   => INTERVAL '7 days',
    schedule_interval => INTERVAL '7 days');
+
+-- (4a) Geometric average daily return since the last 7 days
+-- Used to create a dashboard ranking daily profitability of a symbol
+EXPLAIN (ANALYZE)
+CREATE MATERIALIZED VIEW top_500_daily_return
+AS
+   WITH 
+      empty_date_filled AS (
+         SELECT
+            generate_series(
+               bucket,
+               LEAD(bucket, 1) OVER (
+                  PARTITION BY exchange, base_id, quote_id ORDER BY bucket
+                  ) - interval '1 day',
+               interval '1 day'
+            )::date AS bucket,
+            exchange, base_id, quote_id, close
+         FROM ohlcvs_summary_daily
+         WHERE bucket >= (CURRENT_DATE - interval '8 days') and bucket <= CURRENT_DATE
+            -- AND exchange='binance' AND base_id='BTC' AND quote_id='EUR'
+      ),
+      prev_close_view AS (
+         SELECT bucket, exchange, base_id,
+            quote_id, close,
+            LAG(close) OVER (PARTITION BY exchange, base_id, quote_id ORDER BY bucket ASC) AS prev_close
+         FROM empty_date_filled
+      ),
+      daily_factor AS (
+         SELECT bucket, exchange, base_id, quote_id,
+            CASE WHEN prev_close = 0
+               THEN 0 ELSE LN(close/prev_close) END AS ln_daily_factor
+         FROM prev_close_view
+      ),
+
+      -- SELECT *
+      -- FROM daily_factor;
+
+      avg_daily_return AS (
+         SELECT exchange, base_id, quote_id,
+            CAST(
+               POWER(EXP(SUM(ln_daily_factor)), (1.0/COUNT(*))) - 1 AS NUMERIC
+            ) AS gavg_daily_return
+         FROM daily_factor
+         WHERE ln_daily_factor IS NOT NULL
+         GROUP BY exchange, base_id, quote_id
+      )
+   SELECT *
+   FROM avg_daily_return
+   ORDER BY gavg_daily_return DESC
+   LIMIT 500;

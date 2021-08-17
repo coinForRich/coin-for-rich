@@ -33,9 +33,9 @@ class BinanceOHLCVWebsocket:
             password=REDIS_PASSWORD,
             decode_responses=True
         )
-        self.ws_msg_ids = {
-            "subscribe": 1
-        }
+        # self.ws_msg_ids = {
+        #     "subscribe": 1
+        # }
 
         # Rest fetcher for convenience
         self.rest_fetcher = BinanceOHLCVFetcher()
@@ -49,7 +49,7 @@ class BinanceOHLCVWebsocket:
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         log_handler.setFormatter(log_formatter)
         self.logger.addHandler(log_handler)
-    
+
     async def subscribe(self, symbols: Iterable, i: int = 0) -> NoReturn:
         '''
         Subscribes to Binance WS for `symbols`
@@ -169,6 +169,7 @@ class BinanceOHLCVWebsocket:
                     for i in range(0, len(symbols), MAX_SUB_PER_CONN)
             )
         )
+        # await asyncio.gather(self.subscribe(symbols))
     
     def run_mutual_basequote(self) -> None:
         asyncio.run(self.mutual_basequote())

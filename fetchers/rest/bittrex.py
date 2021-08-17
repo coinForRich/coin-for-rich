@@ -249,7 +249,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         on_giveup=onsuccessgiveup,
         interval=RATE_LIMIT_SECS_PER_MIN
     )
-    async def get_ohlcv_data(
+    async def _get_ohlcv_data(
             self,
             ohlcv_url: str,
             throttler: Any=None,
@@ -297,7 +297,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                     f'EXCEPTION: Request error while requesting {exc.request.url}'
                 )
 
-    async def get_and_parse_ohlcv(
+    async def _get_and_parse_ohlcv(
             self,
             params: str,
             update: bool=False
@@ -323,7 +323,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         ohlcv_url, historical = self.make_ohlcv_url(
             symbol, interval, start_date
         )
-        ohlcv_result = await self.get_ohlcv_data(
+        ohlcv_result = await self._get_ohlcv_data(
             ohlcv_url, throttler=self.rate_limiter, exchange_name=self.exchange_name
         )
         resp_status_code = ohlcv_result[0]
@@ -395,7 +395,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         # PSQL Commit
         self.psql_conn.commit()
 
-    async def init_tofetch_redis(
+    async def _init_tofetch_redis(
             self,
             symbols: Iterable,
             start_date: datetime.datetime,
@@ -449,7 +449,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         self.feeding = False
         self.logger.info("Redis: Successfully initialized feeding params")
 
-    async def consume_ohlcvs_redis(self, update: bool=False) -> None:
+    async def _consume_ohlcvs_redis(self, update: bool=False) -> None:
         '''
         Consumes OHLCV parameters from the Redis to-fetch set
         '''
@@ -485,7 +485,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                     if params_list:
                         self.redis_client.sadd(OHLCVS_BITTREX_FETCHING_REDIS, *params_list)
                         get_parse_tasks = [
-                            self.get_and_parse_ohlcv(params, update) for params in params_list
+                            self._get_and_parse_ohlcv(params, update) for params in params_list
                         ]
                         await asyncio.gather(*get_parse_tasks)
 
@@ -517,8 +517,8 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         # - Init to-fetch
         # - Consume from Redis to-fetch
         await asyncio.gather(
-            self.init_tofetch_redis(
+            self._init_tofetch_redis(
                 symbols, start_date_dt, end_date_dt, OHLCV_INTERVAL
             ),
-            self.consume_ohlcvs_redis(update)
+            self._consume_ohlcvs_redis(update)
         )

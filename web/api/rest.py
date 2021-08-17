@@ -1,4 +1,3 @@
-import json
 from typing import Optional, Union
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -144,7 +143,7 @@ def get_ohlc(
                 models.Ohlcv.quote_id == quote_id,
                 models.Ohlcv.time >= start,
                 models.Ohlcv.time <= end
-            ) \
+        ) \
                 .order_by(models.Ohlcv.time.desc()) \
                 .limit(limit).all()
         return parse_ohlc(results, False)

@@ -24,6 +24,22 @@ Remember to bind-mount data volume to make it persistent
 ```
 docker run -d --name coin-timescaledb -p 5432:5432 -v /your/absolute/data/path/_postgresdata:/var/lib/postgresql/data -e POSTGRES_PASSWORD=yourPostgresPassword timescale/timescaledb:2.3.0-pg13
 ```
+
+**Set up pg_cron**
+
+**Install it**
+```
+sudo apt-get -y install postgresql-13-cron
+```
+
+**Add extension config**
+```
+## add to postgresql.conf inside /your/absolute/data/path/_postgresdata:
+shared_preload_libraries = 'pg_cron'
+cron.database_name = 'postgres'
+```
+
+**Restart the timescaledb docker container**
 ### Setup a Redis server
 Remember to bind-mount data volume to make it persistent
 ```

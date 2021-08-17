@@ -218,7 +218,7 @@ class BaseOHLCVFetcher:
         loop = self._setup_event_loop()
         try:
             self.logger.info("Run_resume_fetch: Resuming fetching tasks from Redis sets")
-            loop.run_until_complete(self.resume_fetch())
+            loop.run_until_complete(self._resume_fetch())
         finally:
             self.logger.info("Run_resume_fetch: Finished fetching OHLCVS")
             loop.close()
