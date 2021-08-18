@@ -1,7 +1,4 @@
-import asyncio
-import time
 import redis
-from os import truncate
 from typing import Optional, Union
 from sqlalchemy.engine import base
 from sqlalchemy.orm import Session
@@ -14,12 +11,10 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.sql.operators import endswith_op
 from starlette.websockets import WebSocketDisconnect
 from common.config.constants import (
-    REDIS_DELIMITER, REDIS_HOST, REDIS_PASSWORD, DEFAULT_DATETIME_STR_QUERY
+    REDIS_HOST, REDIS_PASSWORD, DEFAULT_DATETIME_STR_QUERY
 )
 from common.helpers.datetimehelpers import str_to_datetime, str_to_milliseconds
-from fetchers.config.constants import WS_SERVE_REDIS_KEY
 from web import models
-from web.helpers import dbhelpers
 from web.database import SessionLocal, engine
 from web.api.ws import WSServerConnectionManager, WSServerSender
 import web.api.rest as webapi_rest

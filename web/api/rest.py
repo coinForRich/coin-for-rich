@@ -11,6 +11,8 @@ from common.helpers.datetimehelpers import (
 )
 from web import models
 from web.config.constants import OHLCV_INTERVALS
+from web.api.caching.caching_query import FromCache
+from web.database import cache
 
 
 def get_symbol_from_ebq(
@@ -25,7 +27,9 @@ def get_symbol_from_ebq(
 
     '''
 
-    result = db.query(models.SymbolExchange).filter(
+    result = db.query(models.SymbolExchange) \
+    .options(FromCache("default")) \
+    .filter(
         models.SymbolExchange.exchange == exchange,
         models.SymbolExchange.base_id == base_id,
         models.SymbolExchange.quote_id == quote_id
@@ -119,7 +123,9 @@ def get_ohlcv(
             start = end - datetime.timedelta(minutes = limit)
 
         # Get max. latest XXXX rows from psql db
-        fromdb = db.query(models.Ohlcv).filter(
+        fromdb = db.query(models.Ohlcv) \
+        .options(FromCache("default")) \
+        .filter(
             models.Ohlcv.exchange == exchange,
             models.Ohlcv.base_id == base_id,
             models.Ohlcv.quote_id == quote_id,
@@ -215,6 +221,7 @@ def get_ohlcv(
             table.c.close.label('close'),
             table.c.volume.label('volume')
         ) \
+        .options(FromCache("default")) \
         .filter(
             table.c.exchange == exchange,
             table.c.base_id == base_id,

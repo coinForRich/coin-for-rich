@@ -26,6 +26,9 @@ class SymbolExchange(Base):
     __tablename__ = SYMBOL_EXCHANGE_TABLE
     __table_args__ = (
         Index('symexch_exch_sym_idx', 'exchange', 'symbol', unique=True),
+        Index('symexch_exch_idx', 'exchange'),
+        Index('symexch_base_idx', 'base_id'),
+        Index('symexch_quote_idx', 'quote_id')
     )
 
     exchange = Column(String(100), primary_key=True, nullable=False, index=True)
@@ -37,6 +40,7 @@ class Ohlcv(Base):
     __tablename__ = OHLCVS_TABLE
     __table_args__ = (
         ForeignKeyConstraint(['exchange', 'base_id', 'quote_id'], ['symbol_exchange.exchange', 'symbol_exchange.base_id', 'symbol_exchange.quote_id'], ondelete='CASCADE'),
+        Index('ohlcvs_time_idx', 'time'),
         Index('ohlcvs_exch_time_idx', 'exchange', 'time'),
         Index('ohlcvs_base_quote_time_idx', 'base_id', 'quote_id', 'time')
     )
@@ -45,11 +49,11 @@ class Ohlcv(Base):
     exchange = Column(String(100), primary_key=True, nullable=False)
     base_id = Column(String(20), primary_key=True, nullable=False)
     quote_id = Column(String(20), primary_key=True, nullable=False)
-    open = Column(Numeric)
-    high = Column(Numeric)
-    low = Column(Numeric)
-    close = Column(Numeric)
-    volume = Column(Numeric)
+    open = Column(Numeric, nullable=False)
+    high = Column(Numeric, nullable=False)
+    low = Column(Numeric, nullable=False)
+    close = Column(Numeric, nullable=False)
+    volume = Column(Numeric, nullable=False)
 
     symbol_exchange = relationship('SymbolExchange')
 
