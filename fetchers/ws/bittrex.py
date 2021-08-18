@@ -19,7 +19,7 @@ import asyncio
 import random
 import uuid
 import redis
-from typing import Any, Iterable, List, NoReturn, Union
+from typing import Any, Iterable, NoReturn, Union
 from signalr_aio import Connection
 from base64 import b64decode
 from zlib import decompress, MAX_WBITS
@@ -35,7 +35,7 @@ from fetchers.config.constants import (
 )
 from fetchers.config.queries import ALL_SYMBOLS_EXCHANGE_QUERY, MUTUAL_BASE_QUOTE_QUERY
 from fetchers.rest.bittrex import BittrexOHLCVFetcher, EXCHANGE_NAME
-from fetchers.utils.exceptions import ConnectionClosedOK
+from fetchers.utils.exceptions import ConnectionClosed
 
 
 URI = 'https://socket-v3.bittrex.com/signalr'
@@ -74,7 +74,7 @@ class BittrexOHLCVWebsocket:
         log_handler.setFormatter(log_formatter)
         self.logger.addHandler(log_handler)
 
-    async def connect(self) -> None:
+    async def _connect(self) -> None:
         self.latest_ts = redis_time(self.redis_client)
         connection = Connection(URI)
         self.signalr_hub = connection.register_hub('c3')
@@ -83,14 +83,14 @@ class BittrexOHLCVWebsocket:
         connection.start()
         self.logger.info('Connected')
 
-    async def authenticate(self) -> None:
+    async def _authenticate(self) -> None:
         timestamp = str(int(redis_time(self.redis_client)) * 1000)
         random_content = str(uuid.uuid4())
         content = timestamp + random_content
         signed_content = hmac.new(
             API_SECRET.encode(), content.encode(), hashlib.sha512).hexdigest()
 
-        response = await self.invoke(
+        response = await self._invoke(
             'Authenticate',
             API_KEY,
             timestamp,
@@ -104,7 +104,7 @@ class BittrexOHLCVWebsocket:
         else:
             self.logger.warning('Authentication failed: ' + response['ErrorCode'])
 
-    async def subscribe(self, symbols: Iterable, i: int = 0) -> None:
+    async def _subscribe(self, symbols: Iterable, i: int = 0) -> None:
         '''
         Subscribes to Bittrex WS for `symbols`
 
@@ -122,14 +122,14 @@ class BittrexOHLCVWebsocket:
             *(f'candle_{symbol}_MINUTE_1' for symbol in symbols)
         )
 
-        response = await self.invoke('Subscribe', channels)
+        response = await self._invoke('Subscribe', channels)
         for c in range(len(channels)):
             if response[c]['Success']:
                 self.logger.info(f"Group {i}: Subscription to {channels[c]} successful")
             else:
                 self.logger.info(f"Group {i}: Subscription to {channels[c]} failed: {response[c]['ErrorCode']}")
 
-    async def invoke(self, method: str, *args) -> Union[Any, None]:
+    async def _invoke(self, method: str, *args) -> Union[Any, None]:
         async with self.asyncio_lock:
             self.invocation_event = asyncio.Event()
             self.signalr_hub.server.invoke(method, *args)
@@ -151,7 +151,7 @@ class BittrexOHLCVWebsocket:
 
     async def on_auth_expiring(self, msg) -> None:
         self.logger.info('Authentication expiring...')
-        asyncio.create_task(self.authenticate())
+        asyncio.create_task(self._authenticate())
 
     async def on_trade(self, msg) -> None:
         self.latest_ts = redis_time(self.redis_client)
@@ -165,7 +165,7 @@ class BittrexOHLCVWebsocket:
             # Convert timestamp to milliseconds first
             #   for conformity with the WS updater and other exchanges
             if isinstance(respj, dict):
-                self.logger.info(f"Response: {respj}")
+                # self.logger.info(f"Response: {respj}")
                 symbol = respj['marketSymbol']
                 ohlcv = respj['delta']
                 timestamp = str_to_milliseconds(
@@ -235,7 +235,34 @@ class BittrexOHLCVWebsocket:
         except SyntaxError:
             decompressed_msg = decompress(b64decode(message, validate=True))
         return json.loads(decompressed_msg.decode())
-    
+
+    async def subscribe(self, symbols: Iterable) -> NoReturn:
+        '''
+        Subscribes to WS channels of `symbols`
+        '''        
+
+        while True:
+            try:
+                now = redis_time(self.redis_client)
+                if self.signalr_hub is None or (now - self.latest_ts) > 60:
+                    await self._connect()
+                    if API_SECRET != '':
+                        await self._authenticate()
+                    else:
+                        self.logger.info('Authentication skipped because API key was not provided')
+                    await self._subscribe(symbols)
+            # Not sure what kind of exception we will encounter
+            except ConnectionClosed as exc:
+                self.logger.warning(
+                    f"Connection closed with reason: {exc} - reconnecting..."
+                )
+            await asyncio.sleep(5 + random.random() * 5)
+
+    async def all(self) -> NoReturn:
+        self.rest_fetcher.fetch_symbol_data()
+        symbols =  tuple(self.rest_fetcher.symbol_data.keys())
+        await asyncio.gather(self.subscribe(symbols))
+
     async def mutual_basequote(self) -> NoReturn:
         '''
         Subscribes to WS channels of the mutual symbols
@@ -243,52 +270,7 @@ class BittrexOHLCVWebsocket:
         '''
 
         symbols_dict = self.rest_fetcher.get_symbols_from_exch(MUTUAL_BASE_QUOTE_QUERY)
-        self.rest_fetcher.close_connections()
-
-        while True:
-            try:
-                # Connect or reconnect if the SignalR hub is None
-                #   or now is more than 60 secs later than latest ts
-                now = redis_time(self.redis_client)
-                if self.signalr_hub is None or (now - self.latest_ts) > 60:
-                    await self.connect()
-                    if API_SECRET != '':
-                        await self.authenticate()
-                    else:
-                        self.logger.info('Authentication skipped because API key was not provided')
-                    await self.subscribe(symbols_dict.keys())
-                    # forever = asyncio.Event()
-                    # await forever.wait()
-            except Exception as exc:
-                self.logger.warning(f"EXCEPTION: {exc} - reconnecting...")
-            await asyncio.sleep(5 + random.random() * 5)
-
-    async def all(self) -> NoReturn:
-        '''
-        Subscribes to WS channels of all symbols
-        '''
-
-        self.rest_fetcher.fetch_symbol_data()
-        symbols =  tuple(self.rest_fetcher.symbol_data.keys())
-
-        while True:
-            try:
-                now = redis_time(self.redis_client)
-                if self.signalr_hub is None or (now - self.latest_ts) > 60:
-                    await self.connect()
-                    if API_SECRET != '':
-                        await self.authenticate()
-                    else:
-                        self.logger.info('Authentication skipped because API key was not provided')
-                    await self.subscribe(symbols)
-            # Not sure what kind of exception we will encounter
-            except Exception as exc:
-                self.logger.warning(f"EXCEPTION: {exc} - reconnecting...")
-                raise(exc)
-            await asyncio.sleep(5 + random.random() * 5)
-
-    def run_main(self) -> None:
-        asyncio.run(self.main())
+        await asyncio.gather(self.subscribe(symbols_dict.keys()))
 
     def run_mutual_basequote(self) -> None:
         # loop = asyncio.get_event_loop()

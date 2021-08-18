@@ -101,20 +101,22 @@ class WSServerSender:
                         print(f"Serve OHLC: EXCEPTION: {exc}")    
                 await asyncio.sleep(1)
             else:
-                data = webapi_rest.get_ohlc(
+                data = webapi_rest.get_ohlcv(
                     db = self.db,
                     exchange = exchange,
                     base_id = base_id, 
                     quote_id = quote_id,
                     interval  = interval,
-                    limit = 1
+                    limit = 1,
+                    empty_ts = True,
+                    results_mls = False
                 )
                 if data:
                     data = data[0]
-                    data['open'] = float(data['open'])
-                    data['high'] = float(data['high'])
-                    data['low'] = float(data['low'])
-                    data['close'] = float(data['close'])
+                    # data['open'] = float(data['open'])
+                    # data['high'] = float(data['high'])
+                    # data['low'] = float(data['low'])
+                    # data['close'] = float(data['close'])
                     try:
                         await self.ws.send_json(data)
                         print(f"Sending {data}")

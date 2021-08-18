@@ -177,7 +177,10 @@ class BitfinexOHLCVWebsocket:
                                 self.logger.warning(f"EXCEPTION: {exc}")
                             await asyncio.sleep(0.1)
             except ConnectionClosed as exc:
-                self.logger.warning(f"Connection {i} closed with reason: {exc} - reconnecting...")
+                self.logger.warning(
+                    f"Connection {i} closed with reason: {exc} - reconnecting..."
+                )
+            
             # except Exception as exc:
             #     self.logger.warning(f"EXCEPTION in connection {i}: {exc}")
             #     raise Exception(exc)

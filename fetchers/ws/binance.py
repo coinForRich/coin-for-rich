@@ -17,7 +17,7 @@ from fetchers.config.constants import (
 )
 from fetchers.config.queries import ALL_SYMBOLS_EXCHANGE_QUERY, MUTUAL_BASE_QUOTE_QUERY
 from fetchers.rest.binance import BinanceOHLCVFetcher, EXCHANGE_NAME
-from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosed, ConnectionClosedOK
+from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosed
 
 
 # Binance only allows up to 1024 subscriptions per ws connection
@@ -84,7 +84,7 @@ class BinanceOHLCVWebsocket:
                                     if respj['result'] is not None:
                                         raise UnsuccessfulConnection
                                 else:
-                                    self.logger.info(f"Response: {respj}")
+                                    # self.logger.info(f"Response: {respj}")
                                     symbol = respj['s']
                                     timestamp = int(respj['k']['t'])
                                     open_ = respj['k']['o']
@@ -141,9 +141,12 @@ class BinanceOHLCVWebsocket:
                             self.logger.warning(f"EXCEPTION: {exc}")
                         await asyncio.sleep(0.01)
             except ConnectionClosed as exc:
-                self.logger.warning(f"Connection {i} closed with reason: {exc} - reconnecting...")
+                self.logger.warning(
+                    f"Connection {i} closed with reason: {exc} - reconnecting..."
+                )
                 # Delay before reconnecting
                 await asyncio.sleep(5 + random.random() * 5)
+            
             # except Exception as exc:
             #     self.logger.warning(f"EXCEPTION in connection {i}: {exc}")
             #     raise Exception(exc)

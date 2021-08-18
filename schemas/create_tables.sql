@@ -12,11 +12,11 @@ CREATE TABLE ohlcvs (
    exchange VARCHAR(100) NOT NULL,
    base_id VARCHAR(20) NOT NULL,
    quote_id VARCHAR(20) NOT NULL,
-   open NUMERIC,
-   high NUMERIC,
-   low NUMERIC,
-   close NUMERIC,
-   volume NUMERIC
+   open NUMERIC NOT NULL,
+   high NUMERIC NOT NULL,
+   low NUMERIC NOT NULL,
+   close NUMERIC NOT NULL,
+   volume NUMERIC NOT NULL
 );
 
 CREATE TABLE symbol_exchange (

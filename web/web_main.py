@@ -65,7 +65,7 @@ async def testws(
         }
     )
 
-@app.get("/ohlc/", name="read_ohlc")
+@app.get("/ohlcv/", name="read_ohlcv")
 async def read_ohlcv(
         exchange: str,
         base_id: str,
@@ -74,15 +74,20 @@ async def read_ohlcv(
         start: Optional[Union[str, int]] = None,
         end: Optional[Union[str, int]] = None,
         mls: Optional[bool] = True,
-        limit: Optional[int] = 500,
+        limit: Optional[int] = 100,
+        empty_ts: Optional[bool] = False,
+        results_mls: Optional[bool] = True,
         db: Session = Depends(get_db)
     ):
     '''
-    Reads OHLC from database, max 500 data points
-    API endpoint for charting
+    API to read OHLCV from database, max XXXX data points
+    
+    Can be used for charting
+    
     :params:
         `interval`: str - time interval of candles
             enum:
+            
                 - `1m` for 1 minute
                 - `5m` for 5 minutes
                 - `15m` for 15 minutes
@@ -96,8 +101,12 @@ async def read_ohlcv(
                 - `14D` for 14 days
                 - `1M` for 1 month 
         
-        `mls`: bool if query is using milliseconds or not
-            if `mls`, both `start` and `end` must be int
+        `mls`: bool if query is using milliseconds
+            if true, both `start` and `end` must be int
+
+        `results_mls`: bool if result timestamps are in milliseconds
+            if true, result timestamps are in millieconds
+            if false, result timestamps are in seconds        
     '''
     
     if mls:
@@ -106,8 +115,9 @@ async def read_ohlcv(
     else:
         start = str_to_datetime(start, DEFAULT_DATETIME_STR_QUERY) if start else start
         end = str_to_datetime(end, DEFAULT_DATETIME_STR_QUERY) if end else end
-    ohlcv = webapi_rest.get_ohlc(
-        db, exchange, base_id, quote_id, interval, start, end, limit
+    ohlcv = webapi_rest.get_ohlcv(
+        db, exchange, base_id, quote_id,
+        interval, start, end, limit, empty_ts, results_mls
     )
     if not ohlcv:
         raise HTTPException(status_code=404, detail="OHLCV not found")

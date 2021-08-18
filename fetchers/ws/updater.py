@@ -98,7 +98,6 @@ class OHLCVWebsocketUpdater:
                     self.logger.warning(f"EXCEPTION: {exc}. Reconnecting...")
                     self.psql_conn = psycopg2.connect(DBCONNECTION)
                 except Exception as exc:
-                    # TODO: catch specific exceptions when connection is dropped
                     self.logger.warning(f"EXCEPTION: {exc}")
                     raise exc
                 time.sleep(UPDATE_FREQUENCY_SECS)

@@ -82,3 +82,7 @@ To run websocket subscribers and updater:
 
 ### Run tests
 `python -m pytest`
+
+## Explore
+Docs are stored in the `docs` folder
+Commands are stored in the `commands` folder

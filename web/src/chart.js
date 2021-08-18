@@ -200,7 +200,7 @@ function saveDataFromRestEndpoint(resp_data) {
 async function readRestDrawOHLC(exch, bid, qid, s, e, i) {
     data_loading = true
     let ohlcv_endpoint = 
-        `http://${window.location.host}/ohlc/?exchange=${exch}&base_id=${bid}&quote_id=${qid}&start=${s}&end=${e}&interval=${i}`
+        `http://${window.location.host}/ohlcv/?exchange=${exch}&base_id=${bid}&quote_id=${qid}&start=${s}&end=${e}&interval=${i}&empty_ts=true&results_mls=false`
     // console.log(ohlcv_endpoint)
     fetch(ohlcv_endpoint)
         .then(response => response.json())

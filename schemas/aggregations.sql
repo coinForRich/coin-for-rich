@@ -233,11 +233,13 @@ SELECT add_continuous_aggregate_policy('ohlcvs_summary_7day',
 
 -- (4a) Geometric average daily return since the last 7 days
 -- Used to create a dashboard ranking daily profitability of a symbol
+-- Dates with no ohlcv data will be filled with the earliest date before
+--    that has ohlcv data
 EXPLAIN (ANALYZE)
 CREATE MATERIALIZED VIEW top_500_daily_return
 AS
    WITH 
-      empty_date_filled AS (
+      prev_close_view AS (
          SELECT
             generate_series(
                bucket,
@@ -246,17 +248,21 @@ AS
                   ) - interval '1 day',
                interval '1 day'
             )::date AS bucket,
-            exchange, base_id, quote_id, close
+            exchange, base_id, quote_id, close,
+            LAG(close) OVER (
+               PARTITION BY exchange, base_id, quote_id ORDER BY bucket ASC
+            ) AS prev_close
          FROM ohlcvs_summary_daily
-         WHERE bucket >= (CURRENT_DATE - interval '8 days') and bucket <= CURRENT_DATE
-            -- AND exchange='binance' AND base_id='BTC' AND quote_id='EUR'
+         -- WHERE bucket >= (CURRENT_DATE - interval '8 days') and bucket <= CURRENT_DATE
+         WHERE bucket >= '2021-08-01' and bucket <= '2021-08-30'
+            AND exchange='bitfinex' AND base_id='DCR' AND quote_id='USD'
       ),
-      prev_close_view AS (
-         SELECT bucket, exchange, base_id,
-            quote_id, close,
-            LAG(close) OVER (PARTITION BY exchange, base_id, quote_id ORDER BY bucket ASC) AS prev_close
-         FROM empty_date_filled
-      ),
+      -- prev_close_view AS (
+      --    SELECT bucket, exchange, base_id,
+      --       quote_id, close,
+      --       LAG(close) OVER (PARTITION BY exchange, base_id, quote_id ORDER BY bucket ASC) AS prev_close
+      --    FROM empty_date_filled
+      -- ),
       daily_factor AS (
          SELECT bucket, exchange, base_id, quote_id,
             CASE WHEN prev_close = 0
