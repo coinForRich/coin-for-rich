@@ -106,7 +106,12 @@ async def read_ohlcv(
 
         `results_mls`: bool if result timestamps are in milliseconds
             if true, result timestamps are in millieconds
-            if false, result timestamps are in seconds        
+            if false, result timestamps are in seconds
+
+    example of output:
+        ```
+        [{'time': 1629296700000, 'open': 2619.4, 'high': 2619.4, 'low': 2619.4, 'close': 2619.4, 'volume': 0.02230204}, ...]
+        ```
     '''
     
     if mls:

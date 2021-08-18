@@ -4,7 +4,11 @@ from sqlalchemy import func, literal_column, literal
 from sqlalchemy.dialects.postgresql import INTERVAL
 from sqlalchemy.sql.functions import concat
 from sqlalchemy.orm import Session, contains_alias
-from common.helpers.datetimehelpers import datetime_to_milliseconds, datetime_to_seconds, milliseconds_to_datetime
+from common.helpers.datetimehelpers import (
+    datetime_to_milliseconds,
+    datetime_to_seconds,
+    milliseconds_to_datetime
+)
 from web import models
 from web.config.constants import OHLCV_INTERVALS
 
@@ -29,7 +33,7 @@ def get_symbol_from_ebq(
     symbol = result.symbol
     return symbol
 
-def parse_ohlc(ohlcv: list, mls: bool) -> list:
+def parse_ohlcv(ohlcv: list, mls: bool) -> list:
     '''
     Parses OHLCV received from `get_ohlcv`
         for web chart view by converting timestamp
@@ -255,4 +259,4 @@ def get_ohlcv(
         else:
             result = fromdb.all()
         
-    return parse_ohlc(result, results_mls)
+    return parse_ohlcv(result, results_mls)
