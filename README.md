@@ -25,7 +25,7 @@ Remember to bind-mount data volume to make it persistent
 docker run -d --name coin-timescaledb -p 5432:5432 -v /your/absolute/data/path/_postgresdata:/var/lib/postgresql/data -e POSTGRES_PASSWORD=yourPostgresPassword timescale/timescaledb:2.3.0-pg13
 ```
 
-**Set up pg_cron**
+**Set up pg_cron (Optional)**
 
 **Install it**
 ```
@@ -45,6 +45,9 @@ Remember to bind-mount data volume to make it persistent
 ```
 docker run -d --name coin-redis -p 6379:6379 -v /your/absolute/data/path/_redisdata:/data redis:6.2 redis-server --appendonly yes --requirepass "yourRedisPassword"
 ```
+
+### Cube
+docker run -p 4000:4000 -v /your/absolute/data/path/_cubedata:/cube/conf -e CUBEJS_DEV_MODE=true cubejs/cube
 ### Setup Celery
 Celery should be installed along with other Python packages
 

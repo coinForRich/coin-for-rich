@@ -44,22 +44,6 @@ def get_db():
 async def root():
     return {"message": "Hello World"}
 
-@app.get("/testws", response_class=HTMLResponse)
-async def testws(
-        request: Request,
-        exchange: str,
-        base_id: str,
-        quote_id: str
-    ):
-    return templates.TemplateResponse(
-        "viewsymbol.html", {
-            "request": request,
-            "exchange": exchange,
-            "base_id": base_id,
-            "quote_id": quote_id
-        }
-    )
-
 @app.get("/ohlcv/", name="read_ohlcv")
 async def read_ohlcv(
         exchange: str,
@@ -164,3 +148,26 @@ async def websocket_endpoint(
                     print(f'EXCEPTION: {exc}')
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
+
+@app.get("/testws", response_class=HTMLResponse)
+async def testws(
+        request: Request,
+        exchange: str,
+        base_id: str,
+        quote_id: str
+    ):
+    return templates.TemplateResponse(
+        "viewsymbol.html", {
+            "request": request,
+            "exchange": exchange,
+            "base_id": base_id,
+            "quote_id": quote_id
+        }
+    )
+
+@app.get("/analytics", response_class=HTMLResponse)
+async def analytics(request: Request):
+    return templates.TemplateResponse(
+        "analytics.html", {
+            "request": request
+        })

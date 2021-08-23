@@ -153,8 +153,8 @@ function syncToInterval(period) {
     let historical = null
 
     let current_data = dataPeriodMap.get(period)
-    console.log('current_data: ')
-    console.log(current_data)
+    // console.log('current_data: ')
+    // console.log(current_data)
     
     if (current_data === null) {
         current_end = Date.now()
