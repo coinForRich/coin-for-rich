@@ -16,10 +16,13 @@ from fetchers.config.constants import (
     WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY,
     WS_SUB_LIST_REDIS_KEY, WS_RATE_LIMIT_REDIS_KEY
 )
-from fetchers.config.queries import ALL_SYMBOLS_EXCHANGE_QUERY, MUTUAL_BASE_QUOTE_QUERY
+from fetchers.config.queries import MUTUAL_BASE_QUOTE_QUERY
 from fetchers.rest.bitfinex import BitfinexOHLCVFetcher, EXCHANGE_NAME
 from fetchers.utils.ratelimit import AsyncThrottler
-from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosed
+from fetchers.utils.exceptions import (
+    UnsuccessfulConnection, ConnectionClosed,
+    InvalidStatusCode
+)
 
 
 # Bitfinex only allows up to 30 subscriptions per ws connection
@@ -180,6 +183,11 @@ class BitfinexOHLCVWebsocket:
                 self.logger.warning(
                     f"Connection {i} closed with reason: {exc} - reconnecting..."
                 )
+            except InvalidStatusCode as exc:
+                self.logger.warning(
+                    f"Connection {i} returns invalid status code: {exc} - sleeping and reconnecting..."
+                )
+                await asyncio.sleep(5)
             
             # except Exception as exc:
             #     self.logger.warning(f"EXCEPTION in connection {i}: {exc}")

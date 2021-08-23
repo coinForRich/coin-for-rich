@@ -1,4 +1,8 @@
-from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
+from websockets.exceptions import (
+    ConnectionClosed,
+    ConnectionClosedOK,
+    InvalidStatusCode
+)
 
 
 class UnsuccessfulConnection(Exception):

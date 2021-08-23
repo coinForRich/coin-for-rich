@@ -55,8 +55,6 @@ class ORMCache():
                     # keyerror?   this is bigger than a keyerror...
                     raise KeyError()
 
-                print(cached_value)
-
                 orm_result = loading.merge_frozen_result(
                     orm_context.session,
                     orm_context.statement,

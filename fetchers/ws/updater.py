@@ -17,7 +17,7 @@ from fetchers.config.queries import PSQL_INSERT_IGNOREDUP_QUERY
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 
 
-UPDATE_FREQUENCY_SECS = 30
+UPDATE_FREQUENCY_SECS = 15
 
 class OHLCVWebsocketUpdater:
     def __init__(self):
@@ -42,7 +42,10 @@ class OHLCVWebsocketUpdater:
                 self.logger.info("Collecting subscribed OHLCV data in Redis")
                 ohlcvs_table_insert = []
                 # Loop thru all keys in sub list
-                self.logger.info(f"Length of WS sub list: {self.redis_client.scard(WS_SUB_LIST_REDIS_KEY)}")
+                self.logger.info(
+                    f"Length of WS sub list: {self.redis_client.scard(WS_SUB_LIST_REDIS_KEY)}")
+                
+                # TODO: the sub list needs to be cleaned for stale values
                 for key in self.redis_client.smembers(WS_SUB_LIST_REDIS_KEY):
                     try:
                         exchange, base_id, quote_id = \
@@ -80,6 +83,7 @@ class OHLCVWebsocketUpdater:
                             self.redis_client.hdel(key, *ts_to_insert)
                     except Exception as exc:
                         self.logger.warning(f"EXCEPTION: {exc}")
+                        raise exc
                 # Bulk insert
                 try:
                     success = psql_bulk_insert(

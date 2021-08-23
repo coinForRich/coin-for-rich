@@ -1,4 +1,5 @@
 import datetime
+import logging
 from typing import Optional, Union
 from sqlalchemy import func, literal_column, literal
 from sqlalchemy.dialects.postgresql import INTERVAL
@@ -12,7 +13,6 @@ from common.helpers.datetimehelpers import (
 from web import models
 from web.config.constants import OHLCV_INTERVALS
 from web.api.caching.caching_query import FromCache
-from web.database import cache
 
 
 def get_symbol_from_ebq(
@@ -52,19 +52,22 @@ def parse_ohlcv(ohlcv: list, mls: bool) -> list:
 
     ret = []
     if ohlcv:
-        ohlcv.sort(key = lambda x: x.time)
-        ret = [
-            {
-                'time': int(datetime_to_milliseconds(o.time)) if mls \
-                    else int(datetime_to_seconds(o.time)),
-                'open': float(o.open),
-                'high': float(o.high),
-                'low': float(o.low),
-                'close': float(o.close),
-                'volume': float(o.volume)
-            }
-            for o in ohlcv
-        ]
+        try:
+            ohlcv.sort(key = lambda x: x.time)
+            ret = [
+                {
+                    'time': int(datetime_to_milliseconds(o.time)) if mls \
+                        else int(datetime_to_seconds(o.time)),
+                    'open': float(o.open),
+                    'high': float(o.high),
+                    'low': float(o.low),
+                    'close': float(o.close),
+                    'volume': float(o.volume)
+                }
+                for o in ohlcv
+            ]
+        except TypeError as exc:
+            logging.warning(f"parse_ohlcv: EXCEPTION: {exc}")
     return ret
 
 def get_ohlcv(
@@ -109,18 +112,22 @@ def get_ohlcv(
     # TODO: Also add input data type checking
     limit = min(limit, 100)
     if end:
-        end = milliseconds_to_datetime(end)
+        end = milliseconds_to_datetime(end).replace(second=0, microsecond=0)
     else:
-        end = datetime.datetime.now()
+        end = (
+            datetime.datetime.now() - datetime.timedelta(minutes = 1)
+        ).replace(second=0, microsecond=0)
     if start:
-        start = milliseconds_to_datetime(start)    
+        start = milliseconds_to_datetime(start).replace(second=0, microsecond=0)
     
     # Return ohlcv from different tables based on interval
     if interval not in OHLCV_INTERVALS:
         return None
     elif interval == "1m":
         if not start:
-            start = end - datetime.timedelta(minutes = limit)
+            start = (
+                end - datetime.timedelta(minutes = limit)
+            ).replace(second=0, microsecond=0)
 
         # Get max. latest XXXX rows from psql db
         fromdb = db.query(models.Ohlcv) \
@@ -143,8 +150,8 @@ def get_ohlcv(
             # Dummy timestamps to fill empty timestamps from db
             dseries = db.query(
                 func.generate_series(
-                    func.min(fromdb.c.time),
-                    func.max(fromdb.c.time),
+                    start,
+                    end,
                     func.cast(concat(1, ' MINUTE'), INTERVAL)
                 ).label('time'),
                 func.avg(fromdb.c.open).label('open'),
@@ -171,7 +178,6 @@ def get_ohlcv(
 
     else:
         # Choose summary table according to `interval`
-        # TODO: replace these `elifs` with lookup table
         if interval == "5m":
             if not start:
                 start = end - datetime.timedelta(minutes = limit * 5)

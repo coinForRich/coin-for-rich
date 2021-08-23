@@ -39,15 +39,27 @@ var intervalPreviousMillisecondsMap = new Map([
     ['1D', -60000 * 60 * 24],
     ['7D', -60000 * 60 * 24 * 7]
 ])
+var dataPeriodMap = new Map([
+    ['1h', null],
+    ['6h', null],
+    ['1D', null],
+    ['3D', null],
+    ['7D', null],
+    ['1M', null],
+    ['3M', null],
+    ['1Y', null],
+    ['3Y', null]
+])
+
 var current_period = '1h'
 var current_interval = periodIntervalMap.get(current_period)
 
+// var data = null
 var candles_ws = null
-var data = null
 var data_loading = false
 var bar_latest = null
-var chartWidth = 1400
-var chartHeight = 500
+var chartWidth = 1250
+var chartHeight = 450
 var chart = LightweightCharts.createChart(document.getElementById('chart'), {
     width: chartWidth,
     height: chartHeight,
@@ -115,8 +127,7 @@ function createSimpleSwitcher(items, activeItem, activeItemChangedCallback) {
 };
 
 // Click period callback
-function syncToInterval(period) {
-    let interval = periodIntervalMap.get(period)
+function syncToInterval(period) {    
     if (candleSeries) {
         if (candles_ws !== null) {
             let unsubscribe_msg = JSON.stringify({
@@ -134,42 +145,68 @@ function syncToInterval(period) {
         candleSeries = chart.addCandlestickSeries()
 	}
     
-    data = null
-    current_end = Date.now()
-    current_start = getTimestampSteps(
-        current_start,
-        intervalPreviousMillisecondsMap.get(interval),
-        periodNumIntervalMap.get(period))
-    current_interval = interval
+    // data = null
+    current_period = period
+    current_interval = periodIntervalMap.get(period)
+    console.log(period)
+    console.log(current_interval)
+    let historical = null
+
+    let current_data = dataPeriodMap.get(period)
+    console.log('current_data: ')
+    console.log(current_data)
+    
+    if (current_data === null) {
+        current_end = Date.now()
+        current_start = getTimestampSteps(
+            current_end,
+            intervalPreviousMillisecondsMap.get(current_interval),
+            periodNumIntervalMap.get(period)
+        )
+        historical = true
+    }
+    else {
+        console.log("reusing existing data")
+
+        let last_datum = current_data[current_data.length - 1]
+        let last_timestamp = last_datum.time * 1000
+        current_end = Date.now()
+        current_start = getTimestampSteps(last_timestamp, 1000, 60)
+        historical = false
+    }
+
     readRestDrawOHLC(
         current_exchange, current_base_id,
         current_quote_id, current_start,
-        current_end, current_interval
+        current_end, current_interval, historical
     )
-    if (candles_ws !== null) {
-        let subscribe_msg = JSON.stringify({
-            event_type: "subscribe",
-            data_type: "ohlc",
-            exchange: current_exchange,
-            base_id: current_base_id,
-            quote_id: current_quote_id,
-            interval: current_interval
-        })
-        candles_ws.send(subscribe_msg)
-    }
-    else {
-        readWSUpdateOHLC(
-            current_exchange, current_base_id, current_quote_id, current_interval
-        )
-    }
+
+    // if (candles_ws !== null) {
+    //     let subscribe_msg = JSON.stringify({
+    //         event_type: "subscribe",
+    //         data_type: "ohlc",
+    //         exchange: current_exchange,
+    //         base_id: current_base_id,
+    //         quote_id: current_quote_id,
+    //         interval: current_interval
+    //     })
+    //     candles_ws.send(subscribe_msg)
+    // }
+    // else {
+    //     readWSUpdateOHLC(
+    //         current_exchange, current_base_id,
+    //         current_quote_id, current_interval
+    //     )
+    // }
 };
 
 // Draw new candle series, merge data if there's new and existing data
-function drawCandleSeries(candle_data) {
+function drawCandleSeries(candle_data, historical) {
     if (candle_data !== null) {
         try {
-            saveDataFromRestEndpoint(candle_data)
-            candleSeries.setData(data)
+            saveDataFromRestEndpoint(candle_data, historical)
+            let current_data = dataPeriodMap.get(current_period)
+            candleSeries.setData(current_data)
         }
         catch(err) {
             console.log(err)
@@ -178,34 +215,45 @@ function drawCandleSeries(candle_data) {
     data_loading = false
 };
 
-// Save response data from REST endpoint to `data`
-function saveDataFromRestEndpoint(resp_data) {
-    if (resp_data !== null) {
-        if (data === null) {
-            data = resp_data
+// Save historical response data from REST endpoint to `data`
+function saveDataFromRestEndpoint(resp_data, historical) {
+    if (resp_data !== null && !("detail" in resp_data)) {
+        let current_data = dataPeriodMap.get(current_period)
+        if (current_data === null) {
+            dataPeriodMap.set(current_period, resp_data)
             console.log("new data: ")
-            console.log(data)
+            console.log(dataPeriodMap.get(current_period))
         }
         else {
-            // Not sure if Set is good because it may
+            // Not sure if Set is good because it *may*
             //  mess up data order
-            data = [...new Set([...resp_data, ...data])]
-            console.log("data has been merged with old historical data, here is data: ")
-            console.log(data)
+            let merged = null
+            if (historical === true) {
+                merged = [...new Set([...resp_data, ...current_data])]
+            }
+            else {
+                console.log('merging new data, not historial')
+                merged = [...new Set([...current_data, ...resp_data])]
+            }
+            dataPeriodMap.set(current_period, merged)
+            // console.log(
+            //     "data has been merged with old historical data, here is data: ")
+            // console.log(merged)
         }
     }
 };
 
 // Read data from ohlc REST endpoint and save to `data`
-async function readRestDrawOHLC(exch, bid, qid, s, e, i) {
+async function readRestDrawOHLC(exch, bid, qid, s, e, i, h) {
     data_loading = true
     let ohlcv_endpoint = 
-        `http://${window.location.host}/ohlcv/?exchange=${exch}&base_id=${bid}&quote_id=${qid}&start=${s}&end=${e}&interval=${i}&empty_ts=true&results_mls=false`
+        `http://${window.location.host}/ohlcv/?exchange=${exch}&base_id=${bid}&quote_id=${qid}&start=${s}&end=${e}&interval=${i}&results_mls=false&empty_ts=true`
+        // &empty_ts=true
     // console.log(ohlcv_endpoint)
     fetch(ohlcv_endpoint)
         .then(response => response.json())
         .then(resp_data => 
-            drawCandleSeries(resp_data)
+            drawCandleSeries(resp_data, h)
         )
 };
 
@@ -230,23 +278,40 @@ function readWSUpdateOHLC(exch, bid, qid, i) {
 
     candles_ws.onmessage = function(event) {
         let parsed_data = JSON.parse(event.data)
+        
+        if ("time" in parsed_data) {
+            let current_data = dataPeriodMap.get(current_period)
+            
+            if (current_data !== null) {
+                let last_timestamp = current_data[current_data.length - 1].time
+                if (parsed_data.time >= last_timestamp) {
+                    if (parsed_data.time > last_timestamp) {
+                        dataPeriodMap.get(current_period).push(parsed_data)
+                    }
+                    candleSeries.update(parsed_data)
+                }
+            }
+            else {
+                dataPeriodMap.set(current_period, parsed_data)
+            }
+        }
         // Compare parsed data to the latest bar data 
         //  to keep new bars persistent on chart
-        if (bar_latest === null || parsed_data.time == bar_latest.time) {
-            // console.log('Saving parsed data to latest bar, here is bar_latest: ')
-            candleSeries.update(parsed_data)
-            bar_latest = parsed_data
-            // console.log(bar_latest)
-        }
-        else if (parsed_data.time > bar_latest.time) {
-            // console.log('Pushing latest bar to data, here is data: ')
-            data.push(bar_latest)
-            candleSeries.setData(data)
-            candleSeries.update(parsed_data)
-            // console.log(data)
-            // console.log('Saving parsed data to latest bar')
-            bar_latest = parsed_data
-        }
+        // if (bar_latest === null || parsed_data.time == bar_latest.time) {
+        //     // console.log('Saving parsed data to latest bar, here is bar_latest: ')
+        //     candleSeries.update(parsed_data)
+        //     bar_latest = parsed_data
+        //     // console.log(bar_latest)
+        // }
+        // else if (parsed_data.time > bar_latest.time) {
+        //     // console.log('Pushing latest bar to data, here is data: ')
+        //     data.push(bar_latest)
+        //     candleSeries.setData(data)
+        //     candleSeries.update(parsed_data)
+        //     // console.log(data)
+        //     // console.log('Saving parsed data to latest bar')
+        //     bar_latest = parsed_data
+        // }
     }
 
     candles_ws.onerror = function(event) {
@@ -294,14 +359,17 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
     if (updateChartTimer !== null) {
         return;
     }
+
+    let current_data = dataPeriodMap.get(current_period)
+    
     updateChartTimer = setTimeout(() => {
+        // console.log("TIMER")
         let logicalRange = timeScale.getVisibleLogicalRange();
-        if (logicalRange !== null && data !== undefined) {
+        if (logicalRange !== null && current_data !== null) {
             let barsInfo = candleSeries.barsInLogicalRange(logicalRange);
-            // console.log(barsInfo)
             if (barsInfo !== null && barsInfo.barsBefore < 100 && data_loading === false) {
                 let oneIntervalBefore = getTimestampSteps(
-                    data[0].time * 1000,
+                    current_data[0].time * 1000,
                     intervalPreviousMillisecondsMap.get(current_interval),
                     1)
                 let nIntervalBefore = getTimestampSteps(
@@ -312,12 +380,13 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
                 readRestDrawOHLC(
                     current_exchange, current_base_id,
                     current_quote_id, nIntervalBefore,
-                    oneIntervalBefore, current_interval
+                    oneIntervalBefore, current_interval, true
                 )
             }
         }
         updateChartTimer = null;
     }, 50)
+
     var buttonVisible = timeScale.scrollPosition() < 0;
     button.style.display = buttonVisible ? 'block' : 'none';
 })

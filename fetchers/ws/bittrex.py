@@ -10,7 +10,6 @@
 # https://github.com/slazarov/python-signalr-client
 
 
-import sys
 import hashlib
 import hmac
 import json
@@ -33,9 +32,9 @@ from common.helpers.datetimehelpers import str_to_milliseconds, redis_time
 from fetchers.config.constants import (
     WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY, WS_SUB_LIST_REDIS_KEY
 )
-from fetchers.config.queries import ALL_SYMBOLS_EXCHANGE_QUERY, MUTUAL_BASE_QUOTE_QUERY
+from fetchers.config.queries import MUTUAL_BASE_QUOTE_QUERY
 from fetchers.rest.bittrex import BittrexOHLCVFetcher, EXCHANGE_NAME
-from fetchers.utils.exceptions import ConnectionClosed
+from fetchers.utils.exceptions import ConnectionClosed, UnsuccessfulConnection
 
 
 URI = 'https://socket-v3.bittrex.com/signalr'
@@ -127,7 +126,8 @@ class BittrexOHLCVWebsocket:
             if response[c]['Success']:
                 self.logger.info(f"Group {i}: Subscription to {channels[c]} successful")
             else:
-                self.logger.info(f"Group {i}: Subscription to {channels[c]} failed: {response[c]['ErrorCode']}")
+                self.logger.warning(f"Group {i}: Subscription to {channels[c]} failed: {response[c]['ErrorCode']}")
+                raise UnsuccessfulConnection
 
     async def _invoke(self, method: str, *args) -> Union[Any, None]:
         async with self.asyncio_lock:

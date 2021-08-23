@@ -56,7 +56,7 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-CALL refresh_continuous_aggregate('ohlcvs_summary_daily', NULL, '2021-06-26');
+CALL refresh_continuous_aggregate('ohlcvs_summary_daily', NULL, '2021-08-01');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_daily',
    start_offset => INTERVAL '3 days',
@@ -80,7 +80,7 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-CALL refresh_continuous_aggregate('ohlcvs_summary_5min', NULL, '2021-06-26');
+CALL refresh_continuous_aggregate('ohlcvs_summary_5min', NULL, '2021-08-01');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_5min',
    start_offset => INTERVAL '15 minutes',
@@ -104,7 +104,7 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-CALL refresh_continuous_aggregate('ohlcvs_summary_15min', NULL, '2021-06-26');
+CALL refresh_continuous_aggregate('ohlcvs_summary_15min', NULL, '2021-08-01');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_15min',
    start_offset => INTERVAL '45 minutes',
@@ -128,7 +128,7 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-CALL refresh_continuous_aggregate('ohlcvs_summary_30min', NULL, '2021-06-26');
+CALL refresh_continuous_aggregate('ohlcvs_summary_30min', NULL, '2021-08-01');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_30min',
    start_offset => INTERVAL '90 minutes',
@@ -152,7 +152,7 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-CALL refresh_continuous_aggregate('ohlcvs_summary_1hour', NULL, '2021-06-26');
+CALL refresh_continuous_aggregate('ohlcvs_summary_1hour', NULL, '2021-08-01');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_1hour',
    start_offset => INTERVAL '3 hours',
@@ -176,7 +176,7 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-CALL refresh_continuous_aggregate('ohlcvs_summary_6hour', NULL, '2021-06-26');
+CALL refresh_continuous_aggregate('ohlcvs_summary_6hour', NULL, '2021-08-01');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_6hour',
    start_offset => INTERVAL '18 hours',
@@ -200,7 +200,7 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-CALL refresh_continuous_aggregate('ohlcvs_summary_12hour', NULL, '2021-06-26');
+CALL refresh_continuous_aggregate('ohlcvs_summary_12hour', NULL, '2021-08-01');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_12hour',
    start_offset => INTERVAL '36 hours',
@@ -224,7 +224,7 @@ with (timescaledb.continuous) as
    group by exchange, base_id, quote_id, "bucket"
 with no data;
 
-CALL refresh_continuous_aggregate('ohlcvs_summary_7day', NULL, '2021-07-10');
+CALL refresh_continuous_aggregate('ohlcvs_summary_7day', NULL, '2021-08-01');
 
 SELECT add_continuous_aggregate_policy('ohlcvs_summary_7day',
    start_offset => INTERVAL '21 days',
