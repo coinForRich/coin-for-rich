@@ -4,7 +4,8 @@ from typing import Optional, Union
 from sqlalchemy import func, literal_column, literal
 from sqlalchemy.dialects.postgresql import INTERVAL
 from sqlalchemy.sql.functions import concat
-from sqlalchemy.orm import Session, contains_alias
+from sqlalchemy.orm import Session
+from common.helpers.numbers import round_decimal
 from common.helpers.datetimehelpers import (
     datetime_to_milliseconds,
     datetime_to_seconds,
@@ -58,11 +59,11 @@ def parse_ohlcv(ohlcv: list, mls: bool) -> list:
                 {
                     'time': int(datetime_to_milliseconds(o.time)) if mls \
                         else int(datetime_to_seconds(o.time)),
-                    'open': float(o.open),
-                    'high': float(o.high),
-                    'low': float(o.low),
-                    'close': float(o.close),
-                    'volume': float(o.volume)
+                    'open': round_decimal(o.open),
+                    'high': round_decimal(o.high),
+                    'low': round_decimal(o.low),
+                    'close': round_decimal(o.close),
+                    'volume': round_decimal(o.volume)
                 }
                 for o in ohlcv
             ]

@@ -1,3 +1,4 @@
+# Lessons
 Fetching
 Definitions:
 Empty minute: minute with no trading data/OHLCV data
@@ -8,4 +9,8 @@ If I were to create dummy minutes, I need data to copy from. For infrequently tr
 
 Charting
 How can you render accurate charts when there are empty minutes?
-To render more accurate OHLC charts, empty minutes among non-empty minutes are provided with OHLC averaged from their surrounding non-empty minutes (within the limit number queried) to become dummy minutes. I have not found a better way to create dummy minutes.
+To render more accurate OHLC charts (in terms of candlesticks' relative distances), empty minutes among non-empty minutes are provided with OHLC averaged from their surrounding non-empty minutes (within the limit number queried) to become dummy minutes. I have not found a better way to create dummy minutes so far.
+
+# Limitations
+Websockets
+Disconnections are expected. Thus, data are expected to have gaps

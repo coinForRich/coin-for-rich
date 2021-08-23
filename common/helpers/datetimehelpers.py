@@ -1,3 +1,5 @@
+# This module contains common datetime helpers
+
 import datetime
 from redis import Redis
 

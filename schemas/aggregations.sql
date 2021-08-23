@@ -253,9 +253,9 @@ AS
                PARTITION BY exchange, base_id, quote_id ORDER BY bucket ASC
             ) AS prev_close
          FROM ohlcvs_summary_daily
-         -- WHERE bucket >= (CURRENT_DATE - interval '8 days') and bucket <= CURRENT_DATE
-         WHERE bucket >= '2021-08-01' and bucket <= '2021-08-30'
-            AND exchange='bitfinex' AND base_id='DCR' AND quote_id='USD'
+         WHERE bucket >= (CURRENT_DATE - interval '8 days') and bucket <= CURRENT_DATE
+         -- WHERE bucket >= '2021-08-01' and bucket <= '2021-08-30'
+         --    AND exchange='bitfinex' AND base_id='DCR' AND quote_id='USD'
       ),
       -- prev_close_view AS (
       --    SELECT bucket, exchange, base_id,

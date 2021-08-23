@@ -1,15 +1,15 @@
 # This module collects websocket subbed data in Redis, from all exchanges
 #   and inserts them into PSQL database
 
-import sys
 import redis
 import time
 import psycopg2
-from common.helpers.datetimehelpers import milliseconds_to_datetime
 from common.config.constants import (
     REDIS_HOST, REDIS_PASSWORD, REDIS_DELIMITER, DBCONNECTION, OHLCVS_TABLE
 )
 from common.utils.logutils import create_logger
+from common.helpers.datetimehelpers import milliseconds_to_datetime
+from common.helpers.numbers import round_decimal
 from fetchers.config.constants import (
     WS_SUB_LIST_REDIS_KEY, WS_SUB_PREFIX, WS_SUB_PROCESSING_REDIS_KEY
 )
@@ -66,11 +66,11 @@ class OHLCVWebsocketUpdater:
                                         exchange,
                                         base_id,
                                         quote_id,
-                                        float(ohlcv[1]),
-                                        float(ohlcv[2]),
-                                        float(ohlcv[3]),
-                                        float(ohlcv[4]),
-                                        float(ohlcv[5])
+                                        round_decimal(ohlcv[1]),
+                                        round_decimal(ohlcv[2]),
+                                        round_decimal(ohlcv[3]),
+                                        round_decimal(ohlcv[4]),
+                                        round_decimal(ohlcv[5])
                                     )
                                 )
                                 # Add processing ohlcv to a Redis set

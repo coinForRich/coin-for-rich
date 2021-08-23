@@ -12,7 +12,8 @@ HOST = configs.get('COMMON_HOST')
 POSTGRES_USER = "postgres"
 POSTGRES_PASSWORD = configs.get('POSTGRES_PASSWORD')
 POSTGRES_DB = "postgres"
-DBCONNECTION = f"dbname={POSTGRES_DB} user={POSTGRES_USER} password={POSTGRES_PASSWORD} host={HOST} port=5432"
+POSTGRES_PORT = 5432
+DBCONNECTION = f"dbname={POSTGRES_DB} user={POSTGRES_USER} password={POSTGRES_PASSWORD} host={HOST} port={POSTGRES_PORT}"
 OHLCVS_TABLE = "ohlcvs"
 OHLCVS_ERRORS_TABLE = "ohlcvs_errors"
 SYMBOL_EXCHANGE_TABLE = "symbol_exchange"
