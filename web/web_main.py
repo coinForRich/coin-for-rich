@@ -30,7 +30,8 @@ redis_client = redis.Redis(
     host=REDIS_HOST,
     username="default",
     password=REDIS_PASSWORD,
-    decode_responses=True)
+    decode_responses=True
+)
 
 # Dependency
 def get_db():
@@ -128,7 +129,7 @@ async def websocket_endpoint(
                     interval = input['interval']
                     if event_type not in WS_SERVE_EVENT_TYPES:
                         await websocket.send_json({
-                            'message': "event_type must be subscribe or unsubscribe"
+                            'detail': "event_type must be subscribe or unsubscribe"
                         })
                     elif event_type == "subscribe":
                         if data_type == "ohlc":
@@ -141,7 +142,7 @@ async def websocket_endpoint(
                                 exchange, base_id, quote_id, interval
                             )
                             await websocket.send_json({
-                            'message': \
+                            'detail': \
                                 f"unsubscribed successfully from {exchange}_{base_id}_{quote_id}_{interval}"
                         })
                 except Exception as exc:

@@ -3,9 +3,11 @@ var current_base_id = document.getElementById("base_id").textContent
 var current_quote_id = document.getElementById("quote_id").textContent
 var current_end = Date.now()
 var current_start = current_end - 60000 * 60 * 24
-var periods = [
-    '1h','6h','1D','3D','7D','1M','3M','1Y','3Y'
-]
+
+// Chart time periods
+var periods = ['1h','6h','1D','3D','7D','1M','3M','1Y','3Y']
+
+// Mapping of time period to data interval
 var periodIntervalMap = new Map([
     ['1h', '1m'],
     ['6h', '5m'],
@@ -17,6 +19,9 @@ var periodIntervalMap = new Map([
     ['1Y', '1D'],
     ['3Y', '7D']
 ])
+
+// Mapping of time period to number of intervals in each period
+//  e.g.: 1h has 60 1-minute intervals; 6h has 72 5-minute intervals
 var periodNumIntervalMap = new Map([
     ['1h', 60],
     ['6h', 72],
@@ -28,8 +33,11 @@ var periodNumIntervalMap = new Map([
     ['1Y', 365],
     ['3Y', 157]
 ])
+
+// Mapping of interval to number of milliseconds per interval
+//  Used to get historical data, hence the minus
 var intervalPreviousMillisecondsMap = new Map([
-    ['1m', -60000 ],
+    ['1m', -60000],
     ['5m', -60000 * 5],
     ['15m', -60000 * 15],
     ['30m', -60000 * 30],
@@ -39,7 +47,22 @@ var intervalPreviousMillisecondsMap = new Map([
     ['1D', -60000 * 60 * 24],
     ['7D', -60000 * 60 * 24 * 7]
 ])
+
+// Mapping of time period to the corresponding data array
 var dataPeriodMap = new Map([
+    ['1h', null],
+    ['6h', null],
+    ['1D', null],
+    ['3D', null],
+    ['7D', null],
+    ['1M', null],
+    ['3M', null],
+    ['1Y', null],
+    ['3Y', null]
+])
+
+// Mapping of time period to the corresponding latest data bar
+var latestBarPeriodMap = new Map([
     ['1h', null],
     ['6h', null],
     ['1D', null],
@@ -53,8 +76,8 @@ var dataPeriodMap = new Map([
 
 var current_period = '1h'
 var current_interval = periodIntervalMap.get(current_period)
+var current_data = null
 
-// var data = null
 var candles_ws = null
 var data_loading = false
 var bar_latest = null
@@ -89,9 +112,9 @@ function dateToTimestamp(date) {
     return new Date(Date.UTC(date.year, date.month - 1, date.day, 0, 0, 0, 0))
 };
 
-// Returns timestamp `step_amt * steps` away from `milliseconds`
-function getTimestampSteps(milliseconds, step_amt, steps) {
-    const ret = milliseconds + step_amt * steps
+// Returns timestamp `millisecondsPerStep * steps` away from `milliseconds`
+function getTimestampSteps(milliseconds, millisecondsPerStep, steps) {
+    const ret = milliseconds + millisecondsPerStep * steps
     return ret
 };
 
@@ -145,40 +168,49 @@ function syncToInterval(period) {
         candleSeries = chart.addCandlestickSeries()
 	}
     
-    // data = null
-    current_period = period
-    current_interval = periodIntervalMap.get(period)
-    console.log(period)
-    console.log(current_interval)
+    // current_data = null
+    // current_period = period
+    let interval = periodIntervalMap.get(period)
+    let existing_data = dataPeriodMap.get(period)
+    let end = null
+    let start = null
     let historical = null
-
-    let current_data = dataPeriodMap.get(period)
+    console.log(period)
+    console.log(interval)
+    
     // console.log('current_data: ')
     // console.log(current_data)
     
-    if (current_data === null) {
-        current_end = Date.now()
-        current_start = getTimestampSteps(
-            current_end,
-            intervalPreviousMillisecondsMap.get(current_interval),
-            periodNumIntervalMap.get(period)
-        )
+    if (existing_data === null) {
+        end = Date.now()
+        start = getTimestampSteps(
+            end,
+            intervalPreviousMillisecondsMap.get(interval),
+            periodNumIntervalMap.get(period))
         historical = true
     }
     else {
         console.log("reusing existing data")
-
-        let last_datum = current_data[current_data.length - 1]
+        let last_datum = existing_data[existing_data.length - 1]
         let last_timestamp = last_datum.time * 1000
-        current_end = Date.now()
-        current_start = getTimestampSteps(last_timestamp, 1000, 60)
+
+        end = Date.now()
+        start = getTimestampSteps(
+            last_timestamp,
+            (-intervalPreviousMillisecondsMap.get(interval)),
+            1)
         historical = false
+
+        // Set data using existing first
+        candleSeries.setData(existing_data)
     }
 
+    // Update OHLC and draw/re-draw
     readRestDrawOHLC(
         current_exchange, current_base_id,
-        current_quote_id, current_start,
-        current_end, current_interval, historical
+        current_quote_id, start,
+        end, interval,
+        historical, period
     )
 
     // if (candles_ws !== null) {
@@ -200,13 +232,44 @@ function syncToInterval(period) {
     // }
 };
 
+// Save historical response data from REST endpoint to `data`
+function saveDataFromRestAPI(resp_data, historical, period) {
+    if (resp_data !== null && !("detail" in resp_data)) {
+        let existing_data = dataPeriodMap.get(period)
+        if (existing_data === null) {
+            dataPeriodMap.set(period, resp_data)
+            console.log("new data: ")
+            console.log(dataPeriodMap.get(period))
+        }
+        else {
+            // Not sure if Set is good because it *may*
+            //  mess up data order
+            let merged = null
+            if (historical === true) {
+                merged = [...new Set([...resp_data, ...existing_data])]
+            }
+            else {
+                console.log('merging new data, not historial')
+                merged = [...new Set([...existing_data, ...resp_data])]
+            }
+            dataPeriodMap.set(period, merged)
+        }
+    }
+};
+
 // Draw new candle series, merge data if there's new and existing data
-function drawCandleSeries(candle_data, historical) {
+function drawCandleSeries(candle_data, historical, period) {
     if (candle_data !== null) {
         try {
-            saveDataFromRestEndpoint(candle_data, historical)
-            let current_data = dataPeriodMap.get(current_period)
-            candleSeries.setData(current_data)
+            saveDataFromRestAPI(candle_data, historical, period)
+            current_period = period
+            current_interval = periodIntervalMap.get(period)
+            current_data = dataPeriodMap.get(period)
+            // Only attempt to draw candle series
+            //  if current_data is not null
+            if (current_data !== null) {
+                candleSeries.setData(current_data)
+            }
         }
         catch(err) {
             console.log(err)
@@ -215,36 +278,8 @@ function drawCandleSeries(candle_data, historical) {
     data_loading = false
 };
 
-// Save historical response data from REST endpoint to `data`
-function saveDataFromRestEndpoint(resp_data, historical) {
-    if (resp_data !== null && !("detail" in resp_data)) {
-        let current_data = dataPeriodMap.get(current_period)
-        if (current_data === null) {
-            dataPeriodMap.set(current_period, resp_data)
-            console.log("new data: ")
-            console.log(dataPeriodMap.get(current_period))
-        }
-        else {
-            // Not sure if Set is good because it *may*
-            //  mess up data order
-            let merged = null
-            if (historical === true) {
-                merged = [...new Set([...resp_data, ...current_data])]
-            }
-            else {
-                console.log('merging new data, not historial')
-                merged = [...new Set([...current_data, ...resp_data])]
-            }
-            dataPeriodMap.set(current_period, merged)
-            // console.log(
-            //     "data has been merged with old historical data, here is data: ")
-            // console.log(merged)
-        }
-    }
-};
-
 // Read data from ohlc REST endpoint and save to `data`
-async function readRestDrawOHLC(exch, bid, qid, s, e, i, h) {
+async function readRestDrawOHLC(exch, bid, qid, s, e, i, history, period) {
     data_loading = true
     let ohlcv_endpoint = 
         `http://${window.location.host}/ohlcv/?exchange=${exch}&base_id=${bid}&quote_id=${qid}&start=${s}&end=${e}&interval=${i}&results_mls=false&empty_ts=true`
@@ -253,7 +288,7 @@ async function readRestDrawOHLC(exch, bid, qid, s, e, i, h) {
     fetch(ohlcv_endpoint)
         .then(response => response.json())
         .then(resp_data => 
-            drawCandleSeries(resp_data, h)
+            drawCandleSeries(resp_data, history, period)
         )
 };
 
@@ -295,7 +330,7 @@ function readWSUpdateOHLC(exch, bid, qid, i) {
                 dataPeriodMap.set(current_period, parsed_data)
             }
         }
-        // Compare parsed data to the latest bar data 
+        // TODO: use this part - Compare parsed data to the latest bar data 
         //  to keep new bars persistent on chart
         // if (bar_latest === null || parsed_data.time == bar_latest.time) {
         //     // console.log('Saving parsed data to latest bar, here is bar_latest: ')
@@ -360,14 +395,14 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
         return;
     }
 
-    let current_data = dataPeriodMap.get(current_period)
+    // let current_data = dataPeriodMap.get(current_period)
     
     updateChartTimer = setTimeout(() => {
         // console.log("TIMER")
         let logicalRange = timeScale.getVisibleLogicalRange();
         if (logicalRange !== null && current_data !== null) {
             let barsInfo = candleSeries.barsInLogicalRange(logicalRange);
-            if (barsInfo !== null && barsInfo.barsBefore < 100 && data_loading === false) {
+            if (barsInfo !== null && barsInfo.barsBefore < 200 && data_loading === false) {
                 let oneIntervalBefore = getTimestampSteps(
                     current_data[0].time * 1000,
                     intervalPreviousMillisecondsMap.get(current_interval),
@@ -380,7 +415,8 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
                 readRestDrawOHLC(
                     current_exchange, current_base_id,
                     current_quote_id, nIntervalBefore,
-                    oneIntervalBefore, current_interval, true
+                    oneIntervalBefore, current_interval,
+                    true, current_period
                 )
             }
         }
