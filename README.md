@@ -45,9 +45,6 @@ Remember to bind-mount data volume to make it persistent
 ```
 docker run -d --name coin-redis -p 6379:6379 -v /your/absolute/data/path/_redisdata:/data redis:6.2 redis-server --appendonly yes --requirepass "yourRedisPassword"
 ```
-
-### Cube
-docker run -p 4000:4000 -v /your/absolute/data/path/_cubedata:/cube/conf -e CUBEJS_DEV_MODE=true cubejs/cube
 ### Setup Celery
 Celery should be installed along with other Python packages
 
