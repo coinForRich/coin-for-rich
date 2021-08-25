@@ -37,7 +37,7 @@ def datetime_to_seconds(dt):
     '''
     return dt.timestamp()
 
-def datetime_to_milliseconds(dt):
+def datetime_to_milliseconds(dt: datetime.datetime) -> int:
     '''
     converts a datetime.datetime object to milliseconds, represented in int
     :params:
@@ -45,7 +45,7 @@ def datetime_to_milliseconds(dt):
     '''
     return milliseconds(datetime_to_seconds(dt))
 
-def milliseconds_to_datetime(mls):
+def milliseconds_to_datetime(mls: int) -> datetime.datetime:
     '''
     converts a millisecond timestamp into datetime object
     :params:

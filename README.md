@@ -84,7 +84,7 @@ To run websocket subscribers and updater:
 `python -m pytest`
 
 ### Start web app server
-`uvicorn web.web_main:app --reload`
+`uvicorn web.main:app --reload`
 
 ## Explore
 Docs are stored in the `docs` folder

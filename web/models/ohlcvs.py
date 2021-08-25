@@ -1,40 +1,11 @@
 from sqlalchemy import (
-    Column, DateTime, ForeignKeyConstraint, Index, Numeric,
-    SmallInteger, String, Table, Text
+    Column, DateTime, ForeignKeyConstraint,
+    Index, Numeric, String, Table
 )
 from sqlalchemy.orm import relationship
-from common.config.constants import (
-    OHLCVS_TABLE, OHLCVS_ERRORS_TABLE, SYMBOL_EXCHANGE_TABLE
-)
-from web.database import Base, metadata
+from common.config.constants import OHLCVS_TABLE
+from web.db.base import Base, metadata
 
-
-class OhlcvsError(Base):
-    __tablename__ = OHLCVS_ERRORS_TABLE
-
-    exchange = Column(String(100), primary_key=True, nullable=False)
-    symbol = Column(String(20), primary_key=True, nullable=False)
-    start_date = Column(DateTime(True), primary_key=True, nullable=False)
-    end_date = Column(DateTime(True), primary_key=True, nullable=False)
-    time_frame = Column(String(10), primary_key=True, nullable=False)
-    ohlcv_section = Column(String(30))
-    resp_status_code = Column(SmallInteger)
-    exception_class = Column(Text, primary_key=True, nullable=False)
-    exception_message = Column(Text)
-
-class SymbolExchange(Base):
-    __tablename__ = SYMBOL_EXCHANGE_TABLE
-    __table_args__ = (
-        Index('symexch_exch_sym_idx', 'exchange', 'symbol', unique=True),
-        Index('symexch_exch_idx', 'exchange'),
-        Index('symexch_base_idx', 'base_id'),
-        Index('symexch_quote_idx', 'quote_id')
-    )
-
-    exchange = Column(String(100), primary_key=True, nullable=False, index=True)
-    base_id = Column(String(20), primary_key=True, nullable=False, index=True)
-    quote_id = Column(String(20), primary_key=True, nullable=False, index=True)
-    symbol = Column(String(40), nullable=False)
 
 class Ohlcv(Base):
     __tablename__ = OHLCVS_TABLE

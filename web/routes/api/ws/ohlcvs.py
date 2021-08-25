@@ -1,37 +1,15 @@
 import asyncio
 import redis
 from typing import List
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from common.helpers.datetimehelpers import seconds
 from common.config.constants import REDIS_DELIMITER
 from common.utils.asyncioutils import AsyncLoopThread
 from fetchers.config.constants import WS_SERVE_REDIS_KEY
 from web.config.constants import OHLCV_INTERVALS, WS_SERVE_EVENT_TYPES
-import web.api.rest as webapi_rest
-
-
-class WSServerConnectionManager:
-    '''
-    Websocket connection manager
-    '''
-
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    # async def send_personal_message(self, message: str, websocket: WebSocket):
-    #     await websocket.send_text(message)
-
-    # async def broadcast(self, message: str):
-    #     for connection in self.active_connections:
-    #         await connection.send_text(message)
+from web.routes.api.rest import ohlcvs
+from web.routes.api.ws.utils.connections import WSServerConnectionManager
 
 
 class WSServerSender:
@@ -52,15 +30,18 @@ class WSServerSender:
         self.ws = ws
         self.redis_client = redis_client
         self.db = db
-        self.serving_ids : List[str] = []
+        self.serving_ids: List[str] = []
         
     async def _serve_ohlc(
             self, exchange: str, base_id: str, quote_id: str, interval: str
         ):
         '''
         Coroutine that serves OHLC from Redis hash or REST API
+        
         Serves OHLC with timestamp in seconds
+        
         Serves OHLC data every 1 second
+        
         :params:
             
         '''
@@ -101,15 +82,15 @@ class WSServerSender:
                         print(f"Serve OHLC: EXCEPTION: {exc}")    
                 await asyncio.sleep(1)
             else:
-                data = webapi_rest.get_ohlcv(
-                    db = self.db,
+                data = await ohlcvs.read_ohlcvs(
                     exchange = exchange,
                     base_id = base_id, 
                     quote_id = quote_id,
-                    interval  = interval,
+                    interval = interval,
                     limit = 1,
                     empty_ts = True,
-                    results_mls = False
+                    results_mls = False,
+                    db = self.db
                 )
                 if data:
                     data = data[0]

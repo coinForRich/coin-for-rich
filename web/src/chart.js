@@ -282,7 +282,7 @@ function drawCandleSeries(candle_data, historical, period) {
 async function readRestDrawOHLC(exch, bid, qid, s, e, i, history, period) {
     data_loading = true
     let ohlcv_endpoint = 
-        `http://${window.location.host}/ohlcv/?exchange=${exch}&base_id=${bid}&quote_id=${qid}&start=${s}&end=${e}&interval=${i}&results_mls=false&empty_ts=true`
+        `http://${window.location.host}/api/ohlcvs?exchange=${exch}&base_id=${bid}&quote_id=${qid}&start=${s}&end=${e}&interval=${i}&results_mls=false&empty_ts=true`
         // &empty_ts=true
     // console.log(ohlcv_endpoint)
     fetch(ohlcv_endpoint)

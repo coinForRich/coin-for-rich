@@ -7,9 +7,15 @@ from typing import Union
 def round_decimal(
         number: Union[float, int, Decimal],
         n_decimals: int=2
-    ) -> Decimal:
+    ) -> Union[Decimal, None]:
     '''
     Rounds a `number` to `n_decimals` decimals
+
+    If number is None, returns None
+
+    :params:
+        `number`: float, int or Decimal type
+        `n_decimals`: number of decimals
     '''
 
-    return round(Decimal(number), n_decimals)
+    return round(Decimal(number), n_decimals) if number else None
