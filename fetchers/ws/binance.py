@@ -17,13 +17,18 @@ from fetchers.config.constants import (
 )
 from fetchers.config.queries import ALL_SYMBOLS_EXCHANGE_QUERY, MUTUAL_BASE_QUOTE_QUERY
 from fetchers.rest.binance import BinanceOHLCVFetcher, EXCHANGE_NAME
-from fetchers.utils.exceptions import UnsuccessfulConnection, ConnectionClosed
+from fetchers.utils.exceptions import (
+    UnsuccessfulConnection, ConnectionClosed, InvalidStatusCode
+)
 
 
 # Binance only allows up to 1024 subscriptions per ws connection
 #   However, so far only a max value of 200 works...
 URI = "wss://stream.binance.com:9443/ws"
 MAX_SUB_PER_CONN = 200
+MAX_SUB_PER_CONN = 25
+BACKOFF_MIN_SECS = 2.0
+BACKOFF_MAX_SECS = 60.0
 
 class BinanceOHLCVWebsocket:
     def __init__(self):
@@ -50,6 +55,9 @@ class BinanceOHLCVWebsocket:
         log_handler.setFormatter(log_formatter)
         self.logger.addHandler(log_handler)
 
+        # Backoff
+        self.backoff_delay = BACKOFF_MIN_SECS
+
     async def subscribe(self, symbols: Iterable, i: int = 0) -> NoReturn:
         '''
         Subscribes to Binance WS for `symbols`
@@ -75,16 +83,17 @@ class BinanceOHLCVWebsocket:
                         })
                     )
                     self.logger.info(f"Connection {i}: Successful")
+                    self.backoff_delay = BACKOFF_MIN_SECS
                     while True:
                         resp = await ws.recv()
                         respj = json.loads(resp)
-                        try:
-                            if isinstance(respj, dict):
-                                if 'result' in respj:
-                                    if respj['result'] is not None:
-                                        raise UnsuccessfulConnection
-                                else:
-                                    # self.logger.info(f"Response: {respj}")
+                            
+                        if isinstance(respj, dict):
+                            if 'result' in respj:
+                                if respj['result'] is not None:
+                                    raise UnsuccessfulConnection
+                            else:
+                                try:
                                     symbol = respj['s']
                                     timestamp = int(respj['k']['t'])
                                     open_ = respj['k']['o']
@@ -137,19 +146,18 @@ class BinanceOHLCVWebsocket:
                                                 'volume': volume_
                                             }
                                         )
-                        except Exception as exc:
-                            self.logger.warning(f"EXCEPTION: {exc}")
+                                except Exception as exc:
+                                    self.logger.warning(
+                                        f"Binance WS Fetcher: EXCEPTION: {exc}")
+
+                        # Sleep to release event loop
                         await asyncio.sleep(0.01)
-            except ConnectionClosed as exc:
+            except (ConnectionClosed, InvalidStatusCode) as exc:
                 self.logger.warning(
-                    f"Connection {i} closed with reason: {exc} - reconnecting..."
+                    f"Connection {i} raised exception: {exc} - reconnecting..."
                 )
-                # Delay before reconnecting
-                await asyncio.sleep(5 + random.random() * 5)
-            
-            # except Exception as exc:
-            #     self.logger.warning(f"EXCEPTION in connection {i}: {exc}")
-            #     raise Exception(exc)
+                await asyncio.sleep(min(self.backoff_delay, BACKOFF_MAX_SECS))
+                self.backoff_delay *= (1+random.random()) # add a random factor
 
     async def mutual_basequote(self) -> None:
         symbols_dict = self.rest_fetcher.get_symbols_from_exch(MUTUAL_BASE_QUOTE_QUERY)

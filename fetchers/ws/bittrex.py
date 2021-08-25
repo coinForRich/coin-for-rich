@@ -34,13 +34,18 @@ from fetchers.config.constants import (
 )
 from fetchers.config.queries import MUTUAL_BASE_QUOTE_QUERY
 from fetchers.rest.bittrex import BittrexOHLCVFetcher, EXCHANGE_NAME
-from fetchers.utils.exceptions import ConnectionClosed, UnsuccessfulConnection
+from fetchers.utils.exceptions import (
+    ConnectionClosed, UnsuccessfulConnection, InvalidStatusCode
+)
 
 
 URI = 'https://socket-v3.bittrex.com/signalr'
 API_KEY = ''
 API_SECRET = ''
 MAX_SUB_PER_CONN = 200
+MAX_SUB_PER_CONN = 25
+BACKOFF_MIN_SECS = 2.0
+BACKOFF_MAX_SECS = 60.0
 
 class BittrexOHLCVWebsocket:
     def __init__(self):
@@ -72,6 +77,9 @@ class BittrexOHLCVWebsocket:
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         log_handler.setFormatter(log_formatter)
         self.logger.addHandler(log_handler)
+
+        # Backoff
+        self.backoff_delay = BACKOFF_MIN_SECS
 
     async def _connect(self) -> None:
         self.latest_ts = redis_time(self.redis_client)
@@ -124,10 +132,12 @@ class BittrexOHLCVWebsocket:
         response = await self._invoke('Subscribe', channels)
         for c in range(len(channels)):
             if response[c]['Success']:
-                self.logger.info(f"Group {i}: Subscription to {channels[c]} successful")
+                pass
             else:
-                self.logger.warning(f"Group {i}: Subscription to {channels[c]} failed: {response[c]['ErrorCode']}")
+                self.logger.error(
+                    f"Group {i}: Subscription to {channels[c]} failed: {response[c]['ErrorCode']}")
                 raise UnsuccessfulConnection
+        self.logger.info(f"Group {i}: Subscription successful")
 
     async def _invoke(self, method: str, *args) -> Union[Any, None]:
         async with self.asyncio_lock:
@@ -160,12 +170,12 @@ class BittrexOHLCVWebsocket:
     async def on_candle(self, msg) -> None:
         self.latest_ts = redis_time(self.redis_client)
         respj = await self.decode_message('Candle', msg)
-        try:
-            # If resp is dict, process and push to Redis
-            # Convert timestamp to milliseconds first
-            #   for conformity with the WS updater and other exchanges
-            if isinstance(respj, dict):
-                # self.logger.info(f"Response: {respj}")
+
+        # If resp is dict, process and push to Redis
+        # Convert timestamp to milliseconds first
+        #   for conformity with the WS updater and other exchanges
+        if isinstance(respj, dict):
+            try:
                 symbol = respj['marketSymbol']
                 ohlcv = respj['delta']
                 timestamp = str_to_milliseconds(
@@ -221,8 +231,9 @@ class BittrexOHLCVWebsocket:
                             'volume': volume_
                         }
                     )
-        except Exception as exc:
-            self.logger.warning(f'{exc}')
+            except Exception as exc:
+                self.logger.warning(
+                    f"Bittrex WS Fethcer: EXCEPTION: {exc}")
 
     async def decode_message(self, title, msg) -> None:
         decoded_msg = await self.process_message(msg[0])
@@ -252,11 +263,15 @@ class BittrexOHLCVWebsocket:
                         self.logger.info('Authentication skipped because API key was not provided')
                     await self._subscribe(symbols)
             # Not sure what kind of exception we will encounter
-            except ConnectionClosed as exc:
+            except (ConnectionClosed, InvalidStatusCode) as exc:
                 self.logger.warning(
-                    f"Connection closed with reason: {exc} - reconnecting..."
+                    f"Connection raised exception: {exc} - reconnecting..."
                 )
-            await asyncio.sleep(5 + random.random() * 5)
+                await asyncio.sleep(min(self.backoff_delay, BACKOFF_MAX_SECS))
+                self.backoff_delay *= (1+random.random()) # add a random factor
+            
+            # Sleep to release event loop
+            await asyncio.sleep(0.01)
 
     async def all(self) -> NoReturn:
         self.rest_fetcher.fetch_symbol_data()

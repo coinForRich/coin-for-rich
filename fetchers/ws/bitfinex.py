@@ -28,6 +28,8 @@ from fetchers.utils.exceptions import (
 # Bitfinex only allows up to 30 subscriptions per ws connection
 URI = "wss://api-pub.bitfinex.com/ws/2"
 MAX_SUB_PER_CONN = 25
+BACKOFF_MIN_SECS = 2.0
+BACKOFF_MAX_SECS = 60.0
 
 class BitfinexOHLCVWebsocket:
     def __init__(self):
@@ -56,12 +58,16 @@ class BitfinexOHLCVWebsocket:
         self.logger.addHandler(log_handler)
 
         # Rate limit manager
+        # Limit to attempt to connect every 3 secs
         self.rate_limiter = AsyncThrottler(
             WS_RATE_LIMIT_REDIS_KEY.format(exchange = EXCHANGE_NAME),
             1,
             3,
             redis_client = self.redis_client
         )
+
+        # Backoff
+        self.backoff_delay = BACKOFF_MIN_SECS
 
         # Loop
         # self.loop_handler = AsyncLoopThread(daemon=None)
@@ -98,100 +104,99 @@ class BitfinexOHLCVWebsocket:
         while True:
             try:
                 # Delay before making a connection
-                async with self.rate_limiter:
-                    async with websockets.connect(URI) as ws:
-                        await asyncio.gather(
-                            *(self.subscribe_one(symbol, ws) for symbol in symbols))
-                        self.logger.info(f"Connection {i}: Successful")
-                        while True:
-                            resp = await ws.recv()
-                            respj = json.loads(resp)
-                            try:
-                                # If resp is dict, find the symbol using wssymbol_mapping
-                                #   and then map chanID to found symbol
-                                # If resp is list, make sure its length is 6
-                                #   and use the mappings to find symbol and push to Redis
-                                if isinstance(respj, dict):
-                                    if 'event' in respj:
-                                        if respj['event'] != "subscribed":
-                                            raise UnsuccessfulConnection
-                                        else:
-                                            symbol = self.wssymbol_mapping[respj['key']]
-                                            self.chanid_mapping[respj['chanId']] = symbol
-                                if isinstance(respj, list):
-                                    if len(respj[1]) == 6:
-                                        # self.logger.info(f"Response: {respj}")
-                                        symbol = self.chanid_mapping[respj[0]]
-                                        timestamp = int(respj[1][0])
-                                        open_ = respj[1][1]
-                                        high_ = respj[1][3]
-                                        low_ = respj[1][4]
-                                        close_ = respj[1][2]
-                                        volume_ = respj[1][5]
-                                        sub_val = f'{timestamp}{REDIS_DELIMITER}{open_}{REDIS_DELIMITER}{high_}{REDIS_DELIMITER}{low_}{REDIS_DELIMITER}{close_}{REDIS_DELIMITER}{volume_}'
+                # async with self.rate_limiter:
+                async with websockets.connect(URI, ping_interval=10) as ws:
+                    await asyncio.gather(
+                        *(self.subscribe_one(symbol, ws) for symbol in symbols))
+                    self.logger.info(f"Connection {i}: Successful")
+                    self.backoff_delay = BACKOFF_MIN_SECS
+                    while True:
+                        resp = await ws.recv()
+                        respj = json.loads(resp)
 
-                                        # Setting Redis data for updating ohlcv psql db
-                                        #   and serving real-time chart
-                                        # This Redis-update-ohlcv-psql-db-procedure
-                                        #   may be changed with a pipeline from fastAPI...
-                                        base_id = self.rest_fetcher.symbol_data[symbol]['base_id']
-                                        quote_id = self.rest_fetcher.symbol_data[symbol]['quote_id']
-                                        ws_sub_redis_key = WS_SUB_REDIS_KEY.format(
-                                            exchange = EXCHANGE_NAME,
-                                            delimiter = REDIS_DELIMITER,
-                                            base_id = base_id,
-                                            quote_id = quote_id
-                                        )
-                                        ws_serve_redis_key = WS_SERVE_REDIS_KEY.format(
-                                            exchange = EXCHANGE_NAME,
-                                            delimiter = REDIS_DELIMITER,
-                                            base_id = base_id,
-                                            quote_id = quote_id
-                                        )
+                        # If resp is dict, find the symbol using wssymbol_mapping
+                        #   and then map chanID to found symbol
+                        # If resp is list, make sure its length is 6
+                        #   and use the mappings to find symbol and push to Redis
+                        if isinstance(respj, dict):
+                            if 'event' in respj:
+                                if respj['event'] == "subscribed":
+                                    symbol = self.wssymbol_mapping[respj['key']]
+                                    self.chanid_mapping[respj['chanId']] = symbol
+                                elif respj['event'] == "error":
+                                    self.logger.error(
+                                        f"Connection {i}: Subscription failed, raising exception")
+                                    raise UnsuccessfulConnection           
+                        elif isinstance(respj, list):
+                            if len(respj) == 2 and len(respj[1]) == 6:
+                                try:
+                                    symbol = self.chanid_mapping[respj[0]]
+                                    timestamp = int(respj[1][0])
+                                    open_ = respj[1][1]
+                                    high_ = respj[1][3]
+                                    low_ = respj[1][4]
+                                    close_ = respj[1][2]
+                                    volume_ = respj[1][5]
+                                    sub_val = f'{timestamp}{REDIS_DELIMITER}{open_}{REDIS_DELIMITER}{high_}{REDIS_DELIMITER}{low_}{REDIS_DELIMITER}{close_}{REDIS_DELIMITER}{volume_}'
 
-                                        # logging.info(f'ws sub redis key: {ws_sub_redis_key}')
-                                        # logging.info(f'ws serve redis key: {ws_serve_redis_key}')
-                                        
-                                        # Add ws sub key to set of all ws sub keys
-                                        # Set hash value for ws sub key
-                                        # Replace ws serve key hash if this timestamp
-                                        #   is more up-to-date
-                                        self.redis_client.sadd(
-                                            WS_SUB_LIST_REDIS_KEY, ws_sub_redis_key)
+                                    # Setting Redis data for updating ohlcv psql db
+                                    #   and serving real-time chart
+                                    # This Redis-update-ohlcv-psql-db-procedure
+                                    #   may be changed with a pipeline from fastAPI...
+                                    base_id = self.rest_fetcher.symbol_data[symbol]['base_id']
+                                    quote_id = self.rest_fetcher.symbol_data[symbol]['quote_id']
+                                    ws_sub_redis_key = WS_SUB_REDIS_KEY.format(
+                                        exchange = EXCHANGE_NAME,
+                                        delimiter = REDIS_DELIMITER,
+                                        base_id = base_id,
+                                        quote_id = quote_id
+                                    )
+                                    ws_serve_redis_key = WS_SERVE_REDIS_KEY.format(
+                                        exchange = EXCHANGE_NAME,
+                                        delimiter = REDIS_DELIMITER,
+                                        base_id = base_id,
+                                        quote_id = quote_id
+                                    )
+
+                                    # logging.info(f'ws sub redis key: {ws_sub_redis_key}')
+                                    # logging.info(f'ws serve redis key: {ws_serve_redis_key}')
+                                    
+                                    # Add ws sub key to set of all ws sub keys
+                                    # Set hash value for ws sub key
+                                    # Replace ws serve key hash if this timestamp
+                                    #   is more up-to-date
+                                    self.redis_client.sadd(
+                                        WS_SUB_LIST_REDIS_KEY, ws_sub_redis_key)
+                                    self.redis_client.hset(
+                                        ws_sub_redis_key, timestamp, sub_val)
+                                    current_timestamp = self.redis_client.hget(
+                                        ws_serve_redis_key,
+                                        'time')
+                                    if current_timestamp is None or \
+                                        timestamp >= int(current_timestamp):
                                         self.redis_client.hset(
-                                            ws_sub_redis_key, timestamp, sub_val)
-                                        current_timestamp = self.redis_client.hget(
                                             ws_serve_redis_key,
-                                            'time')
-                                        if current_timestamp is None or \
-                                            timestamp >= int(current_timestamp):
-                                            self.redis_client.hset(
-                                                ws_serve_redis_key,
-                                                mapping = {
-                                                    'time': timestamp,
-                                                    'open': open_,
-                                                    'high': high_,
-                                                    'low': low_,
-                                                    'close': close_,
-                                                    'volume': volume_
-                                                }
-                                            )
-                            except Exception as exc:
-                                self.logger.warning(f"EXCEPTION: {exc}")
-                            await asyncio.sleep(0.1)
-            except ConnectionClosed as exc:
+                                            mapping = {
+                                                'time': timestamp,
+                                                'open': open_,
+                                                'high': high_,
+                                                'low': low_,
+                                                'close': close_,
+                                                'volume': volume_
+                                            }
+                                        )
+                                except Exception as exc:
+                                    self.logger.warning(
+                                        f"Bitfinex WS Fetcher: EXCEPTION: {exc}")
+                        
+                        # Sleep to release event loop
+                        await asyncio.sleep(0.01)
+            except (ConnectionClosed, InvalidStatusCode) as exc:
                 self.logger.warning(
-                    f"Connection {i} closed with reason: {exc} - reconnecting..."
+                    f"Connection {i} raised exception: {exc} - reconnecting..."
                 )
-            except InvalidStatusCode as exc:
-                self.logger.warning(
-                    f"Connection {i} returns invalid status code: {exc} - sleeping and reconnecting..."
-                )
-                await asyncio.sleep(5)
-            
-            # except Exception as exc:
-            #     self.logger.warning(f"EXCEPTION in connection {i}: {exc}")
-            #     raise Exception(exc)
+                await asyncio.sleep(min(self.backoff_delay, BACKOFF_MAX_SECS))
+                self.backoff_delay *= (1+random.random()) # add a random factor
 
     async def mutual_basequote(self) -> None:
         '''
