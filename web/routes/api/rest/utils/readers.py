@@ -231,5 +231,7 @@ def read_ohlcvs(
                 .all()
         else:
             result = fromdb.all()
+    
+    # Parse ohlcvs
     ohlcvs = parsers.parse_ohlcv(result, results_mls)
     return ohlcvs
