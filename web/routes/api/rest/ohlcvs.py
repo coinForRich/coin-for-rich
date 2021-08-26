@@ -1,9 +1,8 @@
-# Backend API endpoint for OHLCV
+# Backend REST API endpoint for OHLCV
 
 from typing import Optional
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends
-from fastapi.exceptions import HTTPException
 from web.routes.api.deps import get_db
 from web.routes.api.rest.utils import readers
 

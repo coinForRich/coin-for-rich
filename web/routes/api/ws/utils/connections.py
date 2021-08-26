@@ -1,17 +1,10 @@
-import asyncio
-import redis
+# Backend WS API connection utils
+
 from typing import List
-from sqlalchemy.orm import Session
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
-from common.helpers.datetimehelpers import seconds
-from common.config.constants import REDIS_DELIMITER
-from common.utils.asyncioutils import AsyncLoopThread
-from fetchers.config.constants import WS_SERVE_REDIS_KEY
-from web.config.constants import OHLCV_INTERVALS, WS_SERVE_EVENT_TYPES
-from web.routes.api.rest import ohlcvs
+from fastapi import WebSocket
 
 
-class WSServerConnectionManager:
+class WSConnectionManager:
     '''
     Websocket connection manager
     '''

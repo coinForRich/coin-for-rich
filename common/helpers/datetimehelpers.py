@@ -1,20 +1,23 @@
 # This module contains common datetime helpers
 
 import datetime
+from typing import Union
 from redis import Redis
 
 
-def milliseconds(seconds):
+def milliseconds(seconds: Union[float, int]) -> int:
     '''
-    returns milliseconds
+    returns milliseconds from seconds
+
     :params:
-        `seconds`: float or int
+        `seconds`: float or int of seconds
     '''
     return int(seconds * 1000)
 
-def seconds(mls):
+def seconds(mls: Union[float, int]) -> int:
     '''
-    returns seconds
+    returns seconds from milliseconds
+
     :params:
         `mls`: float or int of milliseconds
     '''

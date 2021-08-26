@@ -10,4 +10,8 @@ router = APIRouter()
 
 @router.get("/test", name="read_test")
 async def read_test(db: Session = Depends(get_db)):
+    '''
+    API used for testing REST API
+    '''
+    
     return readers.read_test(db)

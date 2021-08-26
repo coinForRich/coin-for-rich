@@ -80,7 +80,7 @@ var current_data = null
 
 var candles_ws = null
 var data_loading = false
-var bar_latest = null
+var latest_bar = null
 var chartWidth = 1250
 var chartHeight = 450
 var chart = LightweightCharts.createChart(document.getElementById('chart'), {
@@ -155,7 +155,7 @@ function syncToInterval(period) {
         if (candles_ws !== null) {
             let unsubscribe_msg = JSON.stringify({
                 event_type: "unsubscribe",
-                data_type: "ohlc",
+                data_type: "ohlcv",
                 exchange: current_exchange,
                 base_id: current_base_id,
                 quote_id: current_quote_id,
@@ -213,23 +213,24 @@ function syncToInterval(period) {
         historical, period
     )
 
-    // if (candles_ws !== null) {
-    //     let subscribe_msg = JSON.stringify({
-    //         event_type: "subscribe",
-    //         data_type: "ohlc",
-    //         exchange: current_exchange,
-    //         base_id: current_base_id,
-    //         quote_id: current_quote_id,
-    //         interval: current_interval
-    //     })
-    //     candles_ws.send(subscribe_msg)
-    // }
-    // else {
-    //     readWSUpdateOHLC(
-    //         current_exchange, current_base_id,
-    //         current_quote_id, current_interval
-    //     )
-    // }
+    if (candles_ws !== null) {
+        let subscribe_msg = JSON.stringify({
+            event_type: "subscribe",
+            data_type: "ohlcv",
+            exchange: current_exchange,
+            base_id: current_base_id,
+            quote_id: current_quote_id,
+            interval: interval,
+            mls: false
+        })
+        candles_ws.send(subscribe_msg)
+    }
+    else {
+        readWSUpdateOHLC(
+            current_exchange, current_base_id,
+            current_quote_id, interval, period
+        )
+    }
 };
 
 // Save historical response data from REST endpoint to `data`
@@ -265,6 +266,8 @@ function drawCandleSeries(candle_data, historical, period) {
             current_period = period
             current_interval = periodIntervalMap.get(period)
             current_data = dataPeriodMap.get(period)
+            latest_bar = current_data[current_data.length - 1]
+            latestBarPeriodMap.set(period, latest_bar)
             // Only attempt to draw candle series
             //  if current_data is not null
             if (current_data !== null) {
@@ -293,19 +296,23 @@ async function readRestDrawOHLC(exch, bid, qid, s, e, i, history, period) {
 };
 
 // Read data from ohlc WS endpoint
-function readWSUpdateOHLC(exch, bid, qid, i) {
+function readWSUpdateOHLC(exch, bid, qid, i, period) {
     if (candles_ws === null) {
-        candles_ws = new WebSocket(`ws://${window.location.host}/candles`)
+        candles_ws = new WebSocket(`ws://${window.location.host}/api/ohlcvs`)
     }
     
     candles_ws.onopen = function() {
+        // Update var `latest_bar`
+        latest_bar = latestBarPeriodMap.get(period)
+        
         let subscribe_msg = JSON.stringify({
             event_type: "subscribe",
-            data_type: "ohlc",
+            data_type: "ohlcv",
             exchange: exch,
             base_id: bid,
             quote_id: qid,
-            interval: i
+            interval: i,
+            mls: false
         })
         // console.log(candles_msg)
         candles_ws.send(subscribe_msg)
@@ -314,39 +321,32 @@ function readWSUpdateOHLC(exch, bid, qid, i) {
     candles_ws.onmessage = function(event) {
         let parsed_data = JSON.parse(event.data)
         
-        if ("time" in parsed_data) {
-            let current_data = dataPeriodMap.get(current_period)
-            
-            if (current_data !== null) {
-                let last_timestamp = current_data[current_data.length - 1].time
-                if (parsed_data.time >= last_timestamp) {
-                    if (parsed_data.time > last_timestamp) {
-                        dataPeriodMap.get(current_period).push(parsed_data)
-                    }
-                    candleSeries.update(parsed_data)
-                }
-            }
-            else {
-                dataPeriodMap.set(current_period, parsed_data)
-            }
-        }
+        if ("time" in parsed_data && data_loading === false) {
+        
         // TODO: use this part - Compare parsed data to the latest bar data 
         //  to keep new bars persistent on chart
-        // if (bar_latest === null || parsed_data.time == bar_latest.time) {
-        //     // console.log('Saving parsed data to latest bar, here is bar_latest: ')
-        //     candleSeries.update(parsed_data)
-        //     bar_latest = parsed_data
-        //     // console.log(bar_latest)
-        // }
-        // else if (parsed_data.time > bar_latest.time) {
-        //     // console.log('Pushing latest bar to data, here is data: ')
-        //     data.push(bar_latest)
-        //     candleSeries.setData(data)
-        //     candleSeries.update(parsed_data)
-        //     // console.log(data)
-        //     // console.log('Saving parsed data to latest bar')
-        //     bar_latest = parsed_data
-        // }
+            if (latest_bar === null || parsed_data.time >= latest_bar.time) {
+                candleSeries.update(parsed_data)
+                latest_bar = parsed_data
+                if (parsed_data.time > latest_bar.time) {
+                    current_data.push(parsed_data)
+                    latestBarPeriodMap.set(current_period, parsed_data)
+                }
+            }
+        
+            // if (latest_bar === null || parsed_data.time == latest_bar.time) {
+            //     // console.log('Saving parsed data to latest bar, here is latest_bar: ')
+            //     candleSeries.update(parsed_data)
+            // }
+            // else if (parsed_data.time > latest_bar.time) {
+            //     // console.log('Pushing latest bar to data, here is data: ')
+            //     current_data.push(parsed_data)
+            //     candleSeries.setData(current_data)
+            //     latestBarPeriodMap.set(current_period, parsed_data)
+            //     // console.log(data)
+            //     // console.log('Saving parsed data to latest bar')
+ 
+            }
     }
 
     candles_ws.onerror = function(event) {
