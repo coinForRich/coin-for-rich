@@ -1,20 +1,23 @@
 # This module contains common datetime helpers
 
 import datetime
+from typing import Union
 from redis import Redis
 
 
-def milliseconds(seconds):
+def milliseconds(seconds: Union[float, int]) -> int:
     '''
-    returns milliseconds
+    returns milliseconds from seconds
+
     :params:
-        `seconds`: float or int
+        `seconds`: float or int of seconds
     '''
     return int(seconds * 1000)
 
-def seconds(mls):
+def seconds(mls: Union[float, int]) -> int:
     '''
-    returns seconds
+    returns seconds from milliseconds
+
     :params:
         `mls`: float or int of milliseconds
     '''
@@ -37,7 +40,7 @@ def datetime_to_seconds(dt):
     '''
     return dt.timestamp()
 
-def datetime_to_milliseconds(dt):
+def datetime_to_milliseconds(dt: datetime.datetime) -> int:
     '''
     converts a datetime.datetime object to milliseconds, represented in int
     :params:
@@ -45,7 +48,7 @@ def datetime_to_milliseconds(dt):
     '''
     return milliseconds(datetime_to_seconds(dt))
 
-def milliseconds_to_datetime(mls):
+def milliseconds_to_datetime(mls: int) -> datetime.datetime:
     '''
     converts a millisecond timestamp into datetime object
     :params:

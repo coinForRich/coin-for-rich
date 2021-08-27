@@ -20,6 +20,7 @@ SYMBOL_EXCHANGE_TABLE = "symbol_exchange"
 
 # Redis common vars
 REDIS_HOST = HOST
+REDIS_USER = "default"
 REDIS_PORT = 6379
 REDIS_PASSWORD = configs.get('REDIS_PASSWORD')
 REDIS_DELIMITER = ";;"

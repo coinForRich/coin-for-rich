@@ -1,91 +1,49 @@
+# Get functions from database, independent of backend path operations
+
 import datetime
-import logging
-from typing import Optional, Union
-from sqlalchemy import func, literal_column, literal
+from typing import List, Optional
+from sqlalchemy import func, literal
+from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import INTERVAL
 from sqlalchemy.sql.functions import concat
-from sqlalchemy.orm import Session
-from common.helpers.numbers import round_decimal
-from common.helpers.datetimehelpers import (
-    datetime_to_milliseconds,
-    datetime_to_seconds,
-    milliseconds_to_datetime
-)
+from common.helpers.datetimehelpers import milliseconds_to_datetime
 from web import models
 from web.config.constants import OHLCV_INTERVALS
-from web.api.caching.caching_query import FromCache
+from web.routes.api.rest.utils import caching, parsers
 
 
-def get_symbol_from_ebq(
-        db: Session,
-        exchange: str,
-        base_id: str,
-        quote_id: str
-    ):
+def read_test(db: Session) -> List[models.TestTable]:
     '''
-    Gets symbol from `exchange`, `base_id` and `quote_id`
-    :params:
-
+    Reads a row from `test` table
     '''
-
-    result = db.query(models.SymbolExchange) \
-    .options(FromCache("default")) \
-    .filter(
-        models.SymbolExchange.exchange == exchange,
-        models.SymbolExchange.base_id == base_id,
-        models.SymbolExchange.quote_id == quote_id
-    ).one_or_none()
-    symbol = result.symbol
-    return symbol
-
-def parse_ohlcv(ohlcv: list, mls: bool) -> list:
-    '''
-    Parses OHLCV received from `get_ohlcv`
-        for web chart view by converting timestamp
-        into seconds
     
-    :params:
-        `ohlcv`: list - OHLCVs received
-        `mls`: bool - whether to convert timestamps to milliseconds
-            if true: convert to milliseconds
-            if false: convert to seconds
+    return db.query(models.TestTable) \
+            .order_by(models.TestTable.id).limit(1).all()
+
+def read_symbol_exchange(db: Session):
+    '''
+    Reads all rows from `symbol_exchange` database table
     '''
 
-    ret = []
-    if ohlcv:
-        try:
-            ohlcv.sort(key = lambda x: x.time)
-            ret = [
-                {
-                    'time': int(datetime_to_milliseconds(o.time)) if mls \
-                        else int(datetime_to_seconds(o.time)),
-                    'open': round_decimal(o.open),
-                    'high': round_decimal(o.high),
-                    'low': round_decimal(o.low),
-                    'close': round_decimal(o.close),
-                    'volume': round_decimal(o.volume)
-                }
-                for o in ohlcv
-            ]
-        except TypeError as exc:
-            logging.warning(f"parse_ohlcv: EXCEPTION: {exc}")
-    return ret
+    return db.query(models.SymbolExchange) \
+            .order_by(models.SymbolExchange.exchange.asc()).all()
 
-def get_ohlcv(
+def read_ohlcvs(
         db: Session,
         exchange: str,
         base_id: str,
         quote_id: str,
         interval: str,
-        start: Optional[Union[datetime.datetime, int]]=None,
-        end: Optional[Union[datetime.datetime, int]]=None,
-        limit: int=100,
-        empty_ts: bool=False,
-        results_mls: bool=True
-    ) -> Union[list, None]:
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+        limit: Optional[int] = 500,
+        empty_ts: Optional[bool] = False,
+        results_mls: Optional[bool] = True,
+    ) -> list:
     '''
-    Gets OHLCV from psql based on exchange, base_id, quote_id
-        and timestamp between start, end (inclusive)
+    Reads rows from `ohlcvs` database table,
+        based on `exchange`, `base_id`, `quote_id`
+        and timestamps between `start` and `end` (inclusive)
     
     Limits to a maximum of 500 data points
     
@@ -106,12 +64,14 @@ def get_ohlcv(
         `empty_ts`: show timestamps with empty ohlcv values by
             filling them with the averages of the ohlcv values
             from resulted rows from database - this is for a correct chart
+        `results_mls`: bool if result timestamps are in milliseconds
+            if true, result timestamps are in millieconds
+            if false, result timestamps are in seconds
     
     If `interval` == `1m`: get directly from ohlcv table
     '''
 
-    # TODO: Also add input data type checking
-    limit = min(limit, 100)
+    limit = min(limit, 500)
     if end:
         end = milliseconds_to_datetime(end).replace(second=0, microsecond=0)
     else:
@@ -120,10 +80,11 @@ def get_ohlcv(
         ).replace(second=0, microsecond=0)
     if start:
         start = milliseconds_to_datetime(start).replace(second=0, microsecond=0)
-    
+
     # Return ohlcv from different tables based on interval
+    ohlcvs = []
     if interval not in OHLCV_INTERVALS:
-        return None
+        return ohlcvs
     elif interval == "1m":
         if not start:
             start = (
@@ -132,17 +93,17 @@ def get_ohlcv(
 
         # Get max. latest XXXX rows from psql db
         fromdb = db.query(models.Ohlcv) \
-        .options(FromCache("default")) \
-        .filter(
-            models.Ohlcv.exchange == exchange,
-            models.Ohlcv.base_id == base_id,
-            models.Ohlcv.quote_id == quote_id,
-            models.Ohlcv.time >= start,
-            models.Ohlcv.time <= end
-        ) \
-        .order_by(models.Ohlcv.time.desc()) \
-        .limit(limit) \
-        # .subquery()
+            .options(caching.FromCache("default")) \
+            .filter(
+                models.Ohlcv.exchange == exchange,
+                models.Ohlcv.base_id == base_id,
+                models.Ohlcv.quote_id == quote_id,
+                models.Ohlcv.time >= start,
+                models.Ohlcv.time <= end
+            ) \
+            .order_by(models.Ohlcv.time.desc()) \
+            .limit(limit) \
+            # .subquery()
         
         if empty_ts:
             # Convert fromdb
@@ -226,19 +187,18 @@ def get_ohlcv(
             table.c.high.label('high'),
             table.c.low.label('low'),
             table.c.close.label('close'),
-            table.c.volume.label('volume')
-        ) \
-        .options(FromCache("default")) \
-        .filter(
-            table.c.exchange == exchange,
-            table.c.base_id == base_id,
-            table.c.quote_id == quote_id,
-            table.c.bucket >= start,
-            table.c.bucket <= end
-        ) \
-        .order_by(table.c.bucket.desc()) \
-        .limit(limit) \
-        # .subquery()
+            table.c.volume.label('volume')) \
+            .options(caching.FromCache("default")) \
+            .filter(
+                table.c.exchange == exchange,
+                table.c.base_id == base_id,
+                table.c.quote_id == quote_id,
+                table.c.bucket >= start,
+                table.c.bucket <= end
+            ) \
+            .order_by(table.c.bucket.desc()) \
+            .limit(limit) \
+            # .subquery()
 
         if empty_ts:
             # Convert fromdb
@@ -265,12 +225,13 @@ def get_ohlcv(
                 func.coalesce(fromdb.c.high, dseries.c.high).label('high'),
                 func.coalesce(fromdb.c.low, dseries.c.low).label('low'),
                 func.coalesce(fromdb.c.close, dseries.c.close).label('close'),
-                func.coalesce(fromdb.c.volume, dseries.c.volume).label('volume')
-            ) \
-            .outerjoin(fromdb, dseries.c.time == fromdb.c.time) \
-            .order_by(dseries.c.time) \
-            .all()
+                func.coalesce(fromdb.c.volume, dseries.c.volume).label('volume')) \
+                .outerjoin(fromdb, dseries.c.time == fromdb.c.time) \
+                .order_by(dseries.c.time) \
+                .all()
         else:
             result = fromdb.all()
-        
-    return parse_ohlcv(result, results_mls)
+    
+    # Parse ohlcvs
+    ohlcvs = parsers.parse_ohlcv(result, results_mls)
+    return ohlcvs
