@@ -79,8 +79,8 @@ var current_interval = periodIntervalMap.get(current_period)
 var current_data = null
 var current_historical = null
 var latest_bar = null
-var data_loading = false
 var ws_hold = false
+var drawing_processes = 0
 
 var candles_ws = null
 var chartWidth = 1250
@@ -190,7 +190,6 @@ function syncToInterval(period) {
             intervalPreviousMillisecondsMap.get(interval),
             periodNumIntervalMap.get(period))
         historical = true
-        current_historical = historical
     }
     else {
         console.log("reusing existing data")
@@ -203,7 +202,6 @@ function syncToInterval(period) {
             (-intervalPreviousMillisecondsMap.get(interval)),
             1)
         historical = false
-        current_historical = historical
 
         // TODO: probably not need this
         // Set data using existing first
@@ -288,20 +286,19 @@ function saveDrawCandleSeries(candle_data, history, period) {
         candleSeries.setData(current_data)
     }
     
-    data_loading = false
-    ws_hold = false
-
-    // Reverse current_historical to `true`
-    //   to allow websocket to load new data
-    if (history === false) {
+    // DO NOT reset variables
+    //  if there are > 1 drawing processes
+    if (drawing_processes <= 1) {
+        ws_hold = false
         current_historical = true
     }
+
+    drawing_processes -= 1
 };
 
 async function getOHLCVEndpoint(exch, bid, qid, s, e, i, history, period) {
     let ohlcv_endpoint = 
         `http://${window.location.host}/api/ohlcvs?exchange=${exch}&base_id=${bid}&quote_id=${qid}&start=${s}&end=${e}&interval=${i}&results_mls=false&empty_ts=true`
-    // console.log(ohlcv_endpoint)
     fetch(ohlcv_endpoint)
         .then(response => response.json())
         .then(resp_data => 
@@ -309,8 +306,13 @@ async function getOHLCVEndpoint(exch, bid, qid, s, e, i, history, period) {
         )
 };
 
-// Read data from ohlc REST endpoint and save to `data`
+// Read data from ohlcv REST endpoint and save to `data`
 async function readRestDrawOHLC(exch, bid, qid, s, e, i, history, period, period_change) {
+    current_historical = history
+    drawing_processes += 1
+    console.log("drawing processes: ")
+    console.log(drawing_processes)
+    
     if (period_change) {
         current_period = period
         current_interval = periodIntervalMap.get(period)
@@ -323,9 +325,8 @@ async function readRestDrawOHLC(exch, bid, qid, s, e, i, history, period, period
         await getOHLCVEndpoint(exch, bid, qid, s, e, i, history, period)
     }
     else {
-        if (!data_loading) {
+        if (drawing_processes <= 1) {
             await getOHLCVEndpoint(exch, bid, qid, s, e, i, history, period)
-            data_loading = true
         }
     }
 };
@@ -356,6 +357,7 @@ function readWSUpdateOHLC(exch, bid, qid, i, period) {
     candles_ws.onmessage = function(event) {
         let parsed_data = JSON.parse(event.data)
         
+        // Websocket only process new messages if:
         if (!ws_hold
             && current_historical
             && "time" in parsed_data 
@@ -371,18 +373,22 @@ function readWSUpdateOHLC(exch, bid, qid, i, period) {
             //  to keep new bars persistent on chart
             if (latest_bar === null || parsed_data.time >= latest_bar.time) {
                 candleSeries.update(parsed_data)
-                if (parsed_data.time > latest_bar.time) {
-                    // null data bar causing null value error!
-                    if (
-                        latest_bar.time > current_data[current_data.length - 1].time
-                    ) {
-                        current_data.push(latest_bar)
-                    }
-                    // current_data.push(latest_bar)
-                    latestBarPeriodMap.set(current_period, latest_bar)
-                    console.log("pushing latest_bar into current_data")
-                }
                 latest_bar = parsed_data
+                latestBarPeriodMap.set(current_period, latest_bar)
+                
+                if (
+                    latest_bar.time > current_data[current_data.length - 1].time
+                ) {
+                    console.log("pushing latest_bar into current_data")
+                    current_data.push(latest_bar)
+                }
+                else if (
+                    latest_bar.time == current_data[current_data.length - 1].time
+                ) {
+                    console.log("replacing latest_bar into current_data")
+                    current_data.pop()
+                    current_data.push(latest_bar)
+                }     
             }
             
                 // if (latest_bar === null || parsed_data.time == latest_bar.time) {
@@ -391,7 +397,7 @@ function readWSUpdateOHLC(exch, bid, qid, i, period) {
                 // }
                 // else if (parsed_data.time > latest_bar.time) {
                 //     // console.log('Pushing latest bar to data, here is data: ')
-                //     current_data.push(parsed_data)
+                //     current_data.push(latest_bar)
                 //     candleSeries.setData(current_data)
                 //     latestBarPeriodMap.set(current_period, parsed_data)
                 //     // console.log(data)
@@ -453,7 +459,7 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
         let logicalRange = timeScale.getVisibleLogicalRange();
         if (logicalRange !== null && current_data !== null) {
             let barsInfo = candleSeries.barsInLogicalRange(logicalRange);
-            if (barsInfo !== null && barsInfo.barsBefore < 200 && data_loading === false) {
+            if (barsInfo !== null && barsInfo.barsBefore < 200 && drawing_processes < 1) {
                 let oneIntervalBefore = getTimestampSteps(
                     current_data[0].time * 1000,
                     intervalPreviousMillisecondsMap.get(current_interval),
@@ -463,7 +469,7 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
                     intervalPreviousMillisecondsMap.get(current_interval),
                     periodNumIntervalMap.get(current_period))
                 
-                current_historical = true
+                // current_historical = true
                 readRestDrawOHLC(
                     current_exchange, current_base_id,
                     current_quote_id, nIntervalBefore,
@@ -478,13 +484,3 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
     var buttonVisible = timeScale.scrollPosition() < 0;
     button.style.display = buttonVisible ? 'block' : 'none';
 })
-
-// var test = {
-//     time: 1625615940,
-//     open: 28000,
-//     high: 29500,
-//     low: 27950,
-//     close: 29000
-// }
-// candleSeries.update(test)
-// console.log(test)

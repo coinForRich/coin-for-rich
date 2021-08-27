@@ -12,6 +12,7 @@ How can I render accurate charts when there are empty minutes?
 To render more accurate OHLC charts (in terms of candlesticks' relative distances), empty minutes among non-empty minutes are provided with OHLC averaged from their surrounding non-empty minutes (within the limit number queried) to become dummy minutes. I have not found a better way to create dummy minutes so far.
 
 How can I keep data on real-time OHLCV chart accurate?
+There is an issue of "time lag" when switching back and forth among time periods. Near the end of any minute, if the user clicks another period other than "1h", the latest data bar update for that minute may not be reflected on the chart.
 
 # Limitations
 Websockets
