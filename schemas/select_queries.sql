@@ -43,7 +43,7 @@ time_diff as (
 select *
 from time_diff
 where difference > 60
-order by "time" asc;
+order by "time" asc; 
 
 -- (0c) Get the latest timestamps for each exchange to serve
 -- the same purpose as (4). However, this one is unecessarily complicated
@@ -91,6 +91,22 @@ from ohlcvs oh
    inner join bq on oh.exchange=bq.exchange
       and oh.base_id=bq.base_id and oh.quote_id=bq.quote_id
 limit 10000;
+
+-- (0e) Another variant of the time gap check query
+SELECT *
+FROM (
+   SELECT
+      bucket,
+      (LEAD(bucket, 1) OVER (
+         PARTITION BY exchange, base_id, quote_id
+         ORDER BY bucket ASC) - bucket) AS delta,
+      exchange,
+      base_id,
+      quote_id
+   FROM ohlcvs_summary_daily
+) days
+WHERE delta > INTERVAL '1 day'
+;
 
 -- (1) Chart queries but not aggregated
 -- (1a) A typical query for chart showcase

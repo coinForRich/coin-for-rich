@@ -9,7 +9,7 @@ views_router = APIRouter()
 templates = Jinja2Templates(directory="web/templates")
 
 @views_router.get(
-    "/wschart", name="views_wschart",response_class=HTMLResponse)
+    "/wschart", name="views_wschart", response_class=HTMLResponse)
 async def wschart(
         request: Request,
         exchange: str,
@@ -22,5 +22,17 @@ async def wschart(
             "exchange": exchange,
             "base_id": base_id,
             "quote_id": quote_id
+        }
+    )
+
+@views_router.get(
+    "/analytics/general",
+    name="views_analytics",
+    response_class=HTMLResponse
+)
+async def analytics_general(request: Request):
+    return templates.TemplateResponse(
+        "analytics.html", {
+            "request": request
         }
     )

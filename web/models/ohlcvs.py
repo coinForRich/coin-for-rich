@@ -1,3 +1,5 @@
+# Models for OHLCV
+
 from sqlalchemy import (
     Column, DateTime, ForeignKeyConstraint,
     Index, Numeric, String, Table

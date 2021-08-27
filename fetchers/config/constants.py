@@ -44,3 +44,4 @@ OHLCVS_FETCHING_REDIS_KEY = "ohlcvs_fetching_{exchange}"
 # PSQL Constants
 OHLCV_UNIQUE_COLUMNS = ("time", "exchange", "base_id", "quote_id")
 OHLCV_UPDATE_COLUMNS = ("open", "high", "low", "close", "volume")
+NUM_DECIMALS = 4 # number of decimals

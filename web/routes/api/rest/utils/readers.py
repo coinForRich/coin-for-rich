@@ -18,15 +18,22 @@ def read_test(db: Session) -> List[models.TestTable]:
     '''
     
     return db.query(models.TestTable) \
-            .order_by(models.TestTable.id).limit(1).all()
+        .order_by(models.TestTable.id).limit(1).all()
 
-def read_symbol_exchange(db: Session):
+def read_symbol_exchange(db: Session) -> List[models.SymbolExchange]:
     '''
     Reads all rows from `symbol_exchange` database table
     '''
 
     return db.query(models.SymbolExchange) \
-            .order_by(models.SymbolExchange.exchange.asc()).all()
+        .order_by(models.SymbolExchange.exchange.asc()).all()
+
+def read_top500dr(db: Session) -> list:
+    '''
+    Reads all rows from `top_500_daily_return` database table
+    '''
+
+    return db.query(models.top_500_daily_return).all()
 
 def read_ohlcvs(
         db: Session,

@@ -236,10 +236,9 @@ SELECT add_continuous_aggregate_policy('ohlcvs_summary_7day',
 -- Dates with no ohlcv data will be filled with the earliest date before
 --    that has ohlcv data
 EXPLAIN (ANALYZE)
-CREATE MATERIALIZED VIEW top_500_daily_return
-AS
+CREATE MATERIALIZED VIEW top_500_daily_return AS
    WITH 
-      prev_close_view AS (
+      close_filled AS (
          SELECT
             generate_series(
                bucket,
@@ -248,25 +247,31 @@ AS
                   ) - interval '1 day',
                interval '1 day'
             )::date AS bucket,
-            exchange, base_id, quote_id, close,
-            LAG(close) OVER (
-               PARTITION BY exchange, base_id, quote_id ORDER BY bucket ASC
-            ) AS prev_close
+            exchange,
+            base_id,
+            quote_id,
+            close
          FROM ohlcvs_summary_daily
-         WHERE bucket >= (CURRENT_DATE - interval '8 days') and bucket <= CURRENT_DATE
-         -- WHERE bucket >= '2021-08-01' and bucket <= '2021-08-30'
-         --    AND exchange='bitfinex' AND base_id='DCR' AND quote_id='USD'
+         WHERE bucket >= (CURRENT_DATE - interval '8 days')
+            AND bucket <= CURRENT_DATE AND close <> 0
+         -- WHERE bucket >= '2020-01-01' and bucket <= '2021-08-30'
+         --   AND exchange='binance' AND base_id='AAVE' AND quote_id='BTC'
       ),
-      -- prev_close_view AS (
-      --    SELECT bucket, exchange, base_id,
-      --       quote_id, close,
-      --       LAG(close) OVER (PARTITION BY exchange, base_id, quote_id ORDER BY bucket ASC) AS prev_close
-      --    FROM empty_date_filled
-      -- ),
+      prev_close_view AS (
+         SELECT 
+            *,
+            LAG(close) OVER (
+               PARTITION BY exchange, base_id, quote_id
+               ORDER BY bucket ASC) AS prev_close
+         FROM close_filled
+      ),
       daily_factor AS (
-         SELECT bucket, exchange, base_id, quote_id,
-            CASE WHEN prev_close = 0
-               THEN 0 ELSE LN(close/prev_close) END AS ln_daily_factor
+         SELECT
+            bucket,
+            exchange,
+            base_id,
+            quote_id,
+            LN(close/prev_close) AS ln_daily_factor
          FROM prev_close_view
       ),
 
@@ -274,15 +279,22 @@ AS
       -- FROM daily_factor;
 
       avg_daily_return AS (
-         SELECT exchange, base_id, quote_id,
+         SELECT
+            exchange,
+            base_id,
+            quote_id,
             CAST(
-               POWER(EXP(SUM(ln_daily_factor)), (1.0/COUNT(*))) - 1 AS NUMERIC
+               POWER(EXP(SUM(ln_daily_factor)), (1.0/COUNT(*))) - 1 AS NUMERIC(10, 4)
             ) AS gavg_daily_return
          FROM daily_factor
          WHERE ln_daily_factor IS NOT NULL
          GROUP BY exchange, base_id, quote_id
       )
-   SELECT *
+   SELECT
+      ROW_NUMBER() OVER (ORDER BY gavg_daily_return DESC) AS ranking,
+      *
    FROM avg_daily_return
    ORDER BY gavg_daily_return DESC
    LIMIT 500;
+
+CREATE UNIQUE INDEX top_500_dr_idx ON top_500_daily_return (exchange, base_id, quote_id);

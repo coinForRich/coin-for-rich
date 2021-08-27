@@ -11,13 +11,14 @@ from common.utils.logutils import create_logger
 from common.helpers.datetimehelpers import milliseconds_to_datetime
 from common.helpers.numbers import round_decimal
 from fetchers.config.constants import (
-    WS_SUB_LIST_REDIS_KEY, WS_SUB_PREFIX, WS_SUB_PROCESSING_REDIS_KEY
+    WS_SUB_LIST_REDIS_KEY, WS_SUB_PREFIX,
+    WS_SUB_PROCESSING_REDIS_KEY, NUM_DECIMALS
 )
 from fetchers.config.queries import PSQL_INSERT_IGNOREDUP_QUERY
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 
 
-UPDATE_FREQUENCY_SECS = 15
+UPDATE_FREQUENCY_SECS = 10
 
 class OHLCVWebsocketUpdater:
     def __init__(self):
@@ -66,11 +67,11 @@ class OHLCVWebsocketUpdater:
                                         exchange,
                                         base_id,
                                         quote_id,
-                                        round_decimal(ohlcv[1]),
-                                        round_decimal(ohlcv[2]),
-                                        round_decimal(ohlcv[3]),
-                                        round_decimal(ohlcv[4]),
-                                        round_decimal(ohlcv[5])
+                                        round_decimal(ohlcv[1], NUM_DECIMALS),
+                                        round_decimal(ohlcv[2], NUM_DECIMALS),
+                                        round_decimal(ohlcv[3], NUM_DECIMALS),
+                                        round_decimal(ohlcv[4], NUM_DECIMALS),
+                                        round_decimal(ohlcv[5], NUM_DECIMALS)
                                     )
                                 )
                                 # Add processing ohlcv to a Redis set
@@ -82,7 +83,7 @@ class OHLCVWebsocketUpdater:
                                 )
                             self.redis_client.hdel(key, *ts_to_insert)
                     except Exception as exc:
-                        self.logger.warning(f"EXCEPTION: {exc}")
+                        self.logger.error(f"Fetcher Updater OHLCV: EXCEPTION: {exc}")
                         raise exc
                 # Bulk insert
                 try:
@@ -96,21 +97,17 @@ class OHLCVWebsocketUpdater:
                     # TODO: add a process to clean up if NOT success
                     if success:
                         self.redis_client.delete(WS_SUB_PROCESSING_REDIS_KEY)
-                        self.logger.info("Updated OHLCV to PSQL db")
+                        self.logger.info(
+                            "Fetcher Updater OHLCV: Updated OHLCV to PSQL db")
                 except psycopg2.InterfaceError as exc:
                     # Reconnects if connection is closed
-                    self.logger.warning(f"EXCEPTION: {exc}. Reconnecting...")
+                    self.logger.warning(
+                        f"Fetcher Updater OHLCV: EXCEPTION: {exc}. Reconnecting...")
                     self.psql_conn = psycopg2.connect(DBCONNECTION)
                 except Exception as exc:
-                    self.logger.warning(f"EXCEPTION: {exc}")
+                    self.logger.error(
+                        f"Fetcher Updater OHLCV: EXCEPTION: {exc}")
                     raise exc
                 time.sleep(UPDATE_FREQUENCY_SECS)
         finally:
             self.psql_conn.close()
-
-
-# if __name__ == "__main__":
-#     run_cmd = sys.argv[1]
-#     updater = OHLCVWebsocketUpdater()
-#     if getattr(updater, run_cmd):
-#         getattr(updater, run_cmd)()

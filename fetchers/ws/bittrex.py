@@ -136,7 +136,7 @@ class BittrexOHLCVWebsocket:
             else:
                 self.logger.error(
                     f"Group {i}: Subscription to {channels[c]} failed: {response[c]['ErrorCode']}")
-                raise UnsuccessfulConnection
+                # raise UnsuccessfulConnection // not a good idea to raise here
         self.logger.info(f"Group {i}: Subscription successful")
 
     async def _invoke(self, method: str, *args) -> Union[Any, None]:

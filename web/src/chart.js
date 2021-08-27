@@ -310,8 +310,6 @@ async function getOHLCVEndpoint(exch, bid, qid, s, e, i, history, period) {
 async function readRestDrawOHLC(exch, bid, qid, s, e, i, history, period, period_change) {
     current_historical = history
     drawing_processes += 1
-    console.log("drawing processes: ")
-    console.log(drawing_processes)
     
     if (period_change) {
         current_period = period
