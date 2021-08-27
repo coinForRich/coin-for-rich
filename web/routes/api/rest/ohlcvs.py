@@ -21,7 +21,7 @@ async def get_ohlcvs(
         empty_ts: Optional[bool] = False,
         results_mls: Optional[bool] = True,
         db: Session = Depends(get_db)
-    ):
+    ) -> list:
     '''
     API to read OHLCV from database, max 500 data points
     

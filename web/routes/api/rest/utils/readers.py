@@ -1,7 +1,7 @@
 # Get functions from database, independent of backend path operations
 
 import datetime
-from typing import Optional
+from typing import List, Optional
 from sqlalchemy import func, literal
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import INTERVAL
@@ -12,7 +12,7 @@ from web.config.constants import OHLCV_INTERVALS
 from web.routes.api.rest.utils import caching, parsers
 
 
-def read_test(db: Session):
+def read_test(db: Session) -> List[models.TestTable]:
     '''
     Reads a row from `test` table
     '''
@@ -39,7 +39,7 @@ def read_ohlcvs(
         limit: Optional[int] = 500,
         empty_ts: Optional[bool] = False,
         results_mls: Optional[bool] = True,
-    ):
+    ) -> list:
     '''
     Reads rows from `ohlcvs` database table,
         based on `exchange`, `base_id`, `quote_id`

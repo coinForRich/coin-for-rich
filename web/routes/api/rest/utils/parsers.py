@@ -25,8 +25,8 @@ def parse_ohlcv(ohlcvs: list, mls: bool) -> list:
             # ohlcv.sort(key = lambda x: x.time)
             ret = [
                 {
-                    'time': int(datetime_to_milliseconds(o.time)) if mls \
-                        else int(datetime_to_seconds(o.time)),
+                    'time': int(datetime_to_milliseconds(o.time)) \
+                        if mls else int(datetime_to_seconds(o.time)),
                     'open': round_decimal(o.open),
                     'high': round_decimal(o.high),
                     'low': round_decimal(o.low),

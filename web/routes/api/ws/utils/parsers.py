@@ -13,15 +13,12 @@ def parse_ohlcv(data: dict, mls: bool=True) -> dict:
             or seconds
     '''
     
-    try:
-        return {
-            'time': int(data['time']) \
-                if mls else seconds(int(data['time'])),
-            'open': float(data['open']),
-            'high': float(data['high']),
-            'low': float(data['low']),
-            'close': float(data['close']),
-            'volume': float(data['volume'])
-        }
-    except Exception as exc:
-        raise exc
+    return {
+        'time': int(data['time']) \
+            if mls else seconds(int(data['time'])),
+        'open': float(data['open']),
+        'high': float(data['high']),
+        'low': float(data['low']),
+        'close': float(data['close']),
+        'volume': float(data['volume'])
+    }

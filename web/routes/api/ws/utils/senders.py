@@ -1,13 +1,11 @@
 # Backend WS API senders utils
 
-
 import asyncio
-import redis
+import logging
 from redis import Redis
 from typing import List
 from sqlalchemy.orm import Session
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
-from common.helpers.datetimehelpers import seconds, milliseconds
+from fastapi import WebSocket
 from common.config.constants import REDIS_DELIMITER
 from common.utils.asyncioutils import AsyncLoopThread
 from web.config.constants import OHLCV_INTERVALS, WS_SEND_REDIS_KEY
@@ -83,9 +81,8 @@ class WSSender:
                     try:
                         data = parse_ohlcv(data, mls)
                         await self.ws.send_json(data)
-                        # print(f"Sending {parsed_data}")
                     except Exception as exc:
-                        print(f"Send OHLCV: EXCEPTION: {exc}")    
+                        logging.warning(f"Send OHLCV: EXCEPTION: {exc}")    
                 await asyncio.sleep(1)
             else:
                 data = read_ohlcvs(
@@ -99,15 +96,13 @@ class WSSender:
                     results_mls = True,
                 )
 
-                print(data)
-
                 if data:
                     try:
                         data = parse_ohlcv(data[0], mls)
                         await self.ws.send_json(data)
-                        print(f"Send OHLCV: Sending {data}")
+                        # logging.info(f"Send OHLCV: Sending {data}")
                     except Exception as exc:
-                        print(f"EXCEPTION!! {exc}")
+                        logging.warning(f"EXCEPTION!! {exc}")
 
                 if interval == "5m":
                     await asyncio.sleep(5)
@@ -125,11 +120,6 @@ class WSSender:
                     await asyncio.sleep(1440)
                 elif interval == "7D":
                     await asyncio.sleep(10080)
-        
-        print("While loop ended")
-        print(self.ws in self.ws_manager.active_connections)
-        print(serving_id in self.serving_ids)
-        print(self.serving_ids)
    
     async def _stopsend_ohlcv(
             self, exchange: str, base_id: str, quote_id: str, interval: str

@@ -1,14 +1,12 @@
 # Backend WS API endpoint for OHLCV
 
+import logging
 from redis import Redis
-from typing import Optional
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, WebSocket
-from fastapi.exceptions import HTTPException
 from starlette.websockets import WebSocketDisconnect
 from web.config.constants import WS_SEND_EVENT_TYPES
 from web.routes.api.deps import get_db, get_redis
-from web.routes.api.rest.utils import readers
 from web.routes.api.ws.utils.senders import WSSender
 from web.routes.api.ws.utils.connections import WSConnectionManager
 
@@ -43,7 +41,6 @@ async def ws_ohlcvs(
                     elif event_type == "subscribe":
                         mls = input['mls'] # only subsribe requires mls
                         if data_type == "ohlcv":
-                            print(f"subscribing to {interval}")
                             ws_sender.send_ohlcv(
                                 exchange, base_id, quote_id, interval, mls)
                     elif event_type == "unsubscribe":
@@ -54,6 +51,7 @@ async def ws_ohlcvs(
                                 'detail': \
                                     f"successfully unsubscribed from {exchange}_{base_id}_{quote_id}_{interval}"})
                 except Exception as exc:
-                    print(f'Websocket OHLCVS: EXCEPTION: {exc}')
+                    logging.error(f'Websocket OHLCVS: EXCEPTION: {exc}')
     except WebSocketDisconnect:
+        logging.warning(f"Websocket OHLCVS: {websocket} disconnected")
         ws_manager.disconnect(websocket)
