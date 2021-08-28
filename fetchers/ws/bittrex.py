@@ -195,14 +195,16 @@ class BittrexOHLCVWebsocket:
                 quote_id = self.rest_fetcher.symbol_data[symbol]['quote_id']
                 ws_sub_redis_key = WS_SUB_REDIS_KEY.format(
                     exchange = EXCHANGE_NAME,
-                    delimiter = REDIS_DELIMITER,
                     base_id = base_id,
-                    quote_id = quote_id)
+                    quote_id = quote_id,
+                    delimiter = REDIS_DELIMITER
+                )
                 ws_serve_redis_key = WS_SERVE_REDIS_KEY.format(
                     exchange = EXCHANGE_NAME,
-                    delimiter = REDIS_DELIMITER,
                     base_id = base_id,
-                    quote_id = quote_id)
+                    quote_id = quote_id,
+                    delimiter = REDIS_DELIMITER
+                )
 
                 # self.logger.info(f'ws sub redis key: {ws_sub_redis_key}')
                 # self.logger.info(f'ws serve redis key: {ws_serve_redis_key}')

@@ -12,13 +12,16 @@ from typing import Iterable, NoReturn
 from common.config.constants import (
     REDIS_HOST, REDIS_PASSWORD, REDIS_DELIMITER
 )
-from fetchers.config.constants import (
-    WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY, WS_SUB_LIST_REDIS_KEY
-)
-from fetchers.config.queries import ALL_SYMBOLS_EXCHANGE_QUERY, MUTUAL_BASE_QUOTE_QUERY
+from fetchers.config.constants import WS_SUB_LIST_REDIS_KEY
+from fetchers.config.queries import MUTUAL_BASE_QUOTE_QUERY
 from fetchers.rest.binance import BinanceOHLCVFetcher, EXCHANGE_NAME
 from fetchers.utils.exceptions import (
     UnsuccessfulConnection, ConnectionClosed, InvalidStatusCode
+)
+from fetchers.helpers.ws import (
+    make_sub_val,
+    make_sub_redis_key,
+    make_send_redis_key
 )
 
 
@@ -101,29 +104,27 @@ class BinanceOHLCVWebsocket:
                                     low_ = respj['k']['l']
                                     close_ = respj['k']['c']
                                     volume_ = respj['k']['v']
-                                    sub_val = f'{timestamp}{REDIS_DELIMITER}{open_}{REDIS_DELIMITER}{high_}{REDIS_DELIMITER}{low_}{REDIS_DELIMITER}{close_}{REDIS_DELIMITER}{volume_}'
-
-                                    # Setting Redis data for updating ohlcv psql db
-                                    #   and serving real-time chart
-                                    # This Redis-update-ohlcv-psql-db-procedure
-                                    #   may be changed with a pipeline from fastAPI...
                                     base_id = self.rest_fetcher.symbol_data[symbol]['base_id']
                                     quote_id = self.rest_fetcher.symbol_data[symbol]['quote_id']
-                                    ws_sub_redis_key = WS_SUB_REDIS_KEY.format(
-                                        exchange = EXCHANGE_NAME,
-                                        delimiter = REDIS_DELIMITER,
-                                        base_id = base_id,
-                                        quote_id = quote_id
-                                    )
-                                    ws_serve_redis_key = WS_SERVE_REDIS_KEY.format(
-                                        exchange = EXCHANGE_NAME,
-                                        delimiter = REDIS_DELIMITER,
-                                        base_id = base_id,
-                                        quote_id = quote_id
+
+                                    sub_val = make_sub_val(
+                                        timestamp,
+                                        open_, high_, low_, close_, volume_,
+                                        REDIS_DELIMITER
                                     )
 
-                                    # print(f'ws sub redis key: {ws_sub_redis_key}')
-                                    # print(f'ws serve redis key: {ws_serve_redis_key}')
+                                    ws_sub_redis_key = make_sub_redis_key(
+                                        EXCHANGE_NAME,
+                                        base_id,
+                                        quote_id,
+                                        REDIS_DELIMITER
+                                    )
+                                    ws_serve_redis_key = make_send_redis_key(
+                                        EXCHANGE_NAME,
+                                        base_id,
+                                        quote_id,
+                                        REDIS_DELIMITER
+                                    )
 
                                     # Add ws sub key to set of all ws sub keys
                                     # Set hash value for ws sub key

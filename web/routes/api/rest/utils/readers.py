@@ -33,7 +33,8 @@ def read_top500dr(db: Session) -> list:
     Reads all rows from `top_500_daily_return` database table
     '''
 
-    return db.query(models.top_500_daily_return).all()
+    return db.query(models.top_500_daily_return) \
+        .order_by(models.top_500_daily_return.c.ranking).all()
 
 def read_ohlcvs(
         db: Session,
