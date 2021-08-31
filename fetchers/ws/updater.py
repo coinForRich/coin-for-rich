@@ -1,7 +1,6 @@
 # This module collects websocket subbed data in Redis, from all exchanges
 #   and inserts them into PSQL database
 
-from fetchers.rest.binance import EXCHANGE_NAME
 import time
 import redis
 import psycopg2
@@ -26,7 +25,7 @@ from fetchers.helpers.ws import (
 
 
 UPDATE_FREQUENCY_SECS = 10
-DATA_HELD_MLS_THRESHOLD = 3600000
+DATA_HELD_MLS_THRESHOLD = 3600000 # 1 day
 
 class OHLCVWebsocketUpdater:
     def __init__(self):
@@ -130,7 +129,7 @@ class OHLCVWebsocketUpdater:
                     data = self.redis_client.hgetall(key)
                     # If no data, remove the key
                     # Elif there is data and len data > 1,
-                    #   sort timestamps ascending,  exclude the latest one,
+                    #   sort timestamps ascending, exclude the latest one,
                     #   prepare ohlcv rows to insert
                     #   then delete data related to inserted timestamps
                     if not data:

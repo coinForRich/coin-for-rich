@@ -1,13 +1,10 @@
 import logging
 
 
-def create_logger(logger_name: str, log_level: int = None):
+def create_logger(logger_name: str, log_level: int = logging.INFO):
     '''
     Creates a Logger with default level at INFO
     '''
-    
-    if not log_level:
-        log_level = logging.INFO
     
     logger = logging.getLogger(logger_name)
     logger.setLevel(log_level)

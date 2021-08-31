@@ -1,8 +1,8 @@
 # Get functions from database, independent of backend path operations
 
 import datetime
-from typing import List, Optional
-from sqlalchemy import func, literal
+from typing import List, Optional, Union
+from sqlalchemy import func, literal, column
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import INTERVAL
 from sqlalchemy.sql.functions import concat
@@ -69,12 +69,11 @@ def read_ohlcvs(
         `start`: datetime obj or int - start time (must have same type as `end`)
         `end`: datetime obj or int - end time (must have same type as `start`)
         `limit`: maximum number of data points to return
-        `empty_ts`: show timestamps with empty ohlcv values by
-            filling them with the averages of the ohlcv values
-            from resulted rows from database - this is for a correct chart
-        `results_mls`: bool if result timestamps are in milliseconds
-            if true, result timestamps are in millieconds
-            if false, result timestamps are in seconds
+        `empty_ts`: show timestamps with empty ohlcv values by filling them with the averages of the ohlcv values from resulted rows from database - this is for a more "correct" chart;
+            If this parameter is `true`, results are sorted in ascending order, so that the real-time chart engine runs without errors
+        `results_mls`: bool if result timestamps are in milliseconds;
+            If true, result timestamps are in millieconds;
+            If false, result timestamps are in seconds
     
     If `interval` == `1m`: get directly from ohlcv table
     '''
@@ -93,43 +92,55 @@ def read_ohlcvs(
     ohlcvs = []
     if interval not in OHLCV_INTERVALS:
         return ohlcvs
+    # Get max. latest XXXX rows from psql db
     elif interval == "1m":
-        if not start:
-            start = (
-                end - datetime.timedelta(minutes = limit)
-            ).replace(second=0, microsecond=0)
-
-        # Get max. latest XXXX rows from psql db
-        fromdb = db.query(models.Ohlcv) \
-            .options(caching.FromCache("default")) \
-            .filter(
-                models.Ohlcv.exchange == exchange,
-                models.Ohlcv.base_id == base_id,
-                models.Ohlcv.quote_id == quote_id,
-                models.Ohlcv.time >= start,
-                models.Ohlcv.time <= end
-            ) \
-            .order_by(models.Ohlcv.time.desc()) \
-            .limit(limit) \
-            # .subquery()
+        if start:
+            fromdb = db.query(models.Ohlcv) \
+                .options(caching.FromCache("default")) \
+                .filter(
+                    models.Ohlcv.exchange == exchange,
+                    models.Ohlcv.base_id == base_id,
+                    models.Ohlcv.quote_id == quote_id,
+                    models.Ohlcv.time >= start,
+                    models.Ohlcv.time <= end
+                ) \
+                .order_by(models.Ohlcv.time.desc()) \
+                .limit(limit) \
+                # .subquery()
+        else:
+            fromdb = db.query(models.Ohlcv) \
+                .options(caching.FromCache("default")) \
+                .filter(
+                    models.Ohlcv.exchange == exchange,
+                    models.Ohlcv.base_id == base_id,
+                    models.Ohlcv.quote_id == quote_id,
+                    models.Ohlcv.time <= end
+                ) \
+                .order_by(models.Ohlcv.time.desc()) \
+                .limit(limit) \
+                # .subquery()
         
         if empty_ts:
             # Convert fromdb
             fromdb = fromdb.subquery()
 
             # Dummy timestamps to fill empty timestamps from db
-            dseries = db.query(
-                func.generate_series(
-                    start,
+            ts = func.generate_series(
+                    func.min(fromdb.c.time),
                     end,
                     func.cast(concat(1, ' MINUTE'), INTERVAL)
-                ).label('time'),
+                ).label('time')
+            
+            dseries = db.query(
+                ts,
                 func.avg(fromdb.c.open).label('open'),
                 func.avg(fromdb.c.high).label('high'),
                 func.avg(fromdb.c.low).label('low'),
                 func.avg(fromdb.c.close).label('close'),
-                literal(0).label('volume')
-            ).subquery()
+                literal(0).label('volume')) \
+                .order_by(ts.desc()) \
+                .limit(limit) \
+                .subquery()
 
             # Join the dummy timestamps with fromdb
             result = db.query(
@@ -141,7 +152,8 @@ def read_ohlcvs(
                 func.coalesce(fromdb.c.volume, dseries.c.volume).label('volume')
             ) \
             .outerjoin(fromdb, dseries.c.time == fromdb.c.time) \
-            .order_by(dseries.c.time) \
+            .order_by(dseries.c.time.asc()) \
+            .limit(limit) \
             .all()
         else:
             result = fromdb.all()
@@ -149,82 +161,105 @@ def read_ohlcvs(
     else:
         # Choose summary table according to `interval`
         if interval == "5m":
-            if not start:
-                start = end - datetime.timedelta(minutes = limit * 5)
+            # if not start:
+            #     start = end - datetime.timedelta(minutes = limit * 5)
             table = models.t_ohlcvs_summary_5min
             conc_tup = (5, ' MINUTES')
         elif interval == "15m":
-            if not start:
-                start = end - datetime.timedelta(minutes = limit * 15)
+            # if not start:
+            #     start = end - datetime.timedelta(minutes = limit * 15)
             table = models.t_ohlcvs_summary_15min
             conc_tup = (15, ' MINUTES')
         elif interval == "30m":
-            if not start:
-                start = end - datetime.timedelta(minutes = limit * 30)
+            # if not start:
+            #     start = end - datetime.timedelta(minutes = limit * 30)
             table = models.t_ohlcvs_summary_30min
             conc_tup = (30, ' MINUTES')
         elif interval == "1h":
-            if not start:
-                start = end - datetime.timedelta(hours = limit * 1)
+            # if not start:
+            #     start = end - datetime.timedelta(hours = limit * 1)
             table = models.t_ohlcvs_summary_1hour
             conc_tup = (1, ' HOUR')
         elif interval == "6h":
-            if not start:
-                start = end - datetime.timedelta(hours = limit * 6)
+            # if not start:
+            #     start = end - datetime.timedelta(hours = limit * 6)
             table = models.t_ohlcvs_summary_6hour
             conc_tup = (6, ' HOURS')
         elif interval == "12h":
-            if not start:
-                start = end - datetime.timedelta(hours = limit * 12)
+            # if not start:
+            #     start = end - datetime.timedelta(hours = limit * 12)
             table = models.t_ohlcvs_summary_12hour
             conc_tup = (12, ' HOURS')
         elif interval == "1D":
-            if not start:
-                start = end - datetime.timedelta(days = limit * 1)
+            # if not start:
+            #     start = end - datetime.timedelta(days = limit * 1)
             table = models.t_ohlcvs_summary_daily
             conc_tup = (1, ' DAY')
         elif interval == "7D":
-            if not start:
-                start = end - datetime.timedelta(days = limit * 7)
+            # if not start:
+            #     start = end - datetime.timedelta(days = limit * 7)
             table = models.t_ohlcvs_summary_7day
             conc_tup = (7, ' DAYS')
 
-        fromdb = db.query(
-            table.c.bucket.label('time'),
-            table.c.open.label('open'),
-            table.c.high.label('high'),
-            table.c.low.label('low'),
-            table.c.close.label('close'),
-            table.c.volume.label('volume')) \
-            .options(caching.FromCache("default")) \
-            .filter(
-                table.c.exchange == exchange,
-                table.c.base_id == base_id,
-                table.c.quote_id == quote_id,
-                table.c.bucket >= start,
-                table.c.bucket <= end
-            ) \
-            .order_by(table.c.bucket.desc()) \
-            .limit(limit) \
-            # .subquery()
+        if start:
+            fromdb = db.query(
+                table.c.bucket.label('time'),
+                table.c.open.label('open'),
+                table.c.high.label('high'),
+                table.c.low.label('low'),
+                table.c.close.label('close'),
+                table.c.volume.label('volume')) \
+                .options(caching.FromCache("default")) \
+                .filter(
+                    table.c.exchange == exchange,
+                    table.c.base_id == base_id,
+                    table.c.quote_id == quote_id,
+                    table.c.bucket >= start,
+                    table.c.bucket <= end
+                ) \
+                .order_by(table.c.bucket.desc()) \
+                .limit(limit) \
+                # .subquery()
+        else:
+            fromdb = db.query(
+                table.c.bucket.label('time'),
+                table.c.open.label('open'),
+                table.c.high.label('high'),
+                table.c.low.label('low'),
+                table.c.close.label('close'),
+                table.c.volume.label('volume')) \
+                .options(caching.FromCache("default")) \
+                .filter(
+                    table.c.exchange == exchange,
+                    table.c.base_id == base_id,
+                    table.c.quote_id == quote_id,
+                    table.c.bucket <= end
+                ) \
+                .order_by(table.c.bucket.desc()) \
+                .limit(limit) \
+                # .subquery()
 
         if empty_ts:
             # Convert fromdb
             fromdb = fromdb.subquery()
 
             # Dummy timestamps to fill empty timestamps from db
-            dseries = db.query(
-                func.generate_series(
+            ts = func.generate_series(
                     func.min(fromdb.c.time),
-                    func.max(fromdb.c.time),
+                    end,
                     func.cast(concat(conc_tup[0], conc_tup[1]), INTERVAL)
-                ).label('time'),
+                ).label('time')
+
+            dseries = db.query(
+                ts,
                 func.avg(fromdb.c.open).label('open'),
                 func.avg(fromdb.c.high).label('high'),
                 func.avg(fromdb.c.low).label('low'),
                 func.avg(fromdb.c.close).label('close'),
-                literal(0).label('volume')
-            ).subquery()
+                literal(0).label('volume')) \
+                .order_by(ts.desc()) \
+                .limit(limit) \
+                .subquery()
 
             # Join the dummy timestamps with fromdb
             result = db.query(
@@ -235,7 +270,8 @@ def read_ohlcvs(
                 func.coalesce(fromdb.c.close, dseries.c.close).label('close'),
                 func.coalesce(fromdb.c.volume, dseries.c.volume).label('volume')) \
                 .outerjoin(fromdb, dseries.c.time == fromdb.c.time) \
-                .order_by(dseries.c.time) \
+                .order_by(dseries.c.time.asc()) \
+                .limit(limit) \
                 .all()
         else:
             result = fromdb.all()

@@ -5,7 +5,7 @@ var current_end = Date.now()
 var current_start = current_end - 60000 * 60 * 24
 
 // Chart time periods
-var periods = ['1h','6h','1D','3D','7D','1M','3M','1Y','3Y']
+var periods = ['1h', '6h', '1D', '3D', '7D', '1M', '3M', '1Y', '3Y']
 
 // Mapping of time period to data interval
 var periodIntervalMap = new Map([
@@ -61,6 +61,19 @@ var dataPeriodMap = new Map([
     ['3Y', null]
 ])
 
+// Mapping of SMA to the corresponding data array
+var SMAPeriodMap = new Map([
+    ['1h', null],
+    ['6h', null],
+    ['1D', null],
+    ['3D', null],
+    ['7D', null],
+    ['1M', null],
+    ['3M', null],
+    ['1Y', null],
+    ['3Y', null]
+])
+
 // Mapping of time period to the corresponding latest data bar
 var latestBarPeriodMap = new Map([
     ['1h', null],
@@ -81,11 +94,15 @@ var current_historical = null
 var latest_bar = null
 var ws_hold = false
 var drawing_processes = 0
+var current_sma = null
+var default_SMA = 10 // default SMA length
 
+// Candlesticks
+var chartDiv = document.getElementById('chart')
 var candles_ws = null
 var chartWidth = 1250
 var chartHeight = 450
-var chart = LightweightCharts.createChart(document.getElementById('chart'), {
+var chart = LightweightCharts.createChart(chartDiv, {
     width: chartWidth,
     height: chartHeight,
     layout: {
@@ -104,10 +121,62 @@ var chart = LightweightCharts.createChart(document.getElementById('chart'), {
         timeVisible: true,
         secondsVisible: false,
     },
-});
+})
+chartDiv.style.position = 'relative'
 var candleSeries = chart.addCandlestickSeries()
 var timeScale = chart.timeScale()
 var updateChartTimer = null
+
+// OHLC legend?
+var ohlcLabelArray = ["O:", "H:", "L:", "C:"]
+var ohlcLegendArray = []
+for (let i = 0, len = ohlcLabelArray.length; i < len ; i++) {
+    let ohlcLegend = document.createElement('div')
+    ohlcLegend.className = 'ohlc-legend'
+    chartDiv.appendChild(ohlcLegend)
+    ohlcLegendArray.push(ohlcLegend)
+    ohlcLegend.style.display = 'block'
+    ohlcLegend.style.left = 125 + (100 * i) + 'px'
+    ohlcLegend.style.top = 10 + 'px'
+}
+
+// SMA line
+var smaLine = chart.addLineSeries({
+	color: 'rgba(4, 111, 232, 1)',
+	lineWidth: 2,
+})
+
+// SMA legend
+var smaLegend = document.createElement('div')
+smaLegend.className = 'sma-legend'
+chartDiv.appendChild(smaLegend)
+smaLegend.style.display = 'block'
+smaLegend.style.left = 10 + 'px'
+smaLegend.style.top = 10 + 'px'
+
+// Go-to-real-time button
+var width = 27
+var height = 27
+var button = document.createElement('div')
+button.className = 'go-to-realtime-button'
+button.style.left = (chartWidth - width - 80) + 'px'
+button.style.top = (chartHeight - 80) + 'px'
+button.style.color = '#4c525e'
+button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 14" width="14" height="14"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M6.5 1.5l5 5.5-5 5.5M3 4l2.5 3L3 10"></path></svg>'
+document.getElementById('chart').appendChild(button)
+button.addEventListener('click', function () {
+    timeScale.scrollToRealTime();
+})
+
+button.addEventListener('mouseover', function () {
+    button.style.background = 'rgba(250, 250, 250, 1)';
+    button.style.color = '#000';
+})
+
+button.addEventListener('mouseout', function () {
+    button.style.background = 'rgba(250, 250, 250, 0.6)';
+    button.style.color = '#4c525e';
+})
 
 
 function dateToTimestamp(date) {
@@ -120,39 +189,94 @@ function getTimestampSteps(milliseconds, millisecondsPerStep, steps) {
     return ret
 };
 
+// Calculates Simple Moving Average
+function calculateSMA(data, count) {
+    var avg = function (data) {
+        var sum = 0;
+        for (var i = 0; i < data.length; i++) {
+            sum += data[i].close;
+        }
+        return sum / data.length;
+    };
+    var result = [];
+    for (var i = count - 1, len = data.length; i < len; i++) {
+        var val = avg(data.slice(i - count + 1, i));
+        result.push({ time: data[i].time, value: val });
+    }
+    return result;
+}
+
+// Set SMA legend text
+function setSMALegendText(priceValue) {
+	let val = 'n/a';
+	if (priceValue !== undefined) {
+		val = (Math.round(priceValue * 100) / 100).toFixed(2);
+	}
+	smaLegend.innerHTML = 'MA10 <span style="color:rgba(4, 111, 232, 1)">' + val + '</span>';
+}
+
+// Set OHLC legend text
+function setOHLCLegendText(priceValue) {
+    let val = 'n/a'
+    if (priceValue !== undefined) {
+        for (let i = 0, len = ohlcLabelArray.length; i < len ; i++) { 
+            let label = ohlcLabelArray[i]
+                if (label == "O:") {
+                    val = (Math.round(priceValue.open * 100) / 100).toFixed(2)
+                }
+                else if (label == "H:") {
+                    val = (Math.round(priceValue.high * 100) / 100).toFixed(2)
+                }
+                else if (label == "L:") {
+                    val = (Math.round(priceValue.low * 100) / 100).toFixed(2)
+                }
+                else if (label == "C:") {
+                    val = (Math.round(priceValue.close * 100) / 100).toFixed(2)
+                }
+            ohlcLegendArray[i].innerHTML = `${label} <span style="color:rgba(4, 111, 232, 1)">` + val + `</span>`
+        }
+    }
+    else {
+        for (let i = 0, len = ohlcLabelArray.length; i < len ; i++) { 
+            let label = ohlcLabelArray[i]
+            ohlcLegendArray[i].innerHTML = `${label} <span style="color:rgba(4, 111, 232, 1)">` + val + `</span>`
+        }
+    }
+}
+
 // Time range switcher
 function createSimpleSwitcher(items, activeItem, activeItemChangedCallback) {
-	var switcherElement = document.createElement('div')
-	switcherElement.classList.add('switcher')
+    var switcherElement = document.createElement('div')
+    switcherElement.classList.add('switcher')
 
-	var intervalElements = items.map(function(item) {
-		var itemEl = document.createElement('button')
-		itemEl.innerText = item
-		itemEl.classList.add('switcher-item');
-		itemEl.classList.toggle('switcher-active-item', item === activeItem);
-		itemEl.addEventListener('click', function() {
-			onItemClicked(item)
-		});
-		switcherElement.appendChild(itemEl)
-		return itemEl
-	})
-	function onItemClicked(item) {
-		if (item === activeItem) {
-			return;
-		}
+    var intervalElements = items.map(function (item) {
+        var itemEl = document.createElement('button')
+        itemEl.innerText = item
+        itemEl.classList.add('switcher-item');
+        itemEl.classList.toggle('switcher-active-item', item === activeItem);
+        itemEl.addEventListener('click', function () {
+            onItemClicked(item)
+        });
+        switcherElement.appendChild(itemEl)
+        return itemEl
+    })
+    function onItemClicked(item) {
+        if (item === activeItem) {
+            return;
+        }
 
-		intervalElements.forEach(function(element, index) {
-			element.classList.toggle('switcher-active-item', items[index] === item)
-		})
+        intervalElements.forEach(function (element, index) {
+            element.classList.toggle('switcher-active-item', items[index] === item)
+        })
 
-		activeItem = item
-		activeItemChangedCallback(item)
-	}
-	return switcherElement
+        activeItem = item
+        activeItemChangedCallback(item)
+    }
+    return switcherElement
 };
 
 // Click period callback
-function syncToInterval(period) {    
+function syncToInterval(period) {
     // current_data = null
     // current_period = period
     let interval = periodIntervalMap.get(period)
@@ -165,7 +289,7 @@ function syncToInterval(period) {
 
     console.log(period)
     console.log(interval)
-    
+
     if (candleSeries) {
         if (candles_ws !== null) {
             let unsubscribe_msg = JSON.stringify({
@@ -178,17 +302,28 @@ function syncToInterval(period) {
             })
             candles_ws.send(unsubscribe_msg)
         }
-		chart.removeSeries(candleSeries)
-		candleSeries = null
+
+        // Candlesticks
+        chart.removeSeries(candleSeries)
+        candleSeries = null
         candleSeries = chart.addCandlestickSeries()
-	}
-    
+
+        // SMA
+        chart.removeSeries(smaLine)
+        smaLine = null
+        smaLine = chart.addLineSeries({
+            color: 'rgba(4, 111, 232, 1)',
+            lineWidth: 2,
+        });
+    }
+
     if (existing_data === null) {
         end = Date.now()
-        start = getTimestampSteps(
-            end,
-            intervalPreviousMillisecondsMap.get(interval),
-            periodNumIntervalMap.get(period))
+        // start = getTimestampSteps(
+        //     end,
+        //     intervalPreviousMillisecondsMap.get(interval),
+        //     periodNumIntervalMap.get(period))
+        start = null
         historical = true
     }
     else {
@@ -202,10 +337,6 @@ function syncToInterval(period) {
             (-intervalPreviousMillisecondsMap.get(interval)),
             1)
         historical = false
-
-        // TODO: probably not need this
-        // Set data using existing first
-        // candleSeries.setData(existing_data)
     }
 
     // Update OHLC and draw/re-draw
@@ -241,38 +372,43 @@ function saveDrawCandleSeries(candle_data, history, period) {
         && candle_data !== null
         && candle_data.length != 0
         && !("detail" in candle_data)) {
-            if (candle_data[0].open === null) {
-                console.log("got partially null data from REST API: ")
-                console.log(candle_data)
+        if (candle_data[0].open === null) {
+            console.log("got partially null data from REST API: ")
+            console.log(candle_data)
+        }
+        // Now there's some new data to process
+        else {
+            let existing_data = dataPeriodMap.get(period)
+            if (existing_data === null) {
+                dataPeriodMap.set(period, candle_data)
             }
-            // Now there's some new data to process
             else {
-                let existing_data = dataPeriodMap.get(period)
-                if (existing_data === null) {
-                    dataPeriodMap.set(period, candle_data)
+                // Not sure if Set is good because it *may*
+                //  mess up data order
+                let merged = null
+                if (history === true) {
+                    merged = [...new Set([...candle_data, ...existing_data])]
+                    // merged = [...candle_data, ...existing_data]
                 }
                 else {
-                    // Not sure if Set is good because it *may*
-                    //  mess up data order
-                    let merged = null
-                    if (history === true) {
-                        merged = [...new Set([...candle_data, ...existing_data])]
-                        // merged = [...candle_data, ...existing_data]
-                    }
-                    else {
-                        console.log('merging new data, not historial')
-                        merged = [...new Set([...existing_data, ...candle_data])]
-                    }
-                    dataPeriodMap.set(period, merged)
+                    console.log('merging new data, not historial')
+                    merged = [...new Set([...existing_data, ...candle_data])]
                 }
-                
-                // // Update current_data and latest_bar according to current_period
-                // current_data = dataPeriodMap.get(current_period)
-                // latest_bar = current_data[current_data.length - 1]
-                // latestBarPeriodMap.set(current_period, latest_bar)
-                // candleSeries.setData(current_data)
+                dataPeriodMap.set(period, merged)
             }
+
+            // Calculate SMA for new data
+            let temp_data = dataPeriodMap.get(period)
+            let temp_sma = calculateSMA(temp_data, default_SMA)
+            SMAPeriodMap.set(period, temp_sma)
+
+            // // Update current_data and latest_bar according to current_period
+            // current_data = dataPeriodMap.get(current_period)
+            // latest_bar = current_data[current_data.length - 1]
+            // latestBarPeriodMap.set(current_period, latest_bar)
+            // candleSeries.setData(current_data)
         }
+    }
     else {
         console.log("got full null data from REST API: ")
         console.log(candle_data)
@@ -285,7 +421,11 @@ function saveDrawCandleSeries(candle_data, history, period) {
         latestBarPeriodMap.set(current_period, latest_bar)
         candleSeries.setData(current_data)
     }
-    
+
+    // Update current_sma
+    current_sma = SMAPeriodMap.get(current_period)
+    smaLine.setData(current_sma)
+
     // DO NOT reset variables
     //  if there are > 1 drawing processes
     if (drawing_processes <= 1) {
@@ -297,11 +437,18 @@ function saveDrawCandleSeries(candle_data, history, period) {
 };
 
 async function getOHLCVEndpoint(exch, bid, qid, s, e, i, history, period) {
-    let ohlcv_endpoint = 
+    let ohlcv_endpoint = null
+    if (s === null) {
+        ohlcv_endpoint =
+        `http://${window.location.host}/api/ohlcvs?exchange=${exch}&base_id=${bid}&quote_id=${qid}&end=${e}&interval=${i}&results_mls=false&empty_ts=true`
+    }
+    else{
+        ohlcv_endpoint =
         `http://${window.location.host}/api/ohlcvs?exchange=${exch}&base_id=${bid}&quote_id=${qid}&start=${s}&end=${e}&interval=${i}&results_mls=false&empty_ts=true`
+    }
     fetch(ohlcv_endpoint)
         .then(response => response.json())
-        .then(resp_data => 
+        .then(resp_data =>
             saveDrawCandleSeries(resp_data, history, period)
         )
 };
@@ -310,16 +457,28 @@ async function getOHLCVEndpoint(exch, bid, qid, s, e, i, history, period) {
 async function readRestDrawOHLC(exch, bid, qid, s, e, i, history, period, period_change) {
     current_historical = history
     drawing_processes += 1
-    
+
+    // Visually change the series first, then fetch new data
     if (period_change) {
         current_period = period
         current_interval = periodIntervalMap.get(period)
+
+        // Candlesticks
         current_data = dataPeriodMap.get(period)
         if (current_data !== null) {
             latest_bar = current_data[current_data.length - 1]
             latestBarPeriodMap.set(period, latest_bar)
             candleSeries.setData(current_data)
+            setOHLCLegendText(current_data[current_data.length - 1])
         }
+
+        // SMA
+        current_sma = SMAPeriodMap.get(period)
+        if (current_sma !== null) {
+            smaLine.setData(current_sma)
+            setSMALegendText(current_sma[current_sma.length - 1].value)
+        }
+
         await getOHLCVEndpoint(exch, bid, qid, s, e, i, history, period)
     }
     else {
@@ -334,11 +493,11 @@ function readWSUpdateOHLC(exch, bid, qid, i, period) {
     if (candles_ws === null) {
         candles_ws = new WebSocket(`ws://${window.location.host}/api/ohlcvs`)
     }
-    
-    candles_ws.onopen = function() {
+
+    candles_ws.onopen = function () {
         // Update var `latest_bar`
         // latest_bar = latestBarPeriodMap.get(period)
-        
+
         let subscribe_msg = JSON.stringify({
             event_type: "subscribe",
             data_type: "ohlcv",
@@ -352,62 +511,82 @@ function readWSUpdateOHLC(exch, bid, qid, i, period) {
         candles_ws.send(subscribe_msg)
     }
 
-    candles_ws.onmessage = function(event) {
+    candles_ws.onmessage = function (event) {
         let parsed_data = JSON.parse(event.data)
-        
+
         // Websocket only process new messages if:
         if (!ws_hold
             && current_historical
-            && "time" in parsed_data 
+            && "time" in parsed_data
             && parsed_data.open !== null) {
-            
+
             // Test block
             // if (parsed_data.open === null) {
             //     console.log("got partially null bar from ws:")
             //     console.log(parsed_data)
             // }
-        
+
             // TODO: use this part - Compare parsed data to the latest bar data 
             //  to keep new bars persistent on chart
             if (latest_bar === null || parsed_data.time >= latest_bar.time) {
                 candleSeries.update(parsed_data)
                 latest_bar = parsed_data
                 latestBarPeriodMap.set(current_period, latest_bar)
-                
+
                 if (
                     latest_bar.time > current_data[current_data.length - 1].time
                 ) {
                     console.log("pushing latest_bar into current_data")
                     current_data.push(latest_bar)
+                    
+                    // SMA
+                    let temp_latest_sma = calculateSMA(
+                        current_data.slice(
+                            current_data.length - default_SMA, current_data.length),
+                        default_SMA
+                    )[0]
+                    current_sma.push(temp_latest_sma)
                 }
                 else if (
                     latest_bar.time == current_data[current_data.length - 1].time
                 ) {
-                    console.log("replacing latest_bar into current_data")
+                    // console.log("replacing latest_bar into current_data")
                     current_data.pop()
                     current_data.push(latest_bar)
-                }     
+
+                    // SMA
+                    let temp_latest_sma = calculateSMA(
+                        current_data.slice(
+                            current_data.length - default_SMA, current_data.length),
+                        default_SMA
+                    )[0]
+                    current_sma.pop()
+                    current_sma.push(temp_latest_sma)
+                }
+                
+                // SMA reset line
+                smaLine.setData(current_sma)
             }
-            
-                // if (latest_bar === null || parsed_data.time == latest_bar.time) {
-                //     // console.log('Saving parsed data to latest bar, here is latest_bar: ')
-                //     candleSeries.update(parsed_data)
-                // }
-                // else if (parsed_data.time > latest_bar.time) {
-                //     // console.log('Pushing latest bar to data, here is data: ')
-                //     current_data.push(latest_bar)
-                //     candleSeries.setData(current_data)
-                //     latestBarPeriodMap.set(current_period, parsed_data)
-                //     // console.log(data)
-                //     // console.log('Saving parsed data to latest bar')
-    
+
+            // if (latest_bar === null || parsed_data.time == latest_bar.time) {
+            //     // console.log('Saving parsed data to latest bar, here is latest_bar: ')
+            //     candleSeries.update(parsed_data)
+            // }
+            // else if (parsed_data.time > latest_bar.time) {
+            //     // console.log('Pushing latest bar to data, here is data: ')
+            //     current_data.push(latest_bar)
+            //     candleSeries.setData(current_data)
+            //     latestBarPeriodMap.set(current_period, parsed_data)
+            //     // console.log(data)
+            //     // console.log('Saving parsed data to latest bar')
+
         }
     }
 
-    candles_ws.onerror = function(event) {
+    candles_ws.onerror = function (event) {
         console.log('Socket is closed due to error. Reconnecting in 1 second...')
         candles_ws = null
-        setTimeout(function() {
+        setTimeout(function () {
             readWSUpdateOHLC(exch, bid, qid, i)
         }, 1000)
     }
@@ -420,28 +599,16 @@ document.getElementById('chart').appendChild(switcherElement)
 // Rest and Websocket API to chart, default
 syncToInterval(periods[0])
 
-// Go-to-real-time button
-var width = 27
-var height = 27
-var button = document.createElement('div')
-button.className = 'go-to-realtime-button'
-button.style.left = (chartWidth - width - 60) + 'px'
-button.style.top = (chartHeight) + 'px'
-button.style.color = '#4c525e'
-button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 14" width="14" height="14"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M6.5 1.5l5 5.5-5 5.5M3 4l2.5 3L3 10"></path></svg>'
-document.getElementById('chart').appendChild(button)
-button.addEventListener('click', function() {
-	timeScale.scrollToRealTime();
+// SMA legend
+chart.subscribeCrosshairMove((param) => {
+	setSMALegendText(param.seriesPrices.get(smaLine))
 })
 
-button.addEventListener('mouseover', function() {
-	button.style.background = 'rgba(250, 250, 250, 1)';
-	button.style.color = '#000';
-})
-
-button.addEventListener('mouseout', function() {
-	button.style.background = 'rgba(250, 250, 250, 0.6)';
-	button.style.color = '#4c525e';
+// OHLC legend?
+chart.subscribeCrosshairMove((param) => {
+	if (param.time) {
+        setOHLCLegendText(param.seriesPrices.get(candleSeries))
+    }
 })
 
 // Update chart with historical data when viewport changes
@@ -451,7 +618,7 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
     }
 
     // let current_data = dataPeriodMap.get(current_period)
-    
+
     updateChartTimer = setTimeout(() => {
         // console.log("TIMER")
         let logicalRange = timeScale.getVisibleLogicalRange();
@@ -466,7 +633,7 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
                     oneIntervalBefore,
                     intervalPreviousMillisecondsMap.get(current_interval),
                     periodNumIntervalMap.get(current_period))
-                
+
                 // current_historical = true
                 readRestDrawOHLC(
                     current_exchange, current_base_id,
@@ -479,6 +646,6 @@ timeScale.subscribeVisibleLogicalRangeChange(() => {
         updateChartTimer = null;
     }, 50)
 
-    var buttonVisible = timeScale.scrollPosition() < 0;
-    button.style.display = buttonVisible ? 'block' : 'none';
+    var buttonVisible = timeScale.scrollPosition() < 0
+    button.style.display = buttonVisible ? 'block' : 'none'
 })

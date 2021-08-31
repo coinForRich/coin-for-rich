@@ -1,9 +1,6 @@
 ### This module uses websocket to fetch binance 1-minute OHLCV data in real time
 
-
-import sys
 import random
-import logging
 import asyncio
 import json
 import redis
@@ -12,6 +9,7 @@ from typing import Iterable, NoReturn
 from common.config.constants import (
     REDIS_HOST, REDIS_PASSWORD, REDIS_DELIMITER
 )
+from common.utils.logutils import create_logger
 from fetchers.config.constants import WS_SUB_LIST_REDIS_KEY
 from fetchers.config.queries import MUTUAL_BASE_QUOTE_QUERY
 from fetchers.rest.binance import BinanceOHLCVFetcher, EXCHANGE_NAME
@@ -49,14 +47,7 @@ class BinanceOHLCVWebsocket:
         self.rest_fetcher = BinanceOHLCVFetcher()
 
         # Logging
-        self.logger = logging.getLogger(f'{EXCHANGE_NAME}_websocket')
-        self.logger.setLevel(logging.INFO)
-        log_handler = logging.StreamHandler()
-        log_handler.setLevel(logging.INFO)
-        log_formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        log_handler.setFormatter(log_formatter)
-        self.logger.addHandler(log_handler)
+        self.logger = create_logger(f'{EXCHANGE_NAME}_websocket')
 
         # Backoff
         self.backoff_delay = BACKOFF_MIN_SECS
@@ -174,7 +165,7 @@ class BinanceOHLCVWebsocket:
         self.rest_fetcher.fetch_symbol_data()
         symbols =  tuple(self.rest_fetcher.symbol_data.keys())
 
-        # Subscribe to `MAX_SUB_PER_CONN` per connection (e.g., 1024)
+        # Subscribe to `MAX_SUB_PER_CONN` per connection (e.g., 200)
         await asyncio.gather(
             *(
                 self.subscribe(symbols[i:i+MAX_SUB_PER_CONN], int(i/MAX_SUB_PER_CONN))

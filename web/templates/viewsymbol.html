@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>WebSocket Chart</title>
+        <title>View a Symbol</title>
         <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
         <link rel="stylesheet" href="{{ url_for('src', path='/style.css') }}">
     </head>
     <body>
-        <h1>Crypto Chart</h1>
+        <h1>Real-time OHLC Chart</h1>
         <!-- <form action="" onsubmit="sendQuery(event)">
             <input type="text" id="query_exchange" autocomplete="on" placeholder="bitfinex"/>
             <input type="text" id="query_base_id" autocomplete="on" placeholder="ETH"/>
@@ -37,32 +37,6 @@
                 readOHLC(exchange, base_id, quote_id, start, end)
                 event.preventDefault()
             };
-        </script>
-
-        <!-- Websocket/Real time load chart data based on exchange and symbol -->
-        <!-- <script>
-            let ws = new WebSocket("ws://localhost:8000/candles");
-            ws.onmessage = function(event) {
-                // Message
-                let messages = document.getElementById('messages')
-                let message = document.createElement('li')
-                let content = document.createTextNode(event.data)
-                message.appendChild(content)
-                messages.appendChild(message)
-
-                // Chart
-                let parsed_data = JSON.parse(event.data)
-                console.log(parsed_data)
-                candleSeries.update(parsed_data)
-                
-            };
-            function sendMessage(event) {
-                let input = document.getElementById("messageText")
-                ws.send(input.value)
-                input.value = ''
-                event.preventDefault()
-            }
-        </script> -->
-        
+        </script>        
     </body>
 </html>

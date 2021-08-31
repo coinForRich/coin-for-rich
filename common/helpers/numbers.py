@@ -18,4 +18,6 @@ def round_decimal(
         `n_decimals`: number of decimals
     '''
 
-    return round(Decimal(number), n_decimals) if number else None
+    if number is None:
+        return None
+    return round(Decimal(number), n_decimals)
