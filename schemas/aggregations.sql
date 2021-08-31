@@ -253,9 +253,8 @@ CREATE MATERIALIZED VIEW top_500_daily_return AS
             close
          FROM ohlcvs_summary_daily
          WHERE bucket >= (CURRENT_DATE - interval '8 days')
-            AND bucket <= CURRENT_DATE AND close <> 0
-         -- WHERE bucket >= '2020-01-01' and bucket <= '2021-08-30'
-         --   AND exchange='binance' AND base_id='AAVE' AND quote_id='BTC'
+            AND close <> 0
+            -- AND exchange='bittrex' AND base_id='GBYTE' AND quote_id='BTC'
       ),
       prev_close_view AS (
          SELECT 
@@ -298,3 +297,35 @@ CREATE MATERIALIZED VIEW top_500_daily_return AS
    LIMIT 500;
 
 CREATE UNIQUE INDEX top_500_dr_idx ON top_500_daily_return (exchange, base_id, quote_id);
+
+-- (4b) The top XXXX commodities (bases)
+--    with the highest trading volume in the past week
+-- Can be used for a pie chart
+CREATE MATERIALIZED VIEW top_10_vol_bases AS
+   WITH base_ttl_vol AS ( --Base total vol
+         SELECT base_id, SUM(volume) AS total_volume
+         FROM ohlcvs_summary_7day
+         WHERE bucket >= (CURRENT_DATE - interval '8 days')
+         GROUP BY base_id
+      ),
+      bgrp_vol AS ( --Base group total vol
+         SELECT
+            (CASE
+               WHEN ranking > 10 THEN 'Other'
+               ELSE base_id
+            END) AS bgrp,
+            total_volume
+         FROM (
+            SELECT
+               *,
+               ROW_NUMBER() OVER(ORDER BY total_volume DESC) AS ranking
+            FROM base_ttl_vol
+            ) AS temp
+         )
+      SELECT
+         bgrp AS base_id,
+         ROUND(SUM(total_volume), 4) AS ttl_vol
+      FROM bgrp_vol
+      GROUP BY bgrp;
+
+CREATE UNIQUE INDEX top_10_vlmb_idx ON top_10_vol_bases (base_id);

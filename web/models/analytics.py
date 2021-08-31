@@ -1,12 +1,12 @@
 # Tables models for analytic views created in Postgres db
 
 from sqlalchemy import (
-    Column, DateTime, ForeignKeyConstraint,
-    Index, Numeric, String, Table, BigInteger
+    Column, DateTime, Index,
+    Numeric, String, Table, BigInteger
 )
-from sqlalchemy.orm import relationship
 from web.db.base import metadata
 
+# Top 500 daily return
 top_500_daily_return = Table(
     'top_500_daily_return', metadata,
     Column('ranking', BigInteger),
@@ -15,4 +15,12 @@ top_500_daily_return = Table(
     Column('quote_id', String(20)),
     Column('gavg_daily_return', Numeric),
     Index('top_500_dr_idx', 'exchange', 'base_id', 'quote_id')
+)
+
+# Top 10 hot commodities(bases)
+top_10_vol_bases = Table(
+    'top_10_vol_bases', metadata,
+    Column('base_id', String()),
+    Column('ttl_vol', Numeric),
+    Index('top_10_vlmb_idx', 'base_id')
 )

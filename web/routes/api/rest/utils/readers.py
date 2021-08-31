@@ -36,6 +36,14 @@ def read_top500dr(db: Session) -> list:
     return db.query(models.top_500_daily_return) \
         .order_by(models.top_500_daily_return.c.ranking).all()
 
+def read_top10vlmb(db: Session) -> list:
+    '''
+    Reads all rows from `top_10_vol_bases` database table
+    '''
+
+    return db.query(models.top_10_vol_bases) \
+        .order_by(models.top_10_vol_bases.c.ttl_vol.desc()).all()
+
 def read_ohlcvs(
         db: Session,
         exchange: str,
@@ -151,7 +159,7 @@ def read_ohlcvs(
                 func.coalesce(fromdb.c.close, dseries.c.close).label('close'),
                 func.coalesce(fromdb.c.volume, dseries.c.volume).label('volume')
             ) \
-            .outerjoin(fromdb, dseries.c.time == fromdb.c.time) \
+            .join(fromdb, dseries.c.time == fromdb.c.time, isouter = True) \
             .order_by(dseries.c.time.asc()) \
             .limit(limit) \
             .all()
@@ -269,7 +277,7 @@ def read_ohlcvs(
                 func.coalesce(fromdb.c.low, dseries.c.low).label('low'),
                 func.coalesce(fromdb.c.close, dseries.c.close).label('close'),
                 func.coalesce(fromdb.c.volume, dseries.c.volume).label('volume')) \
-                .outerjoin(fromdb, dseries.c.time == fromdb.c.time) \
+                .join(fromdb, dseries.c.time == fromdb.c.time, isouter=True) \
                 .order_by(dseries.c.time.asc()) \
                 .limit(limit) \
                 .all()

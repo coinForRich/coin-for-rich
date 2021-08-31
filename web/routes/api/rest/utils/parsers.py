@@ -9,8 +9,7 @@ from common.helpers.datetimehelpers import (
 def parse_ohlcv(ohlcvs: list, mls: bool) -> list:
     '''
     Parses OHLCV received from API endpoint
-        for web chart view by converting timestamp
-        into seconds
+        for web chart view or something else
     
     :params:
         `ohlcvs`: list - OHLCVs received
@@ -20,6 +19,7 @@ def parse_ohlcv(ohlcvs: list, mls: bool) -> list:
     '''
 
     ret = []
+    default_decimals = 4
     if ohlcvs:
         try:
             # ohlcv.sort(key = lambda x: x.time)
@@ -27,11 +27,11 @@ def parse_ohlcv(ohlcvs: list, mls: bool) -> list:
                 {
                     'time': int(datetime_to_milliseconds(o.time)) \
                         if mls else int(datetime_to_seconds(o.time)),
-                    'open': round_decimal(o.open),
-                    'high': round_decimal(o.high),
-                    'low': round_decimal(o.low),
-                    'close': round_decimal(o.close),
-                    'volume': round_decimal(o.volume)
+                    'open': round_decimal(o.open, default_decimals),
+                    'high': round_decimal(o.high, default_decimals),
+                    'low': round_decimal(o.low, default_decimals),
+                    'close': round_decimal(o.close, default_decimals),
+                    'volume': round_decimal(o.volume, default_decimals)
                 }
                 for o in ohlcvs
             ]
