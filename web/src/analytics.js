@@ -11,18 +11,18 @@ function unpackDate(data, dateKey) {
 }
 
 // Table for top daily returns
-async function tableTop500DailyReturn() {
+async function tableTopGeoDailyReturn() {
     data_loading = true
     let endpoint =
-        `http://${window.location.host}/api/analytics/top500dr`
+        `http://${window.location.host}/api/analytics/geodr`
     fetch(endpoint)
         .then(response => response.json())
         .then(resp_data =>
-            drawTableTop500DR(resp_data)
+            drawTableGeoDR(resp_data)
         )
 };
 
-function drawTableTop500DR(data) {
+function drawTableGeoDR(data) {
     let data_formatted = [
         unpack(data, 'ranking'),
         unpack(data, 'exchange'),
@@ -58,8 +58,6 @@ function drawTableTop500DR(data) {
     Plotly.newPlot('top500DRTable', table_data, layout)
 }
 
-tableTop500DailyReturn()
-
 // Table for top volume bases traded
 async function pieTop10VolumeBase() {
     data_loading = true
@@ -83,7 +81,7 @@ function drawPieTop10VLMB(data) {
       }]
     
     let layout = {
-        title: "Top 10 Mostly Trade Base IDs by Volume since Last Week",
+        title: "Top 10 Mostly Traded Base IDs by Volume since Last Week",
         height: 800,
         width: 800,
         margin: {"t": 0, "b": 0, "l": 0, "r": 0},
@@ -93,4 +91,31 @@ function drawPieTop10VLMB(data) {
     Plotly.newPlot('top10VLMBPie', pie_data, layout)
 }
 
+async function HistGeoDailyReturn() {
+    data_loading = true
+    let endpoint =
+        `http://${window.location.host}/api/analytics/geodr?limit=-1`
+    fetch(endpoint)
+        .then(response => response.json())
+        .then(resp_data =>
+            drawHistGeoDR(resp_data))
+}
+
+function drawHistGeoDR(data) {
+    let hist_data = unpack(data, 'gavg_daily_return')
+
+    let trace = [{
+        x: hist_data,
+        type: 'histogram',
+    }]
+
+    let layout = {
+        title: "Histogram of Geometric Average Daily Return since Last Week"
+    }
+
+    Plotly.newPlot('HistGeoDR', trace, layout)
+}
+
+tableTopGeoDailyReturn()
 pieTop10VolumeBase()
+HistGeoDailyReturn()

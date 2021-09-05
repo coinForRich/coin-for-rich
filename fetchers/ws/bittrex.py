@@ -61,6 +61,7 @@ class BittrexOHLCVWebsocket:
         self.asyncio_lock = asyncio.Lock()
         self.invocation_event = None
         self.invocation_response = None
+        self.subscription_success = False
 
         # Rest fetcher for convenience
         self.rest_fetcher = BittrexOHLCVFetcher()
@@ -120,6 +121,8 @@ class BittrexOHLCVWebsocket:
                 e.g., ['ETH-BTC', 'BTC-EUR']
         '''
 
+        self.subscription_success = False
+
         # self.signalr_hub.client.on('trade', on_trade)
         self.signalr_hub.client.on('heartbeat', self.on_heartbeat)
         self.signalr_hub.client.on('candle', self.on_candle)
@@ -132,12 +135,14 @@ class BittrexOHLCVWebsocket:
         response = await self._invoke('Subscribe', channels)
         for c in range(len(channels)):
             if response[c]['Success']:
-                pass
+                # Only one success is enough to switch to True
+                self.subscription_success = True
             else:
                 self.logger.error(
                     f"Group {i}: Subscription to {channels[c]} failed: {response[c]['ErrorCode']}")
                 # raise UnsuccessfulConnection // not a good idea to raise here
-        self.logger.info(f"Group {i}: Subscription successful")
+        if self.subscription_success:
+            self.logger.info(f"Group {i}: Subscription successful")
 
     async def _invoke(self, method: str, *args) -> Union[Any, None]:
         async with self.asyncio_lock:
@@ -257,7 +262,9 @@ class BittrexOHLCVWebsocket:
         while True:
             try:
                 now = redis_time(self.redis_client)
-                if self.signalr_hub is None or (now - self.latest_ts) > 60:
+                if self.signalr_hub is None \
+                    or (now - self.latest_ts) > 60 \
+                    or (not self.subscription_success):
                     await self._connect()
                     if API_SECRET != '':
                         await self._authenticate()

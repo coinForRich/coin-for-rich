@@ -28,13 +28,19 @@ def read_symbol_exchange(db: Session) -> List[models.SymbolExchange]:
     return db.query(models.SymbolExchange) \
         .order_by(models.SymbolExchange.exchange.asc()).all()
 
-def read_top500dr(db: Session) -> list:
+def read_geodr(db: Session, limit:int = 500) -> list:
     '''
-    Reads all rows from `top_500_daily_return` database table
+    Reads all rows from `geo_daily_return` database table
+
+    If limit == -1, returns all symbols
     '''
 
-    return db.query(models.top_500_daily_return) \
-        .order_by(models.top_500_daily_return.c.ranking).all()
+    if limit == -1:
+        return db.query(models.geo_daily_return) \
+        .order_by(models.geo_daily_return.c.ranking).all()
+    return db.query(models.geo_daily_return) \
+        .order_by(models.geo_daily_return.c.ranking) \
+        .limit(limit).all()
 
 def read_top10vlmb(db: Session) -> list:
     '''

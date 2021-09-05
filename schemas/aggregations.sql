@@ -236,7 +236,7 @@ SELECT add_continuous_aggregate_policy('ohlcvs_summary_7day',
 -- Dates with no ohlcv data will be filled with the earliest date before
 --    that has ohlcv data
 EXPLAIN (ANALYZE)
-CREATE MATERIALIZED VIEW top_500_daily_return AS
+CREATE MATERIALIZED VIEW geo_daily_return AS
    WITH 
       close_filled AS (
          SELECT
@@ -294,9 +294,9 @@ CREATE MATERIALIZED VIEW top_500_daily_return AS
       *
    FROM avg_daily_return
    ORDER BY gavg_daily_return DESC
-   LIMIT 500;
+   ;
 
-CREATE UNIQUE INDEX top_500_dr_idx ON top_500_daily_return (exchange, base_id, quote_id);
+CREATE UNIQUE INDEX geo_dr_idx ON geo_daily_return (exchange, base_id, quote_id);
 
 -- (4b) The top XXXX commodities (bases)
 --    with the highest trading volume in the past week
@@ -321,7 +321,7 @@ CREATE MATERIALIZED VIEW top_10_vol_bases AS
                ROW_NUMBER() OVER(ORDER BY total_volume DESC) AS ranking
             FROM base_ttl_vol
             ) AS temp
-         )
+      )
       SELECT
          bgrp AS base_id,
          ROUND(SUM(total_volume), 4) AS ttl_vol
@@ -329,3 +329,37 @@ CREATE MATERIALIZED VIEW top_10_vol_bases AS
       GROUP BY bgrp;
 
 CREATE UNIQUE INDEX top_10_vlmb_idx ON top_10_vol_bases (base_id);
+
+-- (4c) Weekly gains/returns
+EXPLAIN (ANALYZE)
+SELECT
+   bucket, exchange, base_id, quote_id,
+   ROUND((close / last_close), 4) AS weekly_return
+FROM (
+   SELECT DISTINCT ON (exchange, base_id, quote_id)
+      bucket, exchange, base_id, quote_id, close,
+      LAG(close, 1)
+         OVER (
+            PARTITION BY exchange, base_id, quote_id
+            ORDER BY bucket ASC
+         ) AS last_close
+   FROM ohlcvs_summary_7day
+   WHERE bucket >= (CURRENT_DATE - interval '3 weeks')
+      AND bucket < (CURRENT_DATE - interval '1 week')
+      AND close <> 0
+   ORDER BY exchange, base_id, quote_id, bucket DESC
+) temp
+WHERE close IS NOT NULL AND last_close IS NOT NULL
+ORDER BY weekly_return DESC;
+
+-- (4c1) Another way, see if it's faster
+SELECT
+   time_bucket('1 week', time) as bucket,
+   exchange, base_id, quote_id,
+   first(open, time) as open_price,
+   last(close, time) as close_price
+FROM ohlcvs
+WHERE time >= (CURRENT_DATE - interval '2 weeks')
+   AND time < (CURRENT_DATE - interval '1 week')
+GROUP BY exchange, base_id, quote_id, bucket
+ORDER BY exchange, base_id, quote_id, bucket DESC;
