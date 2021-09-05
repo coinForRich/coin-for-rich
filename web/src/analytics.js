@@ -28,7 +28,7 @@ function drawTableGeoDR(data) {
         unpack(data, 'exchange'),
         unpack(data, 'base_id'),
         unpack(data, 'quote_id'),
-        unpack(data, 'gavg_daily_return')
+        unpack(data, 'daily_return_pct')
     ]
 
     console.log(data_formatted)
@@ -36,7 +36,7 @@ function drawTableGeoDR(data) {
     let table_data = [{
         type: 'table',
         header: {
-            values: [['ranking'], ['exchange'], ['base'], ['quote'], ['gavg']],
+            values: [['ranking'], ['exchange'], ['base'], ['quote'], ['geometric average return (%)']],
             align: ["left", "center"],
             line: { width: 1, color: '#506784' },
             fill: { color: '#119DFF' },
@@ -55,10 +55,58 @@ function drawTableGeoDR(data) {
         title: "Top 500 Symbols with Highest Daily Returns since Last Week"
     }
 
-    Plotly.newPlot('top500DRTable', table_data, layout)
+    Plotly.newPlot('DRTable', table_data, layout)
 }
 
-// Table for top volume bases traded
+// Table for top 500 weekly return
+async function tableTopWeeklyReturn() {
+    data_loading = true
+    let endpoint =
+        `http://${window.location.host}/api/analytics/wr`
+    fetch(endpoint)
+        .then(response => response.json())
+        .then(resp_data =>
+            drawTableWR(resp_data)
+        )
+};
+
+function drawTableWR(data) {
+    let data_formatted = [
+        unpack(data, 'time'),
+        unpack(data, 'exchange'),
+        unpack(data, 'base_id'),
+        unpack(data, 'quote_id'),
+        unpack(data, 'weekly_return_pct')
+    ]
+
+    console.log(data_formatted)
+
+    let table_data = [{
+        type: 'table',
+        header: {
+            values: [['time'], ['exchange'], ['base'], ['quote'], ['lastest weekly return (%)']],
+            align: ["left", "center"],
+            line: { width: 1, color: '#506784' },
+            fill: { color: '#119DFF' },
+            font: { family: "Arial", size: 12, color: "white" }
+        },
+        cells: {
+            values: data_formatted,
+            align: ["left", "center"],
+            line: { color: "#506784", width: 1 },
+            fill: { color: ['#25FEFD', 'white'] },
+            font: { family: "Arial", size: 11, color: ["#506784"] }
+        }
+    }]
+
+    let layout = {
+        title: "Top 500 Symbols with Highest Weekly Returns since Last Week"
+    }
+
+    Plotly.newPlot('WRTable', table_data, layout)
+}
+
+// Pie chart for top volume bases traded
 async function pieTop10VolumeBase() {
     data_loading = true
     let endpoint =
@@ -91,6 +139,7 @@ function drawPieTop10VLMB(data) {
     Plotly.newPlot('top10VLMBPie', pie_data, layout)
 }
 
+// Histogram of geometric daily return
 async function HistGeoDailyReturn() {
     data_loading = true
     let endpoint =
@@ -102,7 +151,7 @@ async function HistGeoDailyReturn() {
 }
 
 function drawHistGeoDR(data) {
-    let hist_data = unpack(data, 'gavg_daily_return')
+    let hist_data = unpack(data, 'daily_return_pct')
 
     let trace = [{
         x: hist_data,
@@ -117,5 +166,6 @@ function drawHistGeoDR(data) {
 }
 
 tableTopGeoDailyReturn()
+tableTopWeeklyReturn()
 pieTop10VolumeBase()
 HistGeoDailyReturn()

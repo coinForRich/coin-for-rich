@@ -235,7 +235,6 @@ SELECT add_continuous_aggregate_policy('ohlcvs_summary_7day',
 -- Used to create a dashboard ranking daily profitability of a symbol
 -- Dates with no ohlcv data will be filled with the earliest date before
 --    that has ohlcv data
-EXPLAIN (ANALYZE)
 CREATE MATERIALIZED VIEW geo_daily_return AS
    WITH 
       close_filled AS (
@@ -283,17 +282,18 @@ CREATE MATERIALIZED VIEW geo_daily_return AS
             base_id,
             quote_id,
             CAST(
-               POWER(EXP(SUM(ln_daily_factor)), (1.0/COUNT(*))) - 1 AS NUMERIC(10, 4)
-            ) AS gavg_daily_return
+               (POWER(EXP(SUM(ln_daily_factor)), (1.0/COUNT(*))) - 1) * 100
+                  AS NUMERIC(10, 4)
+            ) AS daily_return_pct
          FROM daily_factor
          WHERE ln_daily_factor IS NOT NULL
          GROUP BY exchange, base_id, quote_id
       )
    SELECT
-      ROW_NUMBER() OVER (ORDER BY gavg_daily_return DESC) AS ranking,
+      ROW_NUMBER() OVER (ORDER BY daily_return_pct DESC) AS ranking,
       *
    FROM avg_daily_return
-   ORDER BY gavg_daily_return DESC
+   ORDER BY ranking ASC
    ;
 
 CREATE UNIQUE INDEX geo_dr_idx ON geo_daily_return (exchange, base_id, quote_id);
@@ -331,35 +331,25 @@ CREATE MATERIALIZED VIEW top_10_vol_bases AS
 CREATE UNIQUE INDEX top_10_vlmb_idx ON top_10_vol_bases (base_id);
 
 -- (4c) Weekly gains/returns
-EXPLAIN (ANALYZE)
-SELECT
-   bucket, exchange, base_id, quote_id,
-   ROUND((close / last_close), 4) AS weekly_return
-FROM (
-   SELECT DISTINCT ON (exchange, base_id, quote_id)
-      bucket, exchange, base_id, quote_id, close,
-      LAG(close, 1)
-         OVER (
-            PARTITION BY exchange, base_id, quote_id
-            ORDER BY bucket ASC
-         ) AS last_close
-   FROM ohlcvs_summary_7day
-   WHERE bucket >= (CURRENT_DATE - interval '3 weeks')
-      AND bucket < (CURRENT_DATE - interval '1 week')
-      AND close <> 0
-   ORDER BY exchange, base_id, quote_id, bucket DESC
-) temp
-WHERE close IS NOT NULL AND last_close IS NOT NULL
-ORDER BY weekly_return DESC;
+CREATE MATERIALIZED VIEW weekly_return AS
+   SELECT
+      bucket AS time,
+      exchange, base_id, quote_id,
+      ROUND(((close_price - open_price) / open_price) * 100, 4) AS weekly_return_pct
+   FROM (
+      SELECT DISTINCT ON (exchange, base_id, quote_id)
+         time_bucket('1 week', time) as bucket,
+         exchange, base_id, quote_id,
+         first(open, time) as open_price,
+         last(close, time) as close_price
+      FROM ohlcvs
+      WHERE time >= (CURRENT_DATE - interval '2 weeks')
+         AND time < (CURRENT_DATE - interval '1 week')
+      GROUP BY exchange, base_id, quote_id, bucket
+      ORDER BY exchange, base_id, quote_id, bucket DESC
+   ) temp
+   WHERE close_price IS NOT NULL
+      AND open_price IS NOT NULL and open_price <> 0
+   ORDER BY weekly_return_pct DESC;
 
--- (4c1) Another way, see if it's faster
-SELECT
-   time_bucket('1 week', time) as bucket,
-   exchange, base_id, quote_id,
-   first(open, time) as open_price,
-   last(close, time) as close_price
-FROM ohlcvs
-WHERE time >= (CURRENT_DATE - interval '2 weeks')
-   AND time < (CURRENT_DATE - interval '1 week')
-GROUP BY exchange, base_id, quote_id, bucket
-ORDER BY exchange, base_id, quote_id, bucket DESC;
+CREATE UNIQUE INDEX wr_idx ON weekly_return (exchange, base_id, quote_id, time);

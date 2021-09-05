@@ -6,14 +6,14 @@ from sqlalchemy import (
 )
 from web.db.base import metadata
 
-# Top 500 daily return
+# Geometric average daily return
 geo_daily_return = Table(
     'geo_daily_return', metadata,
     Column('ranking', BigInteger),
     Column('exchange', String(100)),
     Column('base_id', String(20)),
     Column('quote_id', String(20)),
-    Column('gavg_daily_return', Numeric),
+    Column('daily_return_pct', Numeric),
     Index('geo_dr_idx', 'exchange', 'base_id', 'quote_id')
 )
 
@@ -23,4 +23,15 @@ top_10_vol_bases = Table(
     Column('base_id', String()),
     Column('ttl_vol', Numeric),
     Index('top_10_vlmb_idx', 'base_id')
+)
+
+# Weekly return
+weekly_return = Table(
+    'weekly_return', metadata,
+    Column('time', DateTime(True)),
+    Column('exchange', String(100)),
+    Column('base_id', String(20)),
+    Column('quote_id', String(20)),
+    Column('weekly_return_pct', Numeric),
+    Index('wr_idx', 'exchange', 'base_id', 'quote_id', 'time')
 )
