@@ -235,6 +235,7 @@ SELECT add_continuous_aggregate_policy('ohlcvs_summary_7day',
 -- Used to create a dashboard ranking daily profitability of a symbol
 -- Dates with no ohlcv data will be filled with the earliest date before
 --    that has ohlcv data
+DROP MATERIALIZED VIEW geo_daily_return;
 CREATE MATERIALIZED VIEW geo_daily_return AS
    WITH 
       close_filled AS (
@@ -271,66 +272,71 @@ CREATE MATERIALIZED VIEW geo_daily_return AS
             quote_id,
             LN(close/prev_close) AS ln_daily_factor
          FROM prev_close_view
-      ),
+      )
 
       -- SELECT *
       -- FROM daily_factor;
 
-      avg_daily_return AS (
-         SELECT
-            exchange,
-            base_id,
-            quote_id,
-            CAST(
-               (POWER(EXP(SUM(ln_daily_factor)), (1.0/COUNT(*))) - 1) * 100
-                  AS NUMERIC(10, 4)
-            ) AS daily_return_pct
-         FROM daily_factor
-         WHERE ln_daily_factor IS NOT NULL
-         GROUP BY exchange, base_id, quote_id
-      )
    SELECT
-      ROW_NUMBER() OVER (ORDER BY daily_return_pct DESC) AS ranking,
-      *
-   FROM avg_daily_return
-   ORDER BY ranking ASC
-   ;
+      exchange,
+      base_id,
+      quote_id,
+      CAST(
+         (POWER(EXP(SUM(ln_daily_factor)), (1.0/COUNT(*))) - 1) * 100
+            AS NUMERIC(10, 4)
+      ) AS daily_return_pct
+   FROM daily_factor
+   WHERE ln_daily_factor IS NOT NULL
+   GROUP BY exchange, base_id, quote_id
+   ORDER BY daily_return_pct DESC;
 
 CREATE UNIQUE INDEX geo_dr_idx ON geo_daily_return (exchange, base_id, quote_id);
 
--- (4b) The top XXXX commodities (bases)
---    with the highest trading volume in the past week
+-- (4b) The top XXXX commodities
+--    with the highest quoted trading volume in the past week
 -- Can be used for a pie chart
-CREATE MATERIALIZED VIEW top_10_vol_bases AS
-   WITH base_ttl_vol AS ( --Base total vol
-         SELECT base_id, SUM(volume) AS total_volume
+DROP MATERIALIZED VIEW top_20_quoted_vol;
+CREATE MATERIALIZED VIEW top_20_quoted_vol AS
+   WITH
+      ebq_quoted_vol AS (
+         SELECT
+            exchange, base_id, quote_id,
+            close * volume AS quoted_vol
          FROM ohlcvs_summary_7day
          WHERE bucket >= (CURRENT_DATE - interval '8 days')
-         GROUP BY base_id
       ),
-      bgrp_vol AS ( --Base group total vol
+      bq_quoted_vol AS (
+         SELECT
+            base_id, quote_id, SUM(quoted_vol) AS ttl_quoted_vol
+         FROM ebq_quoted_vol
+         GROUP BY base_id, quote_id
+      ),
+      bqgrp_qoute_vol AS (
          SELECT
             (CASE
-               WHEN ranking > 10 THEN 'Other'
-               ELSE base_id
-            END) AS bgrp,
-            total_volume
+               WHEN ranking > 20 THEN 'Other'
+               ELSE concat(base_id, '-', quote_id)
+            END) AS bqgrp,
+            ttl_quoted_vol
          FROM (
             SELECT
                *,
-               ROW_NUMBER() OVER(ORDER BY total_volume DESC) AS ranking
-            FROM base_ttl_vol
-            ) AS temp
+               ROW_NUMBER() OVER(ORDER BY ttl_quoted_vol DESC) AS ranking
+            FROM bq_quoted_vol
+         ) AS temp
+         ORDER BY ttl_quoted_vol DESC
       )
-      SELECT
-         bgrp AS base_id,
-         ROUND(SUM(total_volume), 4) AS ttl_vol
-      FROM bgrp_vol
-      GROUP BY bgrp;
 
-CREATE UNIQUE INDEX top_10_vlmb_idx ON top_10_vol_bases (base_id);
+   SELECT
+      bqgrp,
+      ROUND(SUM(ttl_quoted_vol), 4) AS total_volume
+   FROM bqgrp_qoute_vol
+   GROUP BY bqgrp;
+
+CREATE UNIQUE INDEX top_20_qvlm_idx ON top_20_quoted_vol (bqgrp);
 
 -- (4c) Weekly gains/returns
+DROP MATERIALIZED VIEW weekly_return;
 CREATE MATERIALIZED VIEW weekly_return AS
    SELECT
       bucket AS time,
@@ -343,8 +349,7 @@ CREATE MATERIALIZED VIEW weekly_return AS
          first(open, time) as open_price,
          last(close, time) as close_price
       FROM ohlcvs
-      WHERE time >= (CURRENT_DATE - interval '2 weeks')
-         AND time < (CURRENT_DATE - interval '1 week')
+      WHERE time >= (CURRENT_DATE - interval '1 week')
       GROUP BY exchange, base_id, quote_id, bucket
       ORDER BY exchange, base_id, quote_id, bucket DESC
    ) temp

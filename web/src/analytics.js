@@ -14,7 +14,7 @@ function unpackDate(data, dateKey) {
 async function tableTopGeoDailyReturn() {
     data_loading = true
     let endpoint =
-        `http://${window.location.host}/api/analytics/geodr`
+        `http://${window.location.host}/api/analytics/geodr?limit=500`
     fetch(endpoint)
         .then(response => response.json())
         .then(resp_data =>
@@ -24,7 +24,6 @@ async function tableTopGeoDailyReturn() {
 
 function drawTableGeoDR(data) {
     let data_formatted = [
-        unpack(data, 'ranking'),
         unpack(data, 'exchange'),
         unpack(data, 'base_id'),
         unpack(data, 'quote_id'),
@@ -36,7 +35,7 @@ function drawTableGeoDR(data) {
     let table_data = [{
         type: 'table',
         header: {
-            values: [['ranking'], ['exchange'], ['base'], ['quote'], ['geometric average return (%)']],
+            values: [['exchange'], ['base'], ['quote'], ['geometric average return (%)']],
             align: ["left", "center"],
             line: { width: 1, color: '#506784' },
             fill: { color: '#119DFF' },
@@ -62,7 +61,7 @@ function drawTableGeoDR(data) {
 async function tableTopWeeklyReturn() {
     data_loading = true
     let endpoint =
-        `http://${window.location.host}/api/analytics/wr`
+        `http://${window.location.host}/api/analytics/wr?limit=500`
     fetch(endpoint)
         .then(response => response.json())
         .then(resp_data =>
@@ -107,43 +106,43 @@ function drawTableWR(data) {
 }
 
 // Pie chart for top volume bases traded
-async function pieTop10VolumeBase() {
+async function pieTopQuoteVolume() {
     data_loading = true
     let endpoint =
-        `http://${window.location.host}/api/analytics/top10vlmb`
+        `http://${window.location.host}/api/analytics/top20qvlm`
     fetch(endpoint)
         .then(response => response.json())
         .then(resp_data =>
-            drawPieTop10VLMB(resp_data)
+            drawPieTopQuoteVolume(resp_data)
         )
 };
 
-function drawPieTop10VLMB(data) {
+function drawPieTopQuoteVolume(data) {
     let pie_data = [{
         type: "pie",
-        values: unpack(data, 'ttl_vol'),
-        labels: unpack(data, 'base_id'),
+        values: unpack(data, 'total_volume'),
+        labels: unpack(data, 'bqgrp'),
         textinfo: "label+percent",
         textposition: "outside",
         automargin: true
       }]
     
     let layout = {
-        title: "Top 10 Mostly Traded Base IDs by Volume since Last Week",
+        title: "Top 20 Mostly Traded Base IDs-Quote IDs by Quoted Volume since Last Week",
         height: 800,
         width: 800,
         margin: {"t": 0, "b": 0, "l": 0, "r": 0},
         showlegend: false
     }
 
-    Plotly.newPlot('top10VLMBPie', pie_data, layout)
+    Plotly.newPlot('topQuoteVlm', pie_data, layout)
 }
 
 // Histogram of geometric daily return
 async function HistGeoDailyReturn() {
     data_loading = true
     let endpoint =
-        `http://${window.location.host}/api/analytics/geodr?limit=-1`
+        `http://${window.location.host}/api/analytics/geodr?cutoff_upper_pct=10000&limit=-1`
     fetch(endpoint)
         .then(response => response.json())
         .then(resp_data =>
@@ -165,7 +164,34 @@ function drawHistGeoDR(data) {
     Plotly.newPlot('HistGeoDR', trace, layout)
 }
 
+// Histogram of weekly return
+async function HistWeeklyReturn() {
+    data_loading = true
+    let endpoint =
+        `http://${window.location.host}/api/analytics/wr?cutoff_upper_pct=10000&limit=-1`
+    fetch(endpoint)
+        .then(response => response.json())
+        .then(resp_data =>
+            drawHistWR(resp_data))
+}
+
+function drawHistWR(data) {
+    let hist_data = unpack(data, 'weekly_return_pct')
+
+    let trace = [{
+        x: hist_data,
+        type: 'histogram',
+    }]
+
+    let layout = {
+        title: "Histogram of Weekly Return since Last Week"
+    }
+
+    Plotly.newPlot('HistWR', trace, layout)
+}
+
 tableTopGeoDailyReturn()
 tableTopWeeklyReturn()
-pieTop10VolumeBase()
+pieTopQuoteVolume()
 HistGeoDailyReturn()
+HistWeeklyReturn()

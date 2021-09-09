@@ -19,4 +19,3 @@ async def get_symbol_exchange(
     '''
 
     return readers.read_symbol_exchange(db)
-

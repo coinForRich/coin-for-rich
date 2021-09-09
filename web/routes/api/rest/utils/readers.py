@@ -28,41 +28,99 @@ def read_symbol_exchange(db: Session) -> List[models.SymbolExchange]:
     return db.query(models.SymbolExchange) \
         .order_by(models.SymbolExchange.exchange.asc()).all()
 
-def read_geodr(db: Session, limit: int = 500) -> list:
+def read_geodr(
+        db: Session,
+        cutoff_upper_pct: Union[int, None],
+        cutoff_lower_pct: Union[int, None],
+        limit: int = 500
+    ) -> list:
     '''
     Reads all rows from `geo_daily_return` database table
 
     If limit == -1, returns all symbols
     '''
 
+    if cutoff_upper_pct and cutoff_lower_pct:
+        fromdb = db.query(models.geo_daily_return) \
+            .filter(
+                models.geo_daily_return.c.daily_return_pct \
+                    < cutoff_upper_pct,
+                models.geo_daily_return.c.daily_return_pct \
+                    > cutoff_lower_pct)
+    elif cutoff_upper_pct:
+        fromdb = db.query(models.geo_daily_return) \
+            .filter(
+                models.geo_daily_return.c.daily_return_pct \
+                    < cutoff_upper_pct)
+    elif cutoff_lower_pct:
+        fromdb = db.query(models.geo_daily_return) \
+            .filter(
+                models.geo_daily_return.c.daily_return_pct \
+                    > cutoff_lower_pct)
+    else:
+        fromdb = db.query(models.geo_daily_return)
+
     if limit == -1:
-        return db.query(models.geo_daily_return) \
-        .order_by(models.geo_daily_return.c.ranking).all()
-    return db.query(models.geo_daily_return) \
-        .order_by(models.geo_daily_return.c.ranking) \
+        return fromdb \
+        .order_by(models.geo_daily_return.c.daily_return_pct.desc()).all()
+    return fromdb \
+        .order_by(models.geo_daily_return.c.daily_return_pct.desc()) \
         .limit(limit).all()
 
-def read_wr(db: Session, limit: int = 500) -> list:
+def read_wr(
+        db: Session,
+        cutoff_upper_pct: Union[int, None],
+        cutoff_lower_pct: Union[int, None],
+        limit: int = 500
+    ) -> list:
     '''
     Reads all rows from `weekly_return` database table
 
-    If limit == -1, returns all symbols
+    :params:
+        `limit`: limit number of rows
+        `cutoff_upper_pct`: upper cutoff for extreme values
+        `cutoff_lower_pct`: lower cutoff for extreme values
+
+    If `limit` == -1, returns all symbols
+    
+    Default limit of 500 rows
     '''
 
+    if cutoff_upper_pct and cutoff_lower_pct:
+        fromdb = db.query(models.weekly_return) \
+            .filter(
+                models.weekly_return.c.weekly_return_pct \
+                    < cutoff_upper_pct,
+                models.weekly_return.c.weekly_return_pct \
+                    > cutoff_lower_pct)
+    elif cutoff_upper_pct:
+        fromdb = db.query(models.weekly_return) \
+            .filter(
+                models.weekly_return.c.weekly_return_pct \
+                    < cutoff_upper_pct)
+    elif cutoff_lower_pct:
+        fromdb = db.query(models.weekly_return) \
+            .filter(
+                models.weekly_return.c.weekly_return_pct \
+                    > cutoff_lower_pct)
+    else:
+        fromdb = db.query(models.weekly_return)
+    
+    
     if limit == -1:
-        return db.query(models.weekly_return) \
-        .order_by(models.weekly_return.c.weekly_return_pct.desc()).all()
-    return db.query(models.weekly_return) \
+        return fromdb \
+            .order_by(models.weekly_return.c.weekly_return_pct.desc()).all()
+    return fromdb \
         .order_by(models.weekly_return.c.weekly_return_pct.desc()) \
         .limit(limit).all()
 
-def read_top10vlmb(db: Session) -> list:
+def read_top20qvlm(db: Session) -> list:
     '''
-    Reads all rows from `top_10_vol_bases` database table
+    Reads all rows from `top_20_quoted_vol` database table
     '''
 
-    return db.query(models.top_10_vol_bases) \
-        .order_by(models.top_10_vol_bases.c.ttl_vol.desc()).all()
+    return db.query(models.top_20_quoted_vol) \
+        .order_by(models.top_20_quoted_vol.c.total_volume.desc()).all()
 
 def read_ohlcvs(
         db: Session,

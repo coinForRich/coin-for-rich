@@ -1,0 +1,57 @@
+input#input_searchbox {
+    /* -webkit-appearance: none;
+    -moz-appearance: none; */
+    appearance: none;
+    border-width: 0;
+    font-size: 14px;
+    outline: none;
+    /* padding: 10px 20px; */
+    text-align: left;
+    box-shadow: 0 0 0 2px #000000;
+    border-radius: 5px;
+    /* position: fixed; */
+    /* left: 50%; */
+    /* top: 25%; */
+    transform: translate(0%, -25%);
+    width: 200px;
+    /* background-color: #a9ecbd; */
+  }
+  
+  input#input_searchbox.dropdown {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  
+  #ebq_selector {
+    position: fixed;
+    box-shadow: 0 0 0 2px #000000;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    margin-top: 2px;
+    max-height: 300px;
+    overflow: auto;
+    z-index: 1000;
+  }
+  
+  #ebq_selector button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
+    font-size: 14px;
+    padding: 10px 20px; 
+    cursor: pointer;
+    border: none;
+    display: block;
+    background-color: #ffffff;
+    margin: 0;
+    border-radius: 5px;
+    /* background-color: transparent; */
+    border-width: 0;
+    width: 100%;
+    text-align: left;
+  }
+  
+  #ebq_selector button:hover {
+    background-color: #f2f2f2;
+  }

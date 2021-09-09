@@ -7,4 +7,4 @@ from .ohlcvs import (
 from .symexch import SymbolExchange
 from .ohlcvs_errors import OhlcvsError
 from .testtable import TestTable
-from .analytics import geo_daily_return, top_10_vol_bases, weekly_return
+from .analytics import geo_daily_return, top_20_quoted_vol, weekly_return

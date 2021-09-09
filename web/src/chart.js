@@ -1,110 +1,202 @@
-var current_exchange = document.getElementById("exchange").textContent
-var current_base_id = document.getElementById("base_id").textContent
-var current_quote_id = document.getElementById("quote_id").textContent
-var current_end = Date.now()
-var current_start = current_end - 60000 * 60 * 24
+var current_exchange = null
+var current_base_id = null
+var current_quote_id = null
+var current_end = null
+var current_start = null
 
 // Chart time periods
-var periods = ['1h', '6h', '1D', '3D', '7D', '1M', '3M', '1Y', '3Y']
+var periods = null
 
 // Mapping of time period to data interval
-var periodIntervalMap = new Map([
-    ['1h', '1m'],
-    ['6h', '5m'],
-    ['1D', '15m'],
-    ['3D', '30m'],
-    ['7D', '1h'],
-    ['1M', '6h'],
-    ['3M', '12h'],
-    ['1Y', '1D'],
-    ['3Y', '7D']
-])
+var periodIntervalMap = null
 
 // Mapping of time period to number of intervals in each period
 //  e.g.: 1h has 60 1-minute intervals; 6h has 72 5-minute intervals
-var periodNumIntervalMap = new Map([
-    ['1h', 60],
-    ['6h', 72],
-    ['1D', 96],
-    ['3D', 144],
-    ['7D', 168],
-    ['1M', 120],
-    ['3M', 180],
-    ['1Y', 365],
-    ['3Y', 157]
-])
+var periodNumIntervalMap = null
 
 // Mapping of interval to number of milliseconds per interval
 //  Used to get historical data, hence the minus
-var intervalPreviousMillisecondsMap = new Map([
-    ['1m', -60000],
-    ['5m', -60000 * 5],
-    ['15m', -60000 * 15],
-    ['30m', -60000 * 30],
-    ['1h', -60000 * 60],
-    ['6h', -60000 * 60 * 6],
-    ['12h', -60000 * 60 * 12],
-    ['1D', -60000 * 60 * 24],
-    ['7D', -60000 * 60 * 24 * 7]
-])
+var intervalPreviousMillisecondsMap = null
 
 // Mapping of time period to the corresponding data array
-var dataPeriodMap = new Map([
-    ['1h', null],
-    ['6h', null],
-    ['1D', null],
-    ['3D', null],
-    ['7D', null],
-    ['1M', null],
-    ['3M', null],
-    ['1Y', null],
-    ['3Y', null]
-])
+var dataPeriodMap = null
 
 // Mapping of SMA to the corresponding data array
-var SMAPeriodMap = new Map([
-    ['1h', null],
-    ['6h', null],
-    ['1D', null],
-    ['3D', null],
-    ['7D', null],
-    ['1M', null],
-    ['3M', null],
-    ['1Y', null],
-    ['3Y', null]
-])
+var SMAPeriodMap = null
+
+// Mapping of volume data
+var volumePeriodMap = null
 
 // Mapping of time period to the corresponding latest data bar
-var latestBarPeriodMap = new Map([
-    ['1h', null],
-    ['6h', null],
-    ['1D', null],
-    ['3D', null],
-    ['7D', null],
-    ['1M', null],
-    ['3M', null],
-    ['1Y', null],
-    ['3Y', null]
-])
+var latestBarPeriodMap = null
 
-var current_period = '1h'
-var current_interval = periodIntervalMap.get(current_period)
+var current_period = null
+var current_interval = null
 var current_data = null
 var current_historical = null
 var latest_bar = null
-var ws_hold = false
-var drawing_processes = 0
+var ws_hold = null
+var drawing_processes = null
 var current_sma = null
-var default_SMA = 10 // default SMA length
+var default_SMA = null // default SMA length
+var current_vol = null
+var candles_ws = null
+
+function resetAll() {
+    // WS
+    if (
+        candles_ws !== null &&
+        current_exchange !== null &&
+        current_base_id !== null &&
+        current_quote_id !== null
+    ) {
+        console.log("Unsubscribing due to reset")
+        let unsubscribe_msg = JSON.stringify({
+            event_type: "unsubscribe",
+            data_type: "ohlcv",
+            exchange: current_exchange,
+            base_id: current_base_id,
+            quote_id: current_quote_id,
+            interval: current_interval
+        })
+
+        console.log("Unsubscribing due to reset")
+        candles_ws.send(unsubscribe_msg)
+    }
+    candles_ws = null
+
+    current_exchange = null
+    current_base_id = null
+    current_quote_id = null
+    current_end = Date.now()
+    current_start = current_end - 60000 * 60 * 24
+
+    // Chart time periods
+    periods = ['1h', '6h', '1D', '3D', '7D', '1M', '3M', '1Y', '3Y']
+
+    // Mapping of time period to data interval
+    periodIntervalMap = new Map([
+        ['1h', '1m'],
+        ['6h', '5m'],
+        ['1D', '15m'],
+        ['3D', '30m'],
+        ['7D', '1h'],
+        ['1M', '6h'],
+        ['3M', '12h'],
+        ['1Y', '1D'],
+        ['3Y', '7D']
+    ])
+
+    // Mapping of time period to number of intervals in each period
+    //  e.g.: 1h has 60 1-minute intervals; 6h has 72 5-minute intervals
+    periodNumIntervalMap = new Map([
+        ['1h', 60],
+        ['6h', 72],
+        ['1D', 96],
+        ['3D', 144],
+        ['7D', 168],
+        ['1M', 120],
+        ['3M', 180],
+        ['1Y', 365],
+        ['3Y', 157]
+    ])
+
+    // Mapping of interval to number of milliseconds per interval
+    //  Used to get historical data, hence the minus
+    intervalPreviousMillisecondsMap = new Map([
+        ['1m', -60000],
+        ['5m', -60000 * 5],
+        ['15m', -60000 * 15],
+        ['30m', -60000 * 30],
+        ['1h', -60000 * 60],
+        ['6h', -60000 * 60 * 6],
+        ['12h', -60000 * 60 * 12],
+        ['1D', -60000 * 60 * 24],
+        ['7D', -60000 * 60 * 24 * 7]
+    ])
+
+    // Mapping of time period to the corresponding data array
+    dataPeriodMap = new Map([
+        ['1h', null],
+        ['6h', null],
+        ['1D', null],
+        ['3D', null],
+        ['7D', null],
+        ['1M', null],
+        ['3M', null],
+        ['1Y', null],
+        ['3Y', null]
+    ])
+
+    // Mapping of SMA to the corresponding data array
+    SMAPeriodMap = new Map([
+        ['1h', null],
+        ['6h', null],
+        ['1D', null],
+        ['3D', null],
+        ['7D', null],
+        ['1M', null],
+        ['3M', null],
+        ['1Y', null],
+        ['3Y', null]
+    ])
+
+    // Mapping of volume data
+    volumePeriodMap = new Map([
+        ['1h', null],
+        ['6h', null],
+        ['1D', null],
+        ['3D', null],
+        ['7D', null],
+        ['1M', null],
+        ['3M', null],
+        ['1Y', null],
+        ['3Y', null]
+    ])
+
+    // Mapping of time period to the corresponding latest data bar
+    latestBarPeriodMap = new Map([
+        ['1h', null],
+        ['6h', null],
+        ['1D', null],
+        ['3D', null],
+        ['7D', null],
+        ['1M', null],
+        ['3M', null],
+        ['1Y', null],
+        ['3Y', null]
+    ])
+
+    current_period = '1h'
+    current_interval = periodIntervalMap.get(current_period)
+    current_data = null
+    current_historical = null
+    latest_bar = null
+    ws_hold = false
+    drawing_processes = 0
+    current_sma = null
+    default_SMA = 10 // default SMA length
+    current_vol = null    
+}
+
+// Reset
+resetAll()
 
 // Candlesticks
 var chartDiv = document.getElementById('chart')
-var candles_ws = null
 var chartWidth = 1250
 var chartHeight = 450
 var chart = LightweightCharts.createChart(chartDiv, {
     width: chartWidth,
     height: chartHeight,
+    // leftPriceScale: {
+	// 	visible: true,
+    //     borderColor: 'rgba(197, 203, 206, 1)',
+	// },
+    rightPriceScale: {
+		visible: true,
+        borderColor: 'rgba(197, 203, 206, 1)',
+	},
     layout: {
         backgroundColor: '#ffffff',
         textColor: 'rgba(33, 56, 77, 1)',
@@ -119,11 +211,11 @@ var chart = LightweightCharts.createChart(chartDiv, {
     },
     timeScale: {
         timeVisible: true,
-        secondsVisible: false,
+        secondsVisible: true,
     },
 })
 chartDiv.style.position = 'relative'
-var candleSeries = chart.addCandlestickSeries()
+var candleSeries = chart.addCandlestickSeries({priceScaleId: 'right'})
 var timeScale = chart.timeScale()
 var updateChartTimer = null
 
@@ -153,6 +245,19 @@ chartDiv.appendChild(smaLegend)
 smaLegend.style.display = 'block'
 smaLegend.style.left = 10 + 'px'
 smaLegend.style.top = 10 + 'px'
+
+// Volume series
+// var volumeSeries = chart.addHistogramSeries({
+// 	color: '#26a69a',
+// 	priceFormat: {
+// 		type: 'volume',
+// 	},
+// 	priceScaleId: 'left',
+// 	scaleMargins: {
+// 		top: 0.8,
+// 		bottom: 0,
+// 	},
+// })
 
 // Go-to-real-time button
 var width = 27
@@ -192,18 +297,18 @@ function getTimestampSteps(milliseconds, millisecondsPerStep, steps) {
 // Calculates Simple Moving Average
 function calculateSMA(data, count) {
     var avg = function (data) {
-        var sum = 0;
+        var sum = 0
         for (var i = 0; i < data.length; i++) {
-            sum += data[i].close;
+            sum += data[i].close
         }
-        return sum / data.length;
-    };
-    var result = [];
-    for (var i = count - 1, len = data.length; i < len; i++) {
-        var val = avg(data.slice(i - count + 1, i));
-        result.push({ time: data[i].time, value: val });
+        return sum / data.length
     }
-    return result;
+    var result = []
+    for (var i = count - 1, len = data.length; i < len; i++) {
+        var val = avg(data.slice(i - count + 1, i))
+        result.push({ time: data[i].time, value: val })
+    }
+    return result
 }
 
 // Set SMA legend text
@@ -244,9 +349,23 @@ function setOHLCLegendText(priceValue) {
     }
 }
 
+// Gen volume data from OHLCV data
+function genVolumeData (ohlcvData) {
+    result = []
+    for (let bar of ohlcvData) {
+        result.push({
+            'time': bar.time,
+            'value': bar.volume,
+            'color': bar.open > bar.close ? '#f5a8a8' : '#94d1bc'
+        })
+    }
+    return result
+};
+
 // Time range switcher
 function createSimpleSwitcher(items, activeItem, activeItemChangedCallback) {
     var switcherElement = document.createElement('div')
+    switcherElement.id = 'timerange_switcher'
     switcherElement.classList.add('switcher')
 
     var intervalElements = items.map(function (item) {
@@ -277,93 +396,113 @@ function createSimpleSwitcher(items, activeItem, activeItemChangedCallback) {
 
 // Click period callback
 function syncToInterval(period) {
-    // current_data = null
-    // current_period = period
-    let interval = periodIntervalMap.get(period)
-    let existing_data = dataPeriodMap.get(period)
-    let end = null
-    let start = null
-    let historical = null
+    if (!(
+        current_exchange === null ||
+        current_base_id === null ||
+        current_quote_id === null
+        )
+    ) {
+        let interval = periodIntervalMap.get(period)
+        let existing_data = dataPeriodMap.get(period)
+        let end = null
+        let start = null
+        let historical = null
 
-    ws_hold = true
+        ws_hold = true
 
-    console.log(period)
-    console.log(interval)
+        console.log(period)
+        console.log(interval)
 
-    if (candleSeries) {
+        if (candleSeries) {
+            if (candles_ws !== null) {
+                let unsubscribe_msg = JSON.stringify({
+                    event_type: "unsubscribe",
+                    data_type: "ohlcv",
+                    exchange: current_exchange,
+                    base_id: current_base_id,
+                    quote_id: current_quote_id,
+                    interval: current_interval
+                })
+                candles_ws.send(unsubscribe_msg)
+            }
+
+            // Candlesticks
+            chart.removeSeries(candleSeries)
+            candleSeries = null
+            candleSeries = chart.addCandlestickSeries({ priceScaleId: 'right' })
+
+            // SMA
+            chart.removeSeries(smaLine)
+            smaLine = null
+            smaLine = chart.addLineSeries({
+                color: 'rgba(4, 111, 232, 1)',
+                lineWidth: 2,
+            });
+
+            // Volume
+            // chart.removeSeries(volumeSeries)
+            // volumeSeries = null
+            // volumeSeries = chart.addHistogramSeries({
+            //     color: '#26a69a',
+            //     priceFormat: {
+            //         type: 'volume',
+            //     },
+            //     priceScaleId: 'left',
+            //     scaleMargins: {
+            //         top: 0.9,
+            //         bottom: 0.9,
+            //     },
+            // })
+        }
+
+        if (existing_data === null) {
+            end = Date.now()
+            // start = getTimestampSteps(
+            //     end,
+            //     intervalPreviousMillisecondsMap.get(interval),
+            //     periodNumIntervalMap.get(period))
+            start = null
+            historical = true
+        }
+        else {
+            console.log("reusing existing data")
+            let last_datum = existing_data[existing_data.length - 1]
+            let last_timestamp = last_datum.time * 1000
+
+            end = Date.now()
+            start = getTimestampSteps(
+                last_timestamp,
+                (-intervalPreviousMillisecondsMap.get(interval)),
+                1)
+            historical = false
+        }
+
+        // Update OHLC and draw/re-draw
+        readRestDrawOHLC(
+            current_exchange, current_base_id,
+            current_quote_id, start,
+            end, interval,
+            historical, period, true
+        )
+
         if (candles_ws !== null) {
-            let unsubscribe_msg = JSON.stringify({
-                event_type: "unsubscribe",
+            let subscribe_msg = JSON.stringify({
+                event_type: "subscribe",
                 data_type: "ohlcv",
                 exchange: current_exchange,
                 base_id: current_base_id,
                 quote_id: current_quote_id,
-                interval: current_interval
+                interval: interval,
+                mls: false
             })
-            candles_ws.send(unsubscribe_msg)
+            candles_ws.send(subscribe_msg)
         }
-
-        // Candlesticks
-        chart.removeSeries(candleSeries)
-        candleSeries = null
-        candleSeries = chart.addCandlestickSeries()
-
-        // SMA
-        chart.removeSeries(smaLine)
-        smaLine = null
-        smaLine = chart.addLineSeries({
-            color: 'rgba(4, 111, 232, 1)',
-            lineWidth: 2,
-        });
-    }
-
-    if (existing_data === null) {
-        end = Date.now()
-        // start = getTimestampSteps(
-        //     end,
-        //     intervalPreviousMillisecondsMap.get(interval),
-        //     periodNumIntervalMap.get(period))
-        start = null
-        historical = true
-    }
-    else {
-        console.log("reusing existing data")
-        let last_datum = existing_data[existing_data.length - 1]
-        let last_timestamp = last_datum.time * 1000
-
-        end = Date.now()
-        start = getTimestampSteps(
-            last_timestamp,
-            (-intervalPreviousMillisecondsMap.get(interval)),
-            1)
-        historical = false
-    }
-
-    // Update OHLC and draw/re-draw
-    readRestDrawOHLC(
-        current_exchange, current_base_id,
-        current_quote_id, start,
-        end, interval,
-        historical, period, true
-    )
-
-    if (candles_ws !== null) {
-        let subscribe_msg = JSON.stringify({
-            event_type: "subscribe",
-            data_type: "ohlcv",
-            exchange: current_exchange,
-            base_id: current_base_id,
-            quote_id: current_quote_id,
-            interval: interval,
-            mls: false
-        })
-        candles_ws.send(subscribe_msg)
-    }
-    else {
-        readWSUpdateOHLC(
-            current_exchange, current_base_id,
-            current_quote_id, interval, period
-        )
+        else {
+            readWSUpdateOHLC(
+                current_exchange, current_base_id,
+                current_quote_id, interval, period
+            )
+        }
     }
 };
 
@@ -402,6 +541,10 @@ function saveDrawCandleSeries(candle_data, history, period) {
             let temp_sma = calculateSMA(temp_data, default_SMA)
             SMAPeriodMap.set(period, temp_sma)
 
+            // Generate volume data for new data
+            let temp_vol = genVolumeData(temp_data)
+            volumePeriodMap.set(period, temp_vol)
+
             // // Update current_data and latest_bar according to current_period
             // current_data = dataPeriodMap.get(current_period)
             // latest_bar = current_data[current_data.length - 1]
@@ -425,6 +568,10 @@ function saveDrawCandleSeries(candle_data, history, period) {
     // Update current_sma
     current_sma = SMAPeriodMap.get(current_period)
     smaLine.setData(current_sma)
+
+    // Update current vol
+    // current_vol = volumePeriodMap.get(current_period)
+    // volumeSeries.setData(current_vol)
 
     // DO NOT reset variables
     //  if there are > 1 drawing processes
@@ -479,6 +626,12 @@ async function readRestDrawOHLC(exch, bid, qid, s, e, i, history, period, period
             setSMALegendText(current_sma[current_sma.length - 1].value)
         }
 
+        // Volume
+        // current_vol = volumePeriodMap.get(period)
+        // if (current_vol !== null) {
+        //     volumeSeries.setData(current_vol)
+        // }
+
         await getOHLCVEndpoint(exch, bid, qid, s, e, i, history, period)
     }
     else {
@@ -491,6 +644,7 @@ async function readRestDrawOHLC(exch, bid, qid, s, e, i, history, period, period
 // Read data from ohlc WS endpoint
 function readWSUpdateOHLC(exch, bid, qid, i, period) {
     if (candles_ws === null) {
+        console.log("Creating a new websocket client")
         candles_ws = new WebSocket(`ws://${window.location.host}/api/ohlcvs`)
     }
 
