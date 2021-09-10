@@ -83,3 +83,7 @@ At the project root folder, run:
 ## Explore
 - Docs are stored in the `docs` folder
 - Commands are stored in the `commands` folder
+
+## Docker
+### Database
+`psql -U postgres -d postgres -h coin-timescaledb -W`

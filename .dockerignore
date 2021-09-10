@@ -8,7 +8,6 @@ run/
 */beat/
 local*/
 local_*.sh
-.env
 .bak
 .dat
 .dir

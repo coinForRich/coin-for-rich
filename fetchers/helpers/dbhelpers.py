@@ -110,8 +110,6 @@ def psql_bulk_insert(
                         table = sql.Identifier(table)
                     )
 
-                logging.info(insert_query.as_string(conn))
-
             elif insert_ignoredup_query is not None:
                 logging.info(
                     f"PSQL Bulk Insert: Performing insert without update to table {table}"

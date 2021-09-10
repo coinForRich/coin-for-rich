@@ -1,1 +1,0 @@
-docker exec coin-timescaledb psql postgresql://yourUserName:yourPostgresPassword@localhost:5432/postgres -c 'REFRESH MATERIALIZED VIEW top_500_daily_return;'

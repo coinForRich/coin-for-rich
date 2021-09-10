@@ -1,0 +1,36 @@
+version: "3"
+services: 
+    psql:
+        image: timescale/timescaledb:2.3.0-pg13
+        container_name: coin-timescaledb
+        environment:
+          - POSTGRES_PASSWORD=icecreamyummy
+        volumes:
+          - ./local_data/_postgresdata:/var/lib/postgresql/data
+        ports:
+          - 5432:5432
+    redis:
+        image: redis:6.2
+        container_name: coin-redis
+        command: redis-server --appendonly yes --requirepass icecreamyummy
+        volumes:
+          - ./local_data/_redisdata:/data
+        ports:
+          - 6379:6379
+    coin_app:
+        build: .
+        container_name: coin-app
+        command: bash
+        stdin_open: true
+        tty: true
+        environment:
+          - POSTGRES_HOST=coin-timescaledb
+          - POSTGRES_PASSWORD=icecreamyummy
+          - REDIS_HOST=coin-redis
+          - REDIS_PASSWORD=icecreamyummy
+          - COMMON_HOST=localhost          
+        depends_on: 
+          - psql
+          - redis
+        volumes:
+          - ./logs:/coin-for-rich/logs

@@ -5,14 +5,15 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 from dogpile.cache.region import make_region
 from common.config.constants import (
-    HOST, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB,
+    COMMON_HOST, POSTGRES_HOST, POSTGRES_USER,
+    POSTGRES_PASSWORD, POSTGRES_DB,
     REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
 )
 from web.routes.api.rest.utils import caching
 
 
 # Connection and session
-SQLALCHEMY_DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{HOST}/{POSTGRES_DB}"
+SQLALCHEMY_DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL
     # connect_args={"check_same_thread": False}
