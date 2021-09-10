@@ -9,7 +9,7 @@ from typing import Iterable
 from io import StringIO
 
 
-def log_psycopg2_exc(err: Exception):
+def log_psycopg2_exc(err: Exception) -> None:
     '''
     Logs details about a psycopg2 Exception
     '''
@@ -32,15 +32,15 @@ def log_psycopg2_exc(err: Exception):
     logging.error("pgcode:", err.pgcode, "\n")
 
 def psql_bulk_insert(
-    conn,
-    rows: Iterable,
-    table: str,
-    insert_update_query: str = None,
-    insert_ignoredup_query: str = None,
-    unique_cols: tuple = None,
-    update_cols: tuple = None,
-    cursor = None
-):
+        conn,
+        rows: Iterable,
+        table: str,
+        insert_update_query: str = None,
+        insert_ignoredup_query: str = None,
+        unique_cols: tuple = None,
+        update_cols: tuple = None,
+        cursor = None
+    ) -> bool:
     '''
     Bulk inserts `rows` to `table` using StringIO and CSV;
         
@@ -64,59 +64,76 @@ def psql_bulk_insert(
         `unique_cols`: tuple of strings with column names where unique constraint exists
         `update_cols`: tuple of strings with column names to update data on
         `cursor`: psycopg2 cursor obj (optional)
+
+    Note: `insert_update_query` is prioritized over `insert_ignoredup_query`
+        if both are entered
     '''
 
-    if not cursor:
-        cursor = conn.cursor()
-    try:
-        buffer = StringIO()
-        writer = csv.writer(buffer)
-        writer.writerows(rows)
-        buffer.seek(0)
-        cursor.copy_from(buffer, table, sep=",", null="")
-        conn.commit()
-        print(f'PSQL Bulk Insert: Successfully copied rows to table {table}')
-        if cursor:
+    if insert_update_query is None and insert_ignoredup_query is None:
+        # Raise exception immediately
+        raise ValueError(
+            "PSQL Bulk Insert: Either insert-update query or insert-ignoredup query must be provided"
+        )
+    else:
+        if not cursor:
+            cursor = conn.cursor()
+        try:
+            buffer = StringIO()
+            writer = csv.writer(buffer)
+            writer.writerows(rows)
+            buffer.seek(0)
+            cursor.copy_from(buffer, table, sep=",", null="")
+            conn.commit()
+            logging.info(f'PSQL Bulk Insert: Successfully copied rows to table {table}')
+            return True
+        except psycopg2.IntegrityError:
+            conn.rollback()
+            if insert_update_query is not None:
+                logging.info(
+                    f"PSQL Bulk Insert: Performing insert with update to table {table}"
+                )
+                ex_cols = ("excluded" for _ in update_cols)
+
+                if len(update_cols) > 1:
+                    insert_query = sql.SQL(insert_update_query).format(
+                        sql.SQL(", ").join(map(sql.Identifier, unique_cols)),
+                        sql.SQL("(") + sql.SQL(", ").join(map(sql.Identifier, update_cols)) + sql.SQL(")"),
+                        sql.SQL("(") + sql.SQL(", ").join(map(sql.Identifier, ex_cols, update_cols)) + sql.SQL(")"),
+                        table = sql.Identifier(table)
+                    )
+                else:
+                    # This should enable single-column updates
+                    insert_query = sql.SQL(insert_update_query).format(
+                        sql.SQL(", ").join(map(sql.Identifier, unique_cols)),
+                        sql.SQL(", ").join(map(sql.Identifier, update_cols)),
+                        sql.SQL(", ").join(map(sql.Identifier, ex_cols, update_cols)),
+                        table = sql.Identifier(table)
+                    )
+
+                logging.info(insert_query.as_string(conn))
+
+            elif insert_ignoredup_query is not None:
+                logging.info(
+                    f"PSQL Bulk Insert: Performing insert without update to table {table}"
+                )
+                insert_query = sql.SQL(insert_ignoredup_query).format(
+                    table = sql.Identifier(table)
+                )
+            extras.execute_values(cursor, insert_query, rows, page_size=1000)
+            conn.commit()
+            logging.info(f'PSQL Bulk Insert: Successfully inserted rows to table {table}')
+            return True
+        # Is it fine to catch ANY exception?
+        except Exception as exc:
+            conn.rollback()
+            logging.warning(f'PSQL Bulk Insert: EXCEPTION: \n')
+            log_psycopg2_exc(exc)
+            return False
+            # Not want to raise exception here
+            #   because this function is used in mass-fetching
+            # raise exc
+        finally:
             cursor.close()
-        return True
-    except psycopg2.IntegrityError:
-        conn.rollback()
-        if insert_update_query is not None:
-            logging.info("PSQL Bulk Insert: Performing insert with update")
-            ex_cols = ("excluded" for _ in update_cols)
-            insert_query = sql.SQL(insert_update_query).format(
-                sql.SQL(", ").join(map(sql.Identifier, unique_cols)),
-                sql.SQL(", ").join(map(sql.Identifier, update_cols)),
-                sql.SQL(", ").join(map(sql.Identifier, ex_cols, update_cols)),
-                table = sql.Identifier(table)
-            )
-        elif insert_ignoredup_query is not None:
-            logging.info("PSQL Bulk Insert: Performing insert without update")
-            insert_query = sql.SQL(insert_ignoredup_query).format(
-                table = sql.Identifier(table)
-            )
-        else:
-            if cursor:
-                cursor.close()
-            raise ValueError(
-                "PSQL Bulk Insert: Either insert-update query or insert-ignoredup query must be provided"
-            )
-        extras.execute_values(cursor, insert_query, rows, page_size=1000)
-        conn.commit()
-        logging.info(f'PSQL Bulk Insert: Successfully inserted rows to table {table}')
-        if cursor:
-            cursor.close()
-        return True
-    #TODO: is it fine to catch ANY exception?
-    except Exception as exc:
-        conn.rollback()
-        logging.warning(f'PSQL Bulk Insert: EXCEPTION: \n')
-        log_psycopg2_exc(exc)
-        if cursor:
-            cursor.close()
-        return False
-        # Not want to raise exception because this function is used in mass-fetching
-        # raise exc
 
 def psql_query_format(query, *args):
     '''

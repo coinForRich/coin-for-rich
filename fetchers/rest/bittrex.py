@@ -76,7 +76,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         Saves it in self.symbol_data
         '''
 
-        self.symbol_data = {}
+        # self.symbol_data = {}
         # Only needs a temporary client
         # This code can block (non-async) as it's needed for future fetching
         with httpx.Client(timeout=None) as client:

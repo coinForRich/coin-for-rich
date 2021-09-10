@@ -51,3 +51,11 @@ def test_analytics():
     # Top 20 Volume
     response = client.get("/api/analytics/top20qvlm")
     assert response.status_code == 200
+
+def test_api():
+    '''
+    Tests getting from API
+    '''
+
+    response = client.get("/api/symbol-exchange")
+    assert response.status_code == 200

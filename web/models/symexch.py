@@ -11,7 +11,6 @@ from web.db.base import Base, metadata
 class SymbolExchange(Base):
     __tablename__ = SYMBOL_EXCHANGE_TABLE
     __table_args__ = (
-        Index('symexch_exch_sym_idx', 'exchange', 'symbol', unique=True),
         Index('symexch_exch_idx', 'exchange'),
         Index('symexch_base_idx', 'base_id'),
         Index('symexch_quote_idx', 'quote_id')

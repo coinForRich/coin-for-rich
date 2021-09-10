@@ -197,7 +197,7 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
         # Only needs a temporary httpx client
         # This code can block (non-async) as it's needed for future fetching
         # Only processes trading symbols
-        self.symbol_data = {}
+        # self.symbol_data = {}
         with httpx.Client(timeout=None) as client:
             self.rw_manager.check(10)
             exch_info_resp = client.get(f'{BASE_URL}/exchangeInfo') \

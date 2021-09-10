@@ -17,19 +17,27 @@ WITH
             LIMIT 1
          ) AS temp
    ),
-   ebq_stale AS (
-      SELECT *
-      FROM ebq_timediff
-      WHERE diff > INTERVAL '1 day'
+   ebq_active AS (
+      SELECT
+         e.exchange,
+         e.base_id,
+         e.quote_id,
+         (
+            CASE
+               WHEN diff <= INTERVAL '1 day' THEN true
+               ELSE false
+            END
+         ) AS is_trading
+      FROM ebq_timediff AS e
       ORDER BY exchange, base_id, quote_id
    )
    
 UPDATE symbol_exchange AS se
-SET is_trading = false
-FROM ebq_stale
-WHERE se.exchange = ebq_stale.exchange
-   AND se.base_id = ebq_stale.base_id
-   AND se.quote_id = ebq_stale.quote_id;
+SET is_trading = ebq_active.is_trading
+FROM ebq_active
+WHERE se.exchange = ebq_active.exchange
+   AND se.base_id = ebq_active.base_id
+   AND se.quote_id = ebq_active.quote_id;
 
 -- (1) Materialized views for analytics
 REFRESH MATERIALIZED VIEW CONCURRENTLY geo_daily_return;

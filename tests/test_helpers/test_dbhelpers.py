@@ -27,7 +27,7 @@ def test_dbhelper():
         (5, 'a', 'q', round_decimal(54), round_decimal(97))
     )
     unique_cols = ("id", "b", "q")
-    update_cols = ("o", "c")
+    update_cols = ("c", "o") # Order does not matter
 
     query = "select * from test where id=1;"
     

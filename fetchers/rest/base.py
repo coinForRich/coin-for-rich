@@ -14,11 +14,13 @@ from common.utils.asyncioutils import aio_set_exception_handler
 from common.utils.logutils import create_logger
 from fetchers.config.constants import (
     HTTPX_MAX_CONCURRENT_CONNECTIONS,
-    OHLCVS_TOFETCH_REDIS_KEY, OHLCVS_FETCHING_REDIS_KEY
+    OHLCVS_TOFETCH_REDIS_KEY, OHLCVS_FETCHING_REDIS_KEY,
+    SYMEXCH_UNIQUE_COLUMNS, SYMEXCH_UPDATE_COLUMNS
 )
 from fetchers.config.queries import (
     MUTUAL_BASE_QUOTE_QUERY,
-    PSQL_INSERT_IGNOREDUP_QUERY
+    PSQL_INSERT_IGNOREDUP_QUERY,
+    PSQL_INSERT_UPDATE_QUERY
 )
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 
@@ -57,6 +59,9 @@ class BaseOHLCVFetcher:
 
         # Log
         self.logger = create_logger(exchange_name)
+
+        # Symbol data
+        self.symbol_data = {}
         
 
     def _setup_event_loop(self) -> AbstractEventLoop:
@@ -101,17 +106,26 @@ class BaseOHLCVFetcher:
         '''
         Interface to fetch symbol data (exchange, base, quote)
             from self.symbol_data into PSQL db
+
+        Updates is_trading status in PSQL db for existing ones
         '''
         
         rows = [
-            (self.exchange_name, bq['base_id'], bq['quote_id'], symbol) \
-            for symbol, bq in self.symbol_data.items()
+            (
+                self.exchange_name,
+                bq['base_id'],
+                bq['quote_id'],
+                symbol,
+                True
+            ) for symbol, bq in self.symbol_data.items()
         ]
         psql_bulk_insert(
             self.psql_conn,
             rows,
             SYMBOL_EXCHANGE_TABLE,
-            insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
+            insert_update_query = PSQL_INSERT_UPDATE_QUERY,
+            unique_cols = SYMEXCH_UNIQUE_COLUMNS,
+            update_cols = SYMEXCH_UPDATE_COLUMNS
         )
 
     def get_symbols_from_exch(self, query: str) -> dict:
@@ -126,6 +140,8 @@ class BaseOHLCVFetcher:
                 }
             
         The query must have a `%s` placeholder for the exchange
+
+        Primary use is to get a specific set of symbols
         '''
 
         self.psql_cur.execute(query, (self.exchange_name,))
@@ -163,7 +179,8 @@ class BaseOHLCVFetcher:
                 self._fetch_ohlcvs_symbols(symbols, start_date_dt, end_date_dt, update)
             )
         finally:
-            self.logger.info("Run_fetch_ohlcvs: Finished fetching OHLCVS for indicated symbols")
+            self.logger.info(
+                "Run_fetch_ohlcvs: Finished fetching OHLCVS for indicated symbols")
             loop.close()
 
     def run_fetch_ohlcvs_all(
@@ -208,7 +225,9 @@ class BaseOHLCVFetcher:
         
         symbols = self.get_symbols_from_exch(MUTUAL_BASE_QUOTE_QUERY)
         self.run_fetch_ohlcvs(symbols.keys(), start_date_dt, end_date_dt, update)
-        self.logger.info("Run_fetch_ohlcvs_mutual_basequote: Finished fetching OHLCVS for mutual symbols")
+        self.logger.info(
+            "Run_fetch_ohlcvs_mutual_basequote: Finished fetching OHLCVS for mutual symbols"
+        )
 
     def run_resume_fetch(self) -> None:
         '''
