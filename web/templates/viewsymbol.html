@@ -3,39 +3,26 @@
     <head>
         <title>View a Symbol</title>
         <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
         <link rel="stylesheet" href="{{ url_for('src', path='/styles/chart.css') }}">
         <link rel="stylesheet" href="{{ url_for('src', path='/styles/ebqsearch.css') }}">
+        <link rel="stylesheet" href="{{ url_for('src', path='/styles/scrollToTop.css') }}">
     </head>
     <body>
         <h1>Real-time OHLC Chart</h1>
-        <!-- <form id="ebq_form" action="" onsubmit="viewQuery(event)"> -->
-            <!-- <span>Exchange</span>
-            <input type="text" id="query_exchange" autocomplete="on"/>
-            <span>Base ID</span>
-            <input type="text" id="query_base_id" autocomplete="on"/>
-            <span>Quote ID</span>
-            <input type="text" id="query_quote_id" autocomplete="on"/>
-            <button>View</button> -->
-        <!-- </form> -->
         <div id="div_searchbox"></div>
-        <span id="exchange" style="display: none;">{{ exchange }}</span>
-        <span id="base_id" style="display: none;">{{ base_id }}</span>
-        <span id="quote_id" style="display: none;">{{ quote_id }}</span>
         <div id="chart"></div>
-        <ul id='messages'></ul>
+        <div id="DRTable"></div>
+        <div id="WRTable"></div>
+        <div id="topQuoteVlm"></div>
+        <div id="HistGeoDR"></div>
+        <div id="HistWR"></div>
+        <button onclick="topFunction()" id="myBtn" title="Go to top">Top</button>
 
         <!-- Lightweight chart script -->
         <script src="{{ url_for('src', path='/chart.js') }}"></script>
         <script src="{{ url_for('src', path='/utils/ebqsearch.js') }}"></script>
-        <!-- <script>
-            function viewQuery(event) {
-                const exchange = document.getElementById("query_exchange").value
-                const base_id = document.getElementById("query_base_id").value
-                const quote_id = document.getElementById("query_quote_id").value
-                console.log(exchange);
-                console.log(base_id);
-                console.log(quote_id);
-            };
-        </script> -->
+        <script src="{{ url_for('src', path='/utils/scrollToTop.js') }}"></script>
+        <script src="{{ url_for('src', path='/analytics.js') }}"></script>
     </body>
 </html>

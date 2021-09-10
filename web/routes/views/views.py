@@ -10,18 +10,10 @@ templates = Jinja2Templates(directory="web/templates")
 
 @views_router.get(
     "/wschart", name="views_wschart", response_class=HTMLResponse)
-async def wschart(
-        request: Request,
-        exchange: str,
-        base_id: str,
-        quote_id: str
-    ):
+async def wschart(request: Request):
     return templates.TemplateResponse(
         "viewsymbol.html", {
-            "request": request,
-            "exchange": exchange,
-            "base_id": base_id,
-            "quote_id": quote_id
+            "request": request
         }
     )
 

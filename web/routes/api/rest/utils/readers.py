@@ -26,6 +26,7 @@ def read_symbol_exchange(db: Session) -> List[models.SymbolExchange]:
     '''
 
     return db.query(models.SymbolExchange) \
+        .filter(models.SymbolExchange.is_trading == True) \
         .order_by(models.SymbolExchange.exchange.asc()).all()
 
 def read_geodr(

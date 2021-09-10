@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, Index, String, Text
+    Column, Index, String, Text, Boolean
 )
 from sqlalchemy.orm import relationship
 from common.config.constants import (
@@ -21,3 +21,4 @@ class SymbolExchange(Base):
     base_id = Column(String(20), primary_key=True, nullable=False, index=True)
     quote_id = Column(String(20), primary_key=True, nullable=False, index=True)
     symbol = Column(String(40), nullable=False)
+    is_trading = Column(Boolean, nullable=False)

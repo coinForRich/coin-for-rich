@@ -45,23 +45,23 @@ var candles_ws = null
 function resetAll() {
     // WS
     if (
-        candles_ws !== null &&
-        current_exchange !== null &&
-        current_base_id !== null &&
-        current_quote_id !== null
+        candles_ws !== null
+        // current_exchange !== null &&
+        // current_base_id !== null &&
+        // current_quote_id !== null
     ) {
         console.log("Unsubscribing due to reset")
-        let unsubscribe_msg = JSON.stringify({
-            event_type: "unsubscribe",
-            data_type: "ohlcv",
-            exchange: current_exchange,
-            base_id: current_base_id,
-            quote_id: current_quote_id,
-            interval: current_interval
-        })
+        candles_ws.close(1000);
+        // let unsubscribe_msg = JSON.stringify({
+        //     event_type: "unsubscribe",
+        //     data_type: "ohlcv",
+        //     exchange: current_exchange,
+        //     base_id: current_base_id,
+        //     quote_id: current_quote_id,
+        //     interval: current_interval
+        // })
 
-        console.log("Unsubscribing due to reset")
-        candles_ws.send(unsubscribe_msg)
+        // candles_ws.send(unsubscribe_msg)
     }
     candles_ws = null
 
@@ -184,7 +184,7 @@ resetAll()
 
 // Candlesticks
 var chartDiv = document.getElementById('chart')
-var chartWidth = 1250
+var chartWidth = 1000
 var chartHeight = 450
 var chart = LightweightCharts.createChart(chartDiv, {
     width: chartWidth,

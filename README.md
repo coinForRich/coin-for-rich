@@ -20,26 +20,19 @@ The following are required to install psycopg2 (?)
 sudo apt install gcc libpq-dev
 ```
 ### Setup a Postgresql/Timescaledb database
+#### Run container
 Remember to bind-mount data volume to make it persistent
 ```
 docker run -d --name coin-timescaledb -p 5432:5432 -v /your/absolute/data/path/_postgresdata:/var/lib/postgresql/data -e POSTGRES_PASSWORD=yourPostgresPassword timescale/timescaledb:2.3.0-pg13
 ```
-
-**Set up pg_cron (Optional)**
-
-**Install it**
+#### Copy cron SQL script (should be done with Dockerfile/Docker Compose?)
 ```
-sudo apt-get -y install postgresql-13-cron
+mkdir -p /your/absolute/data/path/_postgresdata/scripts/cron && cp ./cron_scripts/database/daily.sql $_
 ```
-
-**Add extension config**
+#### Configure crontab to run local cron script
 ```
-## add to postgresql.conf inside /your/absolute/data/path/_postgresdata:
-shared_preload_libraries = 'pg_cron'
-cron.database_name = 'postgres'
+...
 ```
-
-**Restart the timescaledb docker container**
 ### Setup a Redis server
 Remember to bind-mount data volume to make it persistent
 ```

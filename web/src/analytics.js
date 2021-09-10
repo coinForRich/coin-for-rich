@@ -30,23 +30,24 @@ function drawTableGeoDR(data) {
         unpack(data, 'daily_return_pct')
     ]
 
-    console.log(data_formatted)
+    // console.log(data_formatted)
 
     let table_data = [{
         type: 'table',
+        columnwidth: 400,
         header: {
             values: [['exchange'], ['base'], ['quote'], ['geometric average return (%)']],
             align: ["left", "center"],
             line: { width: 1, color: '#506784' },
             fill: { color: '#119DFF' },
-            font: { family: "Arial", size: 12, color: "white" }
+            font: { family: "Trebuchet MS", size: 14, color: "white" }
         },
         cells: {
             values: data_formatted,
             align: ["left", "center"],
             line: { color: "#506784", width: 1 },
             fill: { color: ['#25FEFD', 'white'] },
-            font: { family: "Arial", size: 11, color: ["#506784"] }
+            font: { family: "Trebuchet MS", size: 14, color: ["#506784"] }
         }
     }]
 
@@ -78,7 +79,7 @@ function drawTableWR(data) {
         unpack(data, 'weekly_return_pct')
     ]
 
-    console.log(data_formatted)
+    // console.log(data_formatted)
 
     let table_data = [{
         type: 'table',
@@ -87,14 +88,14 @@ function drawTableWR(data) {
             align: ["left", "center"],
             line: { width: 1, color: '#506784' },
             fill: { color: '#119DFF' },
-            font: { family: "Arial", size: 12, color: "white" }
+            font: { family: "Trebuchet MS", size: 14, color: "white" }
         },
         cells: {
             values: data_formatted,
             align: ["left", "center"],
             line: { color: "#506784", width: 1 },
             fill: { color: ['#25FEFD', 'white'] },
-            font: { family: "Arial", size: 11, color: ["#506784"] }
+            font: { family: "Trebuchet MS", size: 14, color: ["#506784"] }
         }
     }]
 
@@ -131,7 +132,7 @@ function drawPieTopQuoteVolume(data) {
         title: "Top 20 Mostly Traded Base IDs-Quote IDs by Quoted Volume since Last Week",
         height: 800,
         width: 800,
-        margin: {"t": 0, "b": 0, "l": 0, "r": 0},
+        // margin: {"t": 0, "b": 0, "l": 0, "r": 0},
         showlegend: false
     }
 

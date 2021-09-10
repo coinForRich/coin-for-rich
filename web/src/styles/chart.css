@@ -73,7 +73,7 @@ body {
 
 .ohlc-legend {
 	width: 96px;
-	height: 70px;
+	/* height: 70px; */
 	position: absolute;
 	padding: 8px;
 	font-size: 14px;
@@ -82,58 +82,3 @@ body {
 	z-index: 2;
 	pointer-events: none;
 }
-
-input#search {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    border-width: 0;
-    font-size: 20px;
-    outline: none;
-    padding: 10px 20px;
-    text-align: left;
-    box-shadow: 0 0 0 2px #000000;
-    border-radius: 5px;
-    position: fixed;
-    left: 50%;
-    top: 25%;
-    transform: translate(-50%, -25%);
-  }
-  
-  input#search.dropdown {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-  
-  #selector {
-    position: fixed;
-    box-shadow: 0 0 0 2px #000000;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    margin-top: 2px;
-    max-height: 150px;
-    overflow: auto;
-  }
-  
-  #selector button {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    outline: none;
-    font-size: 20px;
-    padding: 10px 20px; 
-    cursor: pointer;
-    border: none;
-    display: block;
-    background-color: #ffffff;
-    margin: 0;
-    border-radius: 5px;
-    background-color: transparent;
-    border-width: 0;
-    width: 100%;
-    text-align: left;
-  }
-  
-  #selector button:hover {
-    background-color: #f2f2f2;
-  }

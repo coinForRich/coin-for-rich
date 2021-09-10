@@ -23,7 +23,8 @@ CREATE TABLE symbol_exchange (
    exchange VARCHAR(100) NOT NULL,
    base_id VARCHAR(20) NOT NULL,
    quote_id VARCHAR(20) NOT NULL,
-   symbol VARCHAR(40) NOT NULL
+   symbol VARCHAR(40) NOT NULL,
+   is_trading BOOLEAN NOT NULL
 );
 
 CREATE TABLE ohlcvs_errors (

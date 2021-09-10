@@ -7,18 +7,21 @@
 -- (0a) Get the latest timestamp for each symbol-exchange combination
 -- So we can run update job for each of the combination
 explain (analyze)
-select ohlcvss.exchange, symexch.symbol, ohlcvss.time
-from symbol_exchange symexch,
-   lateral (
-      select time, exchange, base_id, quote_id
-      from ohlcvs
-      where ohlcvs.exchange = symexch.exchange
-         and base_id = symexch.base_id
-         and quote_id = symexch.quote_id
-      order by base_id, quote_id, time desc
-      limit 1
-   ) ohlcvss
-order by time asc;
+SELECT
+   symexch.exchange,
+   symexch.base_id,
+   symexch.quote_id,
+   temp.time
+FROM symbol_exchange symexch,
+   LATERAL (
+      SELECT exchange, base_id, quote_id, time
+      FROM ohlcvs
+      WHERE ohlcvs.exchange = symexch.exchange
+         AND base_id = symexch.base_id
+         AND quote_id = symexch.quote_id -- Lateral reference
+      ORDER BY base_id, quote_id, time DESC
+      LIMIT 1
+   ) AS temp;
 
 -- (0b) Get timestamp gaps so we can automatically fill missing data
 -- Keep refresing/running this query until no rows are returned
@@ -46,7 +49,7 @@ where difference > 60
 order by "time" asc; 
 
 -- (0c) Get the latest timestamps for each exchange to serve
--- the same purpose as (4). However, this one is unecessarily complicated
+-- the same purpose as (). However, this one is unecessarily complicated
 with exchs as (
     select exchange from symbol_exchange group by exchange
 ),
@@ -105,8 +108,40 @@ FROM (
       quote_id
    FROM ohlcvs_summary_daily
 ) days
-WHERE delta > INTERVAL '1 day'
-;
+WHERE delta > INTERVAL '1 day';
+
+-- (0f) Update symbol exchange inactive (nontrading) symbols
+WITH
+   ebq_timediff AS (
+      SELECT
+         symexch.exchange,
+         symexch.base_id,
+         symexch.quote_id,
+         (NOW() - temp.time) as diff
+      FROM symbol_exchange symexch,
+         LATERAL (
+            SELECT exchange, base_id, quote_id, time
+            FROM ohlcvs
+            WHERE ohlcvs.exchange = symexch.exchange
+               AND base_id = symexch.base_id
+               AND quote_id = symexch.quote_id -- Lateral reference
+            ORDER BY base_id, quote_id, time DESC
+            LIMIT 1
+         ) AS temp
+   ),
+   ebq_stale AS (
+      SELECT *
+      FROM ebq_timediff
+      WHERE diff > INTERVAL '1 day'
+      ORDER BY exchange, base_id, quote_id
+   )
+   
+UPDATE symbol_exchange AS se
+SET is_trading = false
+FROM ebq_stale
+WHERE se.exchange = ebq_stale.exchange
+   AND se.base_id = ebq_stale.base_id
+   AND se.quote_id = ebq_stale.quote_id;
 
 -- (1) Chart queries but not aggregated
 -- (1a) A typical query for chart showcase
