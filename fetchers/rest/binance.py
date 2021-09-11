@@ -378,7 +378,7 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
             backoff_time = self.redis_client.get(BACKOFF_TIME_REDIS)
             if (backoff_stt != "429" and backoff_stt != "418") \
                 or ohlcv_url == backoff_url:
-                async with self.rate_limiter:                
+                async with self.rate_limiter:
                     try:
                         ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
                         ohlcvs_resp.raise_for_status()

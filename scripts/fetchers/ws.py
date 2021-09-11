@@ -7,7 +7,7 @@ from fetchers.ws.updater import OHLCVWebsocketUpdater
 
 # Create the parser
 arg_parser = argparse.ArgumentParser(
-    prog="commands.fetchws",
+    prog="python -m scripts.fetchers.ws",
     description="Starts a websocket fetcher for an exchange or an updater"
 )
 
@@ -17,7 +17,7 @@ arg_parser.add_argument(
     metavar='action',
     type=str,
     choices=["fetch", "update"],
-    help='fetcher (for an exchange) or updater (collect fetched data to db)'
+    help='fetch (for an exchange) or update (collect fetched data to db)'
 )
 
 arg_parser.add_argument(

@@ -4,7 +4,7 @@ from celery_app.celery_tasks import *
 
 # Create the parser
 arg_parser = argparse.ArgumentParser(
-    prog="commands.fetchrest",
+    prog="python -m scripts.fetchers.rest",
     description="Starts a REST fetcher for an exchange using Celery"
 )
 

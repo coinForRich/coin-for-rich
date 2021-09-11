@@ -60,7 +60,7 @@ To run REST updaters:
 - In the last terminal (may not be needed):
     - You have to run the task called `all_fetch_symbol_data` first, so all symbols and exchanges are loaded into database
     - And then to schedule periodic updates, `celery -A celery_app.celery_main beat -s ./celery_app/beat/celery_beat`
-
+- `python -m scripts.fetchers.rest fetch --exchange bitfinex --start 2021-01-01T00:00:00 --end 2021-01-02T00:00:00`
 
 #### Websocket subscribers
 Websocket subscribers and updater are run in different terminals
@@ -68,17 +68,21 @@ Websocket subscribers and updater are run in different terminals
 To run websocket subscribers and updater:
 - Open 4 tmux terminals panes, activate your virtual environment if any
 - In the first 3 terminals, run this command in each:
-    - `python -m commands.fetchws exchange -E <exchange name>`
-    - For example, `python -m commands.fetchws exchange -E bitfinex` for Bitfinex
+    - `python -m scripts.fetchers.ws fetch --exchange <exchange name>`
+    - For example, `python -m commands.fetchws fetch --exchange bitfinex` for Bitfinex
 - In the last terminal, run this command:
-    - `python -m commands.fetchws updater`
+    - `python -m scripts.fetchers.ws update`
 
-### Run tests
+#### Run tests
 At the project root folder, run:
 `pytest`
 
-### Start web app server
+#### Start web app server
 `uvicorn web.main:app --reload`
+
+#### After having some data
+Inside psql tmux session:
+`\i /coin-for-rich/scripts/database/once/populate_agg.sql`
 
 ## Explore
 - Docs are stored in the `docs` folder
@@ -86,4 +90,4 @@ At the project root folder, run:
 
 ## Docker
 ### Database
-`psql -U postgres -d postgres -h coin-timescaledb -W`
+`psql -U postgres -d postgres -h coin-psql -W`

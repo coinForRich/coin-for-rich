@@ -9,6 +9,6 @@ CALL refresh_continuous_aggregate('ohlcvs_summary_12hour', NULL, NULL);
 CALL refresh_continuous_aggregate('ohlcvs_summary_7day', NULL, NULL);
 
 -- Materialized views for analytics
-REFRESH MATERIALIZED VIEW CONCURRENTLY geo_daily_return;
-REFRESH MATERIALIZED VIEW CONCURRENTLY top_20_quoted_vol;
-REFRESH MATERIALIZED VIEW CONCURRENTLY weekly_return;
+REFRESH MATERIALIZED VIEW geo_daily_return;
+REFRESH MATERIALIZED VIEW top_20_quoted_vol;
+REFRESH MATERIALIZED VIEW weekly_return;

@@ -48,22 +48,30 @@ echo "- Celery workers created" >> logs/init.log
 echo "Creating tmux sessions..."
 ses_psql="psql"
 ses_redis="redis"
-ses_fetch_rest="frest"
-ses_fetch_ws="fws"
+ses_fetch="fetch"
 ses_web="web"
 
-tmux new-session -d -s $ses_psql
+tmux new-session -d -s $ses_psql \; \
+    send-keys 'psql postgresql://postgres:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/postgres' C-m
 
-tmux new-session -d -s $ses_redis
+tmux new-session -d -s $ses_redis \; \
+    send-keys 'redis-cli -h $REDIS_HOST -a $REDIS_PASSWORD' C-m
 
-tmux new-session -d -s $ses_fetch_rest
-
-tmux new-session -d -s $ses_fetch_ws \; \
+tmux new-session -d -s $ses_fetch \; \
     split-window -v \; \
-    split-window -h -p 30 \; \
+    split-window -h -p 66 \; \
     split-window -h -p 50 \; \
+    select-pane -t 0 \; \
+    split-window -h -p 50 \; \
+    select-pane -t 1 \; send-keys 'python -m scripts.fetchers.ws update' C-m \; \
+    select-pane -t 2 \; send-keys 'python -m scripts.fetchers.ws fetch --exchange bitfinex' C-m \; \
+    select-pane -t 3 \; send-keys 'python -m scripts.fetchers.ws fetch --exchange binance' C-m \; \
+    select-pane -t 4 \; send-keys 'python -m scripts.fetchers.ws fetch --exchange bittrex' C-m \; \
+    select-pane -t 0 \; send-keys 'echo ">>> You can fetch data from an exchange REST API using a command like this: python -m scripts.fetchers.rest fetch --exchange bitfinex --start 2021-01-01T00:00:00 --end 2021-01-02T00:00:00"' C-m
 
-tmux new-session -d -s $ses_web
+tmux new-session -d -s $ses_web \; \
+    send-keys 'uvicorn web.main:app --reload' C-m
+
 echo "tmux sessions created!"
 echo "- tmux sessions created" >> logs/init.log
 
