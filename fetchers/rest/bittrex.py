@@ -225,7 +225,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         return (
             (EXCHANGE_NAME, symbol, start_date, end_date,
             interval, historical, resp_status_code,
-            str(exception_class),exception_msg)
+            str(exception_class),exception_msg),
         )
 
     @backoff.on_predicate(

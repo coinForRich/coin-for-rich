@@ -233,7 +233,11 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
                     (
                         milliseconds_to_datetime(ohlcvs[0]),
                         EXCHANGE_NAME, base_id, quote_id,
-                        ohlcvs[1], ohlcvs[3], ohlcvs[4], ohlcvs[2], ohlcvs[5]
+                        round_decimal(ohlcvs[1]),
+                        round_decimal(ohlcvs[3]),
+                        round_decimal(ohlcvs[4]),
+                        round_decimal(ohlcvs[2]),
+                        round_decimal(ohlcvs[5])
                     )
                 ]
         return ohlcvs_table_insert
@@ -276,7 +280,7 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
         return (
             (EXCHANGE_NAME, symbol, start_date, end_date,
             time_frame, ohlcv_section, resp_status_code,
-            str(exception_class),exception_msg)
+            str(exception_class),exception_msg),
         )
 
     @backoff.on_predicate(
