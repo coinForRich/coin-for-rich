@@ -17,6 +17,7 @@ from common.helpers.datetimehelpers import (
     milliseconds_to_datetime,
     datetime_to_milliseconds, redis_time
 )
+from common.helpers.numbers import round_decimal
 from fetchers.config.constants import (
     THROTTLER_RATE_LIMITS, OHLCV_UNIQUE_COLUMNS,
     OHLCV_UPDATE_COLUMNS, REST_RATE_LIMIT_REDIS_KEY
@@ -290,8 +291,11 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                 (
                     milliseconds_to_datetime(ohlcv[0]),
                     EXCHANGE_NAME, base_id, quote_id,
-                    float(ohlcv[1]), float(ohlcv[2]),
-                    float(ohlcv[3]), float(ohlcv[4]), float(ohlcv[5])
+                    round_decimal(ohlcv[1]),
+                    round_decimal(ohlcv[2]),
+                    round_decimal(ohlcv[3]),
+                    round_decimal(ohlcv[4]),
+                    round_decimal(ohlcv[5])
                 ) for ohlcv in ohlcvs
             ]
         return ohlcvs_table_insert

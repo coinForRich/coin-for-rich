@@ -49,15 +49,15 @@ To run REST updaters:
 - Open 5 tmux terminals panes, activate your virtual environment if any
 - In the first 4 terminals, run the following:
     ```
-    celery -A celery_app.celery_main worker -Q bitfinex_rest -n bitfinexRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n_$(date +'%Y-%m-%dT%H:%M:%S').log"
+    celery -A celery_app.celery_main worker -Q bitfinex_rest -n bitfinexRestWorker@h -l INFO --logfile="./logs/celery_main_%n_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
 
-    celery -A celery_app.celery_main worker -Q binance_rest -n binanceRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log"
+    celery -A celery_app.celery_main worker -Q binance_rest -n binanceRestWorker@h -l INFO --logfile="./logs/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
 
-    celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log"
+    celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -l INFO --logfile="./logs/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
 
-    celery -A celery_app.celery_main worker -Q all_rest -c 4 -n allRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log"
+    celery -A celery_app.celery_main worker -Q all_rest -c 4 -n allRestWorker@h -l INFO --logfile="./logs/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
     ```
-- In the last terminal:
+- In the last terminal (may not be needed):
     - You have to run the task called `all_fetch_symbol_data` first, so all symbols and exchanges are loaded into database
     - And then to schedule periodic updates, `celery -A celery_app.celery_main beat -s ./celery_app/beat/celery_beat`
 

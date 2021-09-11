@@ -12,6 +12,7 @@ from common.config.constants import (
 from common.helpers.datetimehelpers import (
     datetime_to_milliseconds, milliseconds_to_datetime
 )
+from common.helpers.numbers import round_decimal
 from fetchers.config.constants import (
     THROTTLER_RATE_LIMITS, OHLCV_UNIQUE_COLUMNS,
     OHLCV_UPDATE_COLUMNS, REST_RATE_LIMIT_REDIS_KEY
@@ -220,7 +221,11 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
                     (
                         milliseconds_to_datetime(ohlcv[0]),
                         EXCHANGE_NAME, base_id, quote_id,
-                        ohlcv[1], ohlcv[3], ohlcv[4], ohlcv[2], ohlcv[5]
+                        round_decimal(ohlcv[1]),
+                        round_decimal(ohlcv[3]),
+                        round_decimal(ohlcv[4]),
+                        round_decimal(ohlcv[2]),
+                        round_decimal(ohlcv[5])
                     ) for ohlcv in ohlcvs
                 ]
             else:

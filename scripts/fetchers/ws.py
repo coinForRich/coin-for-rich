@@ -8,30 +8,30 @@ from fetchers.ws.updater import OHLCVWebsocketUpdater
 # Create the parser
 arg_parser = argparse.ArgumentParser(
     prog="commands.fetchws",
-    description="Start a websocket fetcher for an exchange"
+    description="Starts a websocket fetcher for an exchange or an updater"
 )
 
 # Add the arguments
 arg_parser.add_argument(
-    'unit',
-    metavar='unit',
+    'action',
+    metavar='action',
     type=str,
-    choices=["exchange", "updater"],
-    help='exchange or updater'
+    choices=["fetch", "update"],
+    help='fetcher (for an exchange) or updater (collect fetched data to db)'
 )
 
 arg_parser.add_argument(
     '--exchange',
     metavar='exchange',
     type=str,
-    help='name of the exchange'
+    help='name of the exchange; Only needed if action is fetch'
 )
 
 # Execute the parse_args() method
 args = arg_parser.parse_args()
-unit = args.unit
+action = args.action
 exchange = args.exchange
-if unit == "exchange":
+if action == "fetch":
     if exchange == "bitfinex":
         ws = BitfinexOHLCVWebsocket()
     elif exchange == "binance":
@@ -39,6 +39,6 @@ if unit == "exchange":
     elif exchange == "bittrex":
         ws = BittrexOHLCVWebsocket()
     ws.run_all()
-elif unit == "updater":
+elif action == "update":
     ws = OHLCVWebsocketUpdater()
     ws.update()

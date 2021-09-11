@@ -2,7 +2,7 @@ version: "3"
 services: 
     psql:
         image: timescale/timescaledb:2.3.0-pg13
-        container_name: coin-timescaledb
+        container_name: coin-psql
         environment:
           - POSTGRES_PASSWORD=icecreamyummy
         volumes:
@@ -21,9 +21,10 @@ services:
     coin_app:
         build: .
         container_name: coin-app
+        command: bash
         tty: true
         environment:
-          - POSTGRES_HOST=coin-timescaledb
+          - POSTGRES_HOST=coin-psql
           - POSTGRES_PASSWORD=icecreamyummy
           - REDIS_HOST=coin-redis
           - REDIS_PASSWORD=icecreamyummy
@@ -33,5 +34,4 @@ services:
           - redis
         volumes:
           - ./logs:/coin-for-rich/logs
-          - ./scripts:/coin-for-rich/scripts # make scripts visible to host
-        entrypoint: dockerize -wait tcp://coin-timescaledb:5432 -wait tcp://coin-redis:6379 -timeout 60s bash
+        entrypoint: dockerize -wait tcp://coin-psql:5432 -wait tcp://coin-redis:6379 -timeout 60s bash /coin-for-rich/scripts/docker/init.sh

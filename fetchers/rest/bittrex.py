@@ -12,6 +12,7 @@ from common.config.constants import (
 from common.helpers.datetimehelpers import (
     datetime_to_str, str_to_datetime, list_days_fromto
 )
+from common.helpers.numbers import round_decimal
 from fetchers.config.constants import (
     THROTTLER_RATE_LIMITS, OHLCV_UNIQUE_COLUMNS,
     OHLCV_UPDATE_COLUMNS, REST_RATE_LIMIT_REDIS_KEY
@@ -184,29 +185,16 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
         if ohlcvs:
             ohlcvs_table_insert = [
                 (
-                    ohlcv['startsAt'], EXCHANGE_NAME, base_id,
-                    quote_id, ohlcv['open'], ohlcv['high'],
-                    ohlcv['low'], ohlcv['close'], ohlcv['volume']
+                    ohlcv['startsAt'],
+                    EXCHANGE_NAME, base_id, quote_id,
+                    round_decimal(ohlcv['open']),
+                    round_decimal(ohlcv['high']),
+                    round_decimal(ohlcv['low']),
+                    round_decimal(ohlcv['close']),
+                    round_decimal(ohlcv['volume'])
                 ) for ohlcv in ohlcvs
             ]
-            
-            # for ohlcv in ohlcvs:
-            #     ohlcvs_table_insert.append(
-            #         (   
-            #             ohlcv['startsAt'],
-            #             EXCHANGE_NAME,
-            #             base_id,
-            #             quote_id,
-            #             ohlcv['open'],
-            #             ohlcv['high'],
-            #             ohlcv['low'],
-            #             ohlcv['close'],
-            #             ohlcv['volume']
-            #         )
-            #     )
         return ohlcvs_table_insert
-        # else:
-        #     return None
     
     @classmethod
     def make_error_tuple(
