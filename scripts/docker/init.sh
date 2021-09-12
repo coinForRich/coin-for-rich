@@ -70,7 +70,7 @@ tmux new-session -d -s $ses_fetch \; \
     select-pane -t 0 \; send-keys 'echo ">>> You can fetch data from an exchange REST API using a command like this: python -m scripts.fetchers.rest fetch --exchange bitfinex --start 2021-01-01T00:00:00 --end 2021-01-02T00:00:00"' C-m
 
 tmux new-session -d -s $ses_web \; \
-    send-keys 'uvicorn web.main:app --reload' C-m
+    send-keys 'uvicorn web.main:app --reload --host 0.0.0.0' C-m
 
 echo "tmux sessions created!"
 echo "- tmux sessions created" >> logs/init.log
