@@ -11,6 +11,9 @@ include = ['celery_app.celery_tasks']
 # Using the database to store task state
 result_backend = CELERY_REDIS_URL
 
+# Enabling worker pool restart
+worker_pool_restarts = True
+
 # Routing
 task_routes = {
     'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_all_symbols': {

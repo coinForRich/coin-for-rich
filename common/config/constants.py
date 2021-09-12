@@ -28,7 +28,7 @@ REDIS_PORT = 6379
 REDIS_DELIMITER = ";;"
 
 # Celery
-CELERY_REDIS_URL = f"redis://default:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
+CELERY_REDIS_URL = f"redis://{REDIS_USER}:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
 
 # Default datetime string format when dealing with PSQL
 DEFAULT_DATETIME_STR_QUERY = "%Y-%m-%dT%H:%M:%S"
