@@ -44,12 +44,13 @@ while true; do
 done
 echo "- Celery workers created" >> logs/init.log
 
-# Tmux
+# Tmux sessions
 echo "Creating tmux sessions..."
 ses_psql="psql"
 ses_redis="redis"
 ses_fetch="fetch"
 ses_web="web"
+ses_celery="celery"
 
 tmux new-session -d -s $ses_psql \; \
     send-keys 'psql postgresql://postgres:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/postgres' C-m
@@ -71,6 +72,9 @@ tmux new-session -d -s $ses_fetch \; \
 
 tmux new-session -d -s $ses_web \; \
     send-keys 'uvicorn web.main:app --reload --host 0.0.0.0' C-m
+
+tmux new-session -d -s $ses_celery \; \
+    send-keys 'celery -A celery_app.celery_main flower --address=0.0.0.0 --port=5566' C-m
 
 echo "tmux sessions created!"
 echo "- tmux sessions created" >> logs/init.log

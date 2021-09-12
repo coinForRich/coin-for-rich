@@ -2,7 +2,7 @@
 FROM python:3.8.11-slim-buster
 
 # Install essential packages
-RUN apt-get -y update && apt-get -y install postgresql-client gcc libpq-dev tmux wget cron redis-tools
+RUN apt-get -y update && apt-get -y install gcc libpq-dev procps wget cron tmux postgresql-client redis-tools
 # nano
 
 # Copy code

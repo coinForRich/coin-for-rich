@@ -23,7 +23,7 @@ sudo apt install gcc libpq-dev
 #### Run container
 Remember to bind-mount data volume to make it persistent
 ```
-docker run -d --name coin-timescaledb -p 5432:5432 -v /your/absolute/data/path/_postgresdata:/var/lib/postgresql/data -e POSTGRES_PASSWORD=yourPostgresPassword timescale/timescaledb:2.3.0-pg13
+docker run -d --name coin-psql -p 5432:5432 -v /your/absolute/data/path/_postgresdata:/var/lib/postgresql/data -e POSTGRES_PASSWORD=yourPostgresPassword timescale/timescaledb:2.3.0-pg13
 ```
 #### Copy cron SQL script (should be done with Dockerfile/Docker Compose?)
 ```

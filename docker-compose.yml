@@ -35,5 +35,6 @@ services:
         volumes:
           - ./logs:/coin-for-rich/logs
         ports:
-          - 8000:8000
+          - 8000:8000 # web
+          - 5566:5566 # celery flower
         entrypoint: dockerize -wait tcp://coin-psql:5432 -wait tcp://coin-redis:6379 -timeout 60s bash /coin-for-rich/scripts/docker/init.sh
