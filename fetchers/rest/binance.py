@@ -27,7 +27,9 @@ from fetchers.config.queries import (
 )
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.utils.ratelimit import GCRARateLimiter
-from fetchers.utils.exceptions import MaximumRetriesReached
+from fetchers.utils.exceptions import (
+    MaximumRetriesReached, UnsuccessfulDatabaseInsert
+)
 from fetchers.rest.base import BaseOHLCVFetcher
 
 
@@ -477,74 +479,77 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
             ohlcv_urls[3]
         )
 
-        if ohlcv_result:
-            resp_status_code = ohlcv_result[0]
-            ohlcvs = ohlcv_result[1]
-            exc_type = ohlcv_result[2]
-            exception_msg = ohlcv_result[3]
+        # if ohlcv_result:
+        # what the heck? why need this condition check?
 
-            # If exc_type is None (meaning no exception), process;
-            #   Else, process the error
-            # Why increment start_date_mls by 60000 * OHLCV_LIMIT:
-            #   Because in each request we fetch at least `OHLCV_LIMIT`
-            #   transaction-minutes. Thus, the next transaction-minute must
-            #   be at least 60000 * OHLCV_LIMIT milliseconds away
-            # Finally, remove params only in 2 cases:
-            #   - insert is successful
-            #   - empty ohlcvs from API
-            if exc_type is None:
-                try:
-                    # Copy to PSQL if parsed successfully
-                    # Get the latest date in OHLCVS list,
-                    #   if latest date > start_date, update start_date
-                    ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id)
-                    if ohlcvs_parsed:
-                        insert_success = False
-                        if update:
-                            insert_success = psql_bulk_insert(
-                                self.psql_conn,
-                                ohlcvs_parsed,
-                                OHLCVS_TABLE,
-                                insert_update_query = PSQL_INSERT_UPDATE_QUERY,
-                                unique_cols = OHLCV_UNIQUE_COLUMNS,
-                                update_cols = OHLCV_UPDATE_COLUMNS
-                            )
-                        else:
-                            insert_success = psql_bulk_insert(
-                                self.psql_conn,
-                                ohlcvs_parsed,
-                                OHLCVS_TABLE,
-                                insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
-                            )
-                        
-                        ohlcvs_last_date = datetime_to_milliseconds(ohlcvs_parsed[-1][0])
-                        if ohlcvs_last_date > start_date_mls:
-                            start_date_mls = ohlcvs_last_date
-                        else:
-                            start_date_mls += (60000 * OHLCV_LIMIT)
+        resp_status_code = ohlcv_result[0]
+        ohlcvs = ohlcv_result[1]
+        exc_type = ohlcv_result[2]
+        exception_msg = ohlcv_result[3]
 
-                        # Comment this out - not needed atm
-                        # if insert_success:
-                        #     self.redis_client.srem(self.fetching_key, params)
+        # If exc_type is None (meaning no exception), process;
+        #   Else, process the error
+        # Why increment start_date_mls by 60000 * OHLCV_LIMIT:
+        #   Because in each request we fetch at least `OHLCV_LIMIT`
+        #   transaction-minutes. Thus, the next transaction-minute must
+        #   be at least 60000 * OHLCV_LIMIT milliseconds away
+        # Finally, remove params only in 2 cases:
+        #   - insert is successful
+        #   - empty ohlcvs from API
+        if exc_type is None:
+            try:
+                # Copy to PSQL if parsed successfully
+                # Get the latest date in OHLCVS list,
+                #   if latest date > start_date, update start_date
+                ohlcvs_parsed = self.parse_ohlcvs(ohlcvs, base_id, quote_id)
+                if ohlcvs_parsed:
+                    insert_success = False
+                    if update:
+                        insert_success = psql_bulk_insert(
+                            self.psql_conn,
+                            ohlcvs_parsed,
+                            OHLCVS_TABLE,
+                            insert_update_query = PSQL_INSERT_UPDATE_QUERY,
+                            unique_cols = OHLCV_UNIQUE_COLUMNS,
+                            update_cols = OHLCV_UPDATE_COLUMNS
+                        )
+                    else:
+                        insert_success = psql_bulk_insert(
+                            self.psql_conn,
+                            ohlcvs_parsed,
+                            OHLCVS_TABLE,
+                            insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
+                        )
+                    
+                    ohlcvs_last_date = datetime_to_milliseconds(ohlcvs_parsed[-1][0])
+                    if ohlcvs_last_date > start_date_mls:
+                        start_date_mls = ohlcvs_last_date
                     else:
                         start_date_mls += (60000 * OHLCV_LIMIT)
-                        # self.redis_client.srem(self.fetching_key, params) # not needed atm
-                except Exception as exc:
-                    exc_type = type(exc)
-                    exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
-                    self.logger.warning(exception_msg)
-                    error_tuple = self.make_error_tuple(
-                        symbol, start_date_mls, end_date_mls, interval,
-                        resp_status_code, exc_type, exception_msg
-                    )
-                    psql_bulk_insert(
-                        self.psql_conn,
-                        error_tuple,
-                        OHLCVS_ERRORS_TABLE,
-                        insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
-                    )
+
+                    # Comment this out - not needed atm
+                    # if insert_success:
+                    #     self.redis_client.srem(self.fetching_key, params)
+                    # Honestly this part sucks...
+                    if not insert_success:
+                        exc_type = UnsuccessfulDatabaseInsert
+                        exception_msg = "EXCEPTION: Unsuccessful database insert"
+                        error_tuple = self.make_error_tuple(
+                            symbol, start_date_mls, end_date_mls, interval,
+                            resp_status_code, exc_type, exception_msg
+                        )
+                        psql_bulk_insert(
+                            self.psql_conn,
+                            error_tuple,
+                            OHLCVS_ERRORS_TABLE,
+                            insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
+                        )
+                else:
                     start_date_mls += (60000 * OHLCV_LIMIT)
-            else:
+                    # self.redis_client.srem(self.fetching_key, params) # not needed atm
+            except Exception as exc:
+                exc_type = type(exc)
+                exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
                 self.logger.warning(exception_msg)
                 error_tuple = self.make_error_tuple(
                     symbol, start_date_mls, end_date_mls, interval,
@@ -557,11 +562,26 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                     insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
                 )
                 start_date_mls += (60000 * OHLCV_LIMIT)
-            
-            # PSQL Commit
-            self.psql_conn.commit()
         else:
+            self.logger.warning(exception_msg)
+            error_tuple = self.make_error_tuple(
+                symbol, start_date_mls, end_date_mls, interval,
+                resp_status_code, exc_type, exception_msg
+            )
+            psql_bulk_insert(
+                self.psql_conn,
+                error_tuple,
+                OHLCVS_ERRORS_TABLE,
+                insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
+            )
             start_date_mls += (60000 * OHLCV_LIMIT)
+        
+        # PSQL Commit
+        self.psql_conn.commit()
+        
+        # what the heck? why need this condition check?
+        # else:
+        #     start_date_mls += (60000 * OHLCV_LIMIT)
 
         # Also make more params for to-fetch set
         if start_date_mls < end_date_mls:

@@ -44,29 +44,27 @@ def psql_bulk_insert(
     '''
     Bulk inserts `rows` to `table` using StringIO and CSV;
         
-    On conflict, either ignore or update new values;
+    On conflict, either ignores or updates new values;
         
     Also uses `page_size` of 1000 for inserting;
         
-    Returns a boolean value indicating whether insert
-        is successful
+    Returns a boolean value indicating whether insert is successful
 
     :params:
         `conn`: psycopg2 conn obj
         `rows`: iterable of tuples
         `table`: string - table name
-        `insert_update_query`: string - insert-update query to `table`,
-            in case the copy method fails; this query must have a
-            `{table}` placeholder, 3 placeholders for unique columns,
-            update columns, and "excluded" columns
-        `insert_ignoredup_query`: string - insert-ignoredup query to `table`,
-            in case the copy method fails; this query must have a `{table}` placeholder
+        `insert_update_query`: string - insert-update query to `table`,\n
+                in case the copy method fails; this query must have a\n
+                `{table}` placeholder, 3 placeholders for unique columns,\n
+                update columns, and "excluded" columns
+        `insert_ignoredup_query`: string - insert-ignoredup query to `table`,\n
+                in case the copy method fails; this query must have a `{table}` placeholder
         `unique_cols`: tuple of strings with column names where unique constraint exists
         `update_cols`: tuple of strings with column names to update data on
         `cursor`: psycopg2 cursor obj (optional)
 
-    Note: `insert_update_query` is prioritized over `insert_ignoredup_query`
-        if both are entered
+    Note: `insert_update_query` is prioritized over `insert_ignoredup_query` if both are entered
     '''
 
     if insert_update_query is None and insert_ignoredup_query is None:

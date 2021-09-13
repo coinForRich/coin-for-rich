@@ -23,6 +23,7 @@ from fetchers.config.queries import (
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.utils.asyncioutils import onbackoff, onsuccessgiveup
 from fetchers.utils.ratelimit import GCRARateLimiter
+from fetchers.utils.exceptions import UnsuccessfulDatabaseInsert
 from fetchers.rest.base import BaseOHLCVFetcher
 
 
@@ -352,6 +353,19 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                     # Comment this out - not needed atm
                     # if insert_success:
                     #         self.redis_client.srem(self.fetching_key, params)
+                    if not insert_success:
+                        exc_type = UnsuccessfulDatabaseInsert
+                        exception_msg = "EXCEPTION: Unsuccessful database insert"
+                        error_tuple = self.make_error_tuple(
+                            symbol, start_date, end_date, interval, historical,
+                            resp_status_code, exc_type, exception_msg
+                        )
+                        psql_bulk_insert(
+                            self.psql_conn,
+                            error_tuple,
+                            OHLCVS_ERRORS_TABLE,
+                            insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
+                        )
                 # else:
                     # self.redis_client.srem(self.fetching_key, params) # not needed atm
             except Exception as exc:
