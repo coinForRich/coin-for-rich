@@ -2,7 +2,11 @@
 FROM python:3.8.11-slim-buster
 
 # Install essential packages
-RUN apt-get -y update && apt-get -y install gcc libpq-dev procps wget cron tmux postgresql-client redis-tools
+RUN apt-get -y update 
+RUN apt-get -y install wget gnupg2 lsb-release gcc libpq-dev procps cron tmux redis-tools
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main" | tee  /etc/apt/sources.list.d/pgdg.list
+RUN apt-get -y update && apt-get -y install postgresql-client-13
 # nano
 
 # Copy code

@@ -6,9 +6,9 @@ status_code=$(($?))
 if [ $status_code -eq 0 ];
 then
     echo "Timescaledb is ready!"
-    echo "- Timescaledb/Postgresql is ready to connect" >> logs/init.log
+    echo "- $(date +'%Y-%m-%dT%H:%M:%S') - Timescaledb/Postgresql is ready to connect" >> logs/init.log
 else
-    echo "- Cannot connect to Timescaledb/Postgresql" >> logs/init.log
+    echo "- $(date +'%Y-%m-%dT%H:%M:%S') - Cannot connect to Timescaledb/Postgresql" >> logs/init.log
     exit $status_code
 fi
 
@@ -18,9 +18,9 @@ status_code=$(($?))
 if [ $status_code -eq 0 ];
 then
     echo "Redis is ready!"
-    echo "- Redis is ready to connect" >> logs/init.log
+    echo "- $(date +'%Y-%m-%dT%H:%M:%S') - Redis is ready to connect" >> logs/init.log
 else
-    echo "- Cannot connect to Redis" >> logs/init.log
+    echo "- $(date +'%Y-%m-%dT%H:%M:%S') - Cannot connect to Redis" >> logs/init.log
     exit $status_code
 fi
 
@@ -42,7 +42,7 @@ while true; do
         echo "Waiting for Celery workers to be online..."
     fi
 done
-echo "- Celery workers created" >> logs/init.log
+echo "- $(date +'%Y-%m-%dT%H:%M:%S') - Celery workers created" >> logs/init.log
 
 # Tmux sessions
 echo "Creating tmux sessions..."
@@ -77,15 +77,15 @@ tmux new-session -d -s $ses_celery \; \
     send-keys 'celery -A celery_app.celery_main flower --address=0.0.0.0 --port=5566' C-m
 
 echo "tmux sessions created!"
-echo "- tmux sessions created" >> logs/init.log
+echo "- $(date +'%Y-%m-%dT%H:%M:%S') - tmux sessions created" >> logs/init.log
 
 # Cron
 (crontab -l 2>/dev/null; echo "0 0 * * * psql postgresql://postgres:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/postgres -f /coin-for-rich/scripts/database/cron/daily.sql") | crontab -
 echo "cron job added!"
-echo "- cron job added" >> logs/init.log
+echo "- $(date +'%Y-%m-%dT%H:%M:%S') - cron job added" >> logs/init.log
 
 # Print init result
 echo "Initialization complete"
-echo "- Initialization complete" >> logs/init.log
+echo "- $(date +'%Y-%m-%dT%H:%M:%S') - Initialization complete" >> logs/init.log
 
 bash
