@@ -20,7 +20,8 @@ from common.helpers.datetimehelpers import (
 from common.helpers.numbers import round_decimal
 from fetchers.config.constants import (
     THROTTLER_RATE_LIMITS, OHLCV_UNIQUE_COLUMNS,
-    OHLCV_UPDATE_COLUMNS, REST_RATE_LIMIT_REDIS_KEY
+    OHLCV_UPDATE_COLUMNS, REST_RATE_LIMIT_REDIS_KEY,
+    HTTPX_DEFAULT_RETRIES
 )
 from fetchers.config.queries import (
     PSQL_INSERT_IGNOREDUP_QUERY, PSQL_INSERT_UPDATE_QUERY    
@@ -372,7 +373,7 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
         '''
         
         retries = 0
-        while retries < 12:
+        while retries < HTTPX_DEFAULT_RETRIES:
             await self.rw_manager.acheck(1)
             backoff_stt = self.redis_client.get(BACKOFF_STT_REDIS)
             backoff_url = self.redis_client.get(BACKOFF_URL_REDIS)
@@ -404,7 +405,7 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                             )
 
                             self.logger.info(f"get_ohlcv_data: Backing off...")
-                            asyncio.sleep(float(retry_after))
+                            await asyncio.sleep(float(retry_after))
                         else:
                             self._reset_backoff()
                             return (
@@ -413,6 +414,8 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                                 type(exc),
                                 f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
                             )
+                    except httpx.TimeoutException as exc:
+                        await asyncio.sleep(1) # for now just 1 sec
                     except Exception as exc:
                         self._reset_backoff()
                         return (
@@ -424,11 +427,11 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
             else:
                 self.logger.info("get_ohlcv_data: Backing off...")
                 if backoff_duration and backoff_time:
-                    asyncio.sleep(
+                    await asyncio.sleep(
                         min(float(backoff_duration) - (redis_time(self.redis_client) - float(backoff_time)) + 10 * random.random(), RATE_LIMIT_SECS_PER_MIN)
                     )
                 else:
-                    asyncio.sleep(RATE_LIMIT_SECS_PER_MIN)
+                    await asyncio.sleep(RATE_LIMIT_SECS_PER_MIN)
             retries += 1
         self._reset_backoff()
         return (

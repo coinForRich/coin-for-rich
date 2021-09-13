@@ -20,6 +20,8 @@ HTTPX_MAX_CONCURRENT_CONNECTIONS = {
     'bitfinex': 100, # increased from 85
     'binance': 200 # decreased from 500
 }
+HTTPX_DEFAULT_TIMEOUT = 3.0
+HTTPX_DEFAULT_RETRIES = 12
 
 # Asyncio signals
 ASYNC_SIGNALS = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)

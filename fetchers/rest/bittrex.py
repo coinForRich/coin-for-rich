@@ -15,7 +15,8 @@ from common.helpers.datetimehelpers import (
 from common.helpers.numbers import round_decimal
 from fetchers.config.constants import (
     THROTTLER_RATE_LIMITS, OHLCV_UNIQUE_COLUMNS,
-    OHLCV_UPDATE_COLUMNS, REST_RATE_LIMIT_REDIS_KEY
+    OHLCV_UPDATE_COLUMNS, REST_RATE_LIMIT_REDIS_KEY,
+    HTTPX_DEFAULT_RETRIES
 )
 from fetchers.config.queries import (
     PSQL_INSERT_IGNOREDUP_QUERY, PSQL_INSERT_UPDATE_QUERY
@@ -23,7 +24,9 @@ from fetchers.config.queries import (
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.utils.asyncioutils import onbackoff, onsuccessgiveup
 from fetchers.utils.ratelimit import GCRARateLimiter
-from fetchers.utils.exceptions import UnsuccessfulDatabaseInsert
+from fetchers.utils.exceptions import (
+    MaximumRetriesReached, UnsuccessfulDatabaseInsert
+)
 from fetchers.rest.base import BaseOHLCVFetcher
 
 
@@ -260,31 +263,42 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
             `exchange_name`: string - this exchange's name
         '''
 
-        async with self.rate_limiter:
-            try:
-                ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
-                ohlcvs_resp.raise_for_status()
-                return (
-                    ohlcvs_resp.status_code,
-                    ohlcvs_resp.json(),
-                    None,
-                    None
-                )
-            except httpx.HTTPStatusError as exc:
-                resp_status_code = exc.response.status_code
-                return (
-                    resp_status_code,
-                    None,
-                    type(exc),
-                    f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
-                )
-            except Exception as exc:
-                return (
-                    None,
-                    None,
-                    type(exc),
-                    f'EXCEPTION: Request error while requesting {exc.request.url}'
-                )
+        retries = 0
+        while retries < HTTPX_DEFAULT_RETRIES:
+            async with self.rate_limiter:
+                try:
+                    ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
+                    ohlcvs_resp.raise_for_status()
+                    return (
+                        ohlcvs_resp.status_code,
+                        ohlcvs_resp.json(),
+                        None,
+                        None
+                    )
+                except httpx.HTTPStatusError as exc:
+                    resp_status_code = exc.response.status_code
+                    return (
+                        resp_status_code,
+                        None,
+                        type(exc),
+                        f'EXCEPTION: Response status code: {resp_status_code} while requesting {exc.request.url}'
+                    )
+                except httpx.TimeoutException as exc:
+                    await asyncio.sleep(1) # for now just 1 sec
+                except Exception as exc:
+                    return (
+                        None,
+                        None,
+                        type(exc),
+                        f'EXCEPTION: Request error while requesting {exc.request.url}'
+                    )
+            retries += 1
+        return (
+            None,
+            None,
+            MaximumRetriesReached,
+            f'EXCEPTION: Maximum retries reached while requesting {ohlcv_url}'
+        )
 
     async def _get_and_parse_ohlcv(
             self,

@@ -13,7 +13,7 @@ from common.config.constants import (
 from common.utils.asyncioutils import aio_set_exception_handler
 from common.utils.logutils import create_logger
 from fetchers.config.constants import (
-    HTTPX_MAX_CONCURRENT_CONNECTIONS,
+    HTTPX_MAX_CONCURRENT_CONNECTIONS, HTTPX_DEFAULT_TIMEOUT,
     OHLCVS_TOFETCH_REDIS_KEY, OHLCVS_FETCHING_REDIS_KEY,
     SYMEXCH_UNIQUE_COLUMNS, SYMEXCH_UPDATE_COLUMNS
 )
@@ -53,7 +53,7 @@ class BaseOHLCVFetcher:
         self.httpx_limits = httpx.Limits(
             max_connections=HTTPX_MAX_CONCURRENT_CONNECTIONS[exchange_name]
         )
-        self.httpx_timout = httpx.Timeout(3.0)
+        self.httpx_timout = httpx.Timeout(HTTPX_DEFAULT_TIMEOUT)
 
         # Redis initial feeding status
         self.feeding = False
