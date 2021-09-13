@@ -422,7 +422,7 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                             None,
                             None,
                             type(exc),
-                            f'EXCEPTION: Request error while requesting {exc.request.url}'
+                            f'EXCEPTION: Request error while requesting {ohlcv_url}'
                         )
             else:
                 self.logger.info("get_ohlcv_data: Backing off...")

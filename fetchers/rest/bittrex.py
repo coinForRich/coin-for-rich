@@ -290,7 +290,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                         None,
                         None,
                         type(exc),
-                        f'EXCEPTION: Request error while requesting {exc.request.url}'
+                        f'EXCEPTION: Request error while requesting {ohlcv_url}'
                     )
             retries += 1
         return (
