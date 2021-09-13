@@ -523,16 +523,20 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                         else:
                             start_date_mls += (60000 * OHLCV_LIMIT)
 
-                        if insert_success:
-                            self.redis_client.srem(self.fetching_key, params)
+                        # Comment this out - not needed atm
+                        # if insert_success:
+                        #     self.redis_client.srem(self.fetching_key, params)
                     else:
                         start_date_mls += (60000 * OHLCV_LIMIT)
-                        self.redis_client.srem(self.fetching_key, params)
+                        # self.redis_client.srem(self.fetching_key, params) # not needed atm
                 except Exception as exc:
                     exc_type = type(exc)
                     exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
                     self.logger.warning(exception_msg)
-                    error_tuple = self.make_error_tuple(symbol, start_date_mls, end_date_mls, interval, resp_status_code, exc_type, exception_msg)
+                    error_tuple = self.make_error_tuple(
+                        symbol, start_date_mls, end_date_mls, interval,
+                        resp_status_code, exc_type, exception_msg
+                    )
                     psql_bulk_insert(
                         self.psql_conn,
                         error_tuple,
@@ -542,7 +546,10 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                     start_date_mls += (60000 * OHLCV_LIMIT)
             else:
                 self.logger.warning(exception_msg)
-                error_tuple = self.make_error_tuple(symbol, start_date_mls, end_date_mls, interval, resp_status_code, exc_type, exception_msg)
+                error_tuple = self.make_error_tuple(
+                    symbol, start_date_mls, end_date_mls, interval,
+                    resp_status_code, exc_type, exception_msg
+                )
                 psql_bulk_insert(
                     self.psql_conn,
                     error_tuple,
@@ -627,7 +634,8 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
             self.redis_client.sadd(
                 self.tofetch_key, *fetching_params
             )
-        async with httpx.AsyncClient(timeout=None, limits=self.httpx_limits) as client:
+        async with httpx.AsyncClient(
+            timeout=self.httpx_timout, limits=self.httpx_limits) as client:
             self.async_httpx_client = client
             while self.feeding or \
                 self.redis_client.scard(self.tofetch_key) > 0 \
@@ -657,7 +665,7 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                         self.redis_client.sadd(
                             self.tofetch_key, *new_tofetch_params)
                        
-                    # self.redis_client.srem(self.fetching_key, *params_list)
+                    self.redis_client.srem(self.fetching_key, *params_list)
     
     async def _fetch_ohlcvs_symbols(
             self,

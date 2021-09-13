@@ -53,6 +53,7 @@ class BaseOHLCVFetcher:
         self.httpx_limits = httpx.Limits(
             max_connections=HTTPX_MAX_CONCURRENT_CONNECTIONS[exchange_name]
         )
+        self.httpx_timout = httpx.Timeout(3.0)
 
         # Redis initial feeding status
         self.feeding = False

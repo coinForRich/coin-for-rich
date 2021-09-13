@@ -418,11 +418,13 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
                     else:
                         start_date_mls += (60000 * OHLCV_LIMIT)
 
-                    if insert_success:
-                        self.redis_client.srem(self.fetching_key, params)
+                    # Comment this out - not needed atm
+                    # if insert_success:
+                    #     self.redis_client.srem(self.fetching_key, params)
                 else:
                     start_date_mls += (60000 * OHLCV_LIMIT)
-                    self.redis_client.srem(self.fetching_key, params)
+                    # self.redis_client.srem(self.fetching_key, params) # not needed atm
+            
             except Exception as exc:
                 exc_type = type(exc)
                 exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
@@ -534,7 +536,8 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
         #   of `get_parse_tasks`
         #   Add these params to Redis to-fetch set, if not None
         # Finally, remove params list from Redis fetching set
-        async with httpx.AsyncClient(timeout=None, limits=self.httpx_limits) as client:
+        async with httpx.AsyncClient(
+            timeout=self.httpx_timout, limits=self.httpx_limits) as client:
             self.async_httpx_client = client
             while self.feeding or \
                 self.redis_client.scard(self.tofetch_key) > 0 \
@@ -557,7 +560,7 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
                         self.redis_client.sadd(
                             self.tofetch_key, *new_tofetch_params)
 
-                    # self.redis_client.srem(self.fetching_key, *params_list)
+                    self.redis_client.srem(self.fetching_key, *params_list)
     
     async def _fetch_ohlcvs_symbols(
             self,

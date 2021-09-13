@@ -349,10 +349,11 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                             insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
                         )
 
-                    if insert_success:
-                            self.redis_client.srem(self.fetching_key, params)
-                else:
-                    self.redis_client.srem(self.fetching_key, params)
+                    # Comment this out - not needed atm
+                    # if insert_success:
+                    #         self.redis_client.srem(self.fetching_key, params)
+                # else:
+                    # self.redis_client.srem(self.fetching_key, params) # not needed atm
             except Exception as exc:
                 exc_type = type(exc)
                 exception_msg = f'EXCEPTION: Error while processing ohlcv response: {exc}'
@@ -455,7 +456,8 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
             self.redis_client.sadd(
                 OHLCVS_BITTREX_TOFETCH_REDIS, *fetching_params
             )
-        async with httpx.AsyncClient(timeout=None, limits=self.httpx_limits) as client:
+        async with httpx.AsyncClient(
+            timeout=self.httpx_timout, limits=self.httpx_limits) as client:
             self.async_httpx_client = client
             while self.feeding or \
                 self.redis_client.scard(OHLCVS_BITTREX_TOFETCH_REDIS) > 0 \
@@ -477,7 +479,7 @@ class BittrexOHLCVFetcher(BaseOHLCVFetcher):
                         ]
                         await asyncio.gather(*get_parse_tasks)
 
-                        # self.redis_client.srem(self.fetching_key, *params_list)
+                        self.redis_client.srem(self.fetching_key, *params_list)
 
     async def _fetch_ohlcvs_symbols(
             self,
