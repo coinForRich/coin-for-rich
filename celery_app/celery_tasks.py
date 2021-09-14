@@ -3,6 +3,7 @@
 import json
 import datetime
 from celery_app.celery_main import app
+from common.config.constants import DEFAULT_DATETIME_STR_QUERY
 from common.helpers.datetimehelpers import str_to_datetime
 from fetchers.rest.bitfinex import BitfinexOHLCVFetcher
 from fetchers.rest.bittrex import BittrexOHLCVFetcher
@@ -28,8 +29,8 @@ def all_fetch_symbol_data():
 def bitfinex_fetch_ohlcvs_all_symbols(start_date, end_date):
     bitfinex_fetcher = BitfinexOHLCVFetcher()
     # The dates need to be de-serialized
-    start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-    end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    start_date = str_to_datetime(start_date, f=DEFAULT_DATETIME_STR_QUERY)
+    end_date = str_to_datetime(end_date, f=DEFAULT_DATETIME_STR_QUERY)
     bitfinex_fetcher.run_fetch_ohlcvs_all(start_date, end_date)
     bitfinex_fetcher.close_connections()
 
@@ -48,8 +49,8 @@ def bitfinex_fetch_ohlcvs_symbols(symbols, start_date, end_date):
     if isinstance(symbols, str):
         symbols = json.loads(symbols)
     # The dates need to be de-serialized
-    start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-    end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    start_date = str_to_datetime(start_date, f=DEFAULT_DATETIME_STR_QUERY)
+    end_date = str_to_datetime(end_date, f=DEFAULT_DATETIME_STR_QUERY)
     bitfinex_fetcher.run_fetch_ohlcvs(symbols, start_date, end_date)
     bitfinex_fetcher.close_connections()
 
@@ -63,8 +64,8 @@ def bitfinex_resume_fetch():
 def bitfinex_fetch_ohlcvs_mutual_basequote(start_date, end_date):
     bitfinex_fetcher = BitfinexOHLCVFetcher()
     # The dates need to be de-serialized
-    start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-    end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    start_date = str_to_datetime(start_date, f=DEFAULT_DATETIME_STR_QUERY)
+    end_date = str_to_datetime(end_date, f=DEFAULT_DATETIME_STR_QUERY)
     print(f"Celery: Fetching OHLCVs from {start_date} to {end_date}")
     bitfinex_fetcher.run_fetch_ohlcvs_mutual_basequote(start_date, end_date)
     bitfinex_fetcher.close_connections()
@@ -87,8 +88,8 @@ def bitfinex_fetch_ohlcvs_mutual_basequote_1min():
 def binance_fetch_ohlcvs_all_symbols(start_date, end_date):
     binance_fetcher = BinanceOHLCVFetcher()
     # The dates need to be de-serialized
-    start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-    end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    start_date = str_to_datetime(start_date, f=DEFAULT_DATETIME_STR_QUERY)
+    end_date = str_to_datetime(end_date, f=DEFAULT_DATETIME_STR_QUERY)
     binance_fetcher.run_fetch_ohlcvs_all(start_date, end_date)
     binance_fetcher.close_connections()
 
@@ -107,8 +108,8 @@ def binance_fetch_ohlcvs_symbols(symbols, start_date, end_date):
     if isinstance(symbols, str):
         symbols = json.loads(symbols)
     # The dates need to be de-serialized
-    start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-    end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    start_date = str_to_datetime(start_date, f=DEFAULT_DATETIME_STR_QUERY)
+    end_date = str_to_datetime(end_date, f=DEFAULT_DATETIME_STR_QUERY)
     binance_fetcher.run_fetch_ohlcvs(symbols, start_date, end_date)
     binance_fetcher.close_connections()
 
@@ -122,8 +123,8 @@ def binance_resume_fetch():
 def binance_fetch_ohlcvs_mutual_basequote(start_date, end_date):
     binance_fetcher = BinanceOHLCVFetcher()
     # The dates need to be de-serialized
-    start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-    end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    start_date = str_to_datetime(start_date, f=DEFAULT_DATETIME_STR_QUERY)
+    end_date = str_to_datetime(end_date, f=DEFAULT_DATETIME_STR_QUERY)
     binance_fetcher.run_fetch_ohlcvs_mutual_basequote(start_date, end_date)
     binance_fetcher.close_connections()
 
@@ -145,8 +146,8 @@ def binance_fetch_ohlcvs_mutual_basequote_1min():
 def bittrex_fetch_ohlcvs_all_symbols(start_date, end_date):
     bittrex_fetcher = BittrexOHLCVFetcher()
     # The dates need to be de-serialized
-    start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-    end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    start_date = str_to_datetime(start_date, f=DEFAULT_DATETIME_STR_QUERY)
+    end_date = str_to_datetime(end_date, f=DEFAULT_DATETIME_STR_QUERY)
     bittrex_fetcher.run_fetch_ohlcvs_all(start_date, end_date)
     bittrex_fetcher.close_connections()
 
@@ -165,8 +166,8 @@ def bittrex_fetch_ohlcvs_symbols(symbols, start_date, end_date):
     if isinstance(symbols, str):
         symbols = json.loads(symbols)
     # The dates need to be de-serialized
-    start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-    end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    start_date = str_to_datetime(start_date, f=DEFAULT_DATETIME_STR_QUERY)
+    end_date = str_to_datetime(end_date, f=DEFAULT_DATETIME_STR_QUERY)
     bittrex_fetcher.run_fetch_ohlcvs(symbols, start_date, end_date)
     bittrex_fetcher.close_connections()
 
@@ -180,8 +181,8 @@ def bittrex_resume_fetch():
 def bittrex_fetch_ohlcvs_mutual_basequote(start_date, end_date):
     bittrex_fetcher = BittrexOHLCVFetcher()
     # The dates need to be de-serialized
-    start_date = str_to_datetime(start_date, f='%Y-%m-%dT%H:%M:%S')
-    end_date = str_to_datetime(end_date, f='%Y-%m-%dT%H:%M:%S')
+    start_date = str_to_datetime(start_date, f=DEFAULT_DATETIME_STR_QUERY)
+    end_date = str_to_datetime(end_date, f=DEFAULT_DATETIME_STR_QUERY)
     bittrex_fetcher.run_fetch_ohlcvs_mutual_basequote(start_date, end_date)
     bittrex_fetcher.close_connections()
 
