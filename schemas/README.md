@@ -1,1 +1,1 @@
-General schema creation
+Database schema definitions

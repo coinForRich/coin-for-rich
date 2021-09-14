@@ -72,10 +72,7 @@ class WSSender:
             # TODO: add heartbeat
             if interval == "1m":
                 ws_send_redis_key = make_send_redis_key(
-                    exchange = exchange,
-                    base_id = base_id,
-                    quote_id = quote_id,
-                    delimiter = REDIS_DELIMITER
+                    exchange, base_id, quote_id, REDIS_DELIMITER
                 )
                 data = self.redis_client.hgetall(ws_send_redis_key)
                 if data:
