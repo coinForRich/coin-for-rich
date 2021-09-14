@@ -3,11 +3,11 @@ A standalone package to build a database of cryptocurrencies from three differen
 # Table of Contents
 - [Quick Start](#quickstart)
 - [Hacking](#hacking)
-    - [APIs](##hacking_apis)
-    - [Configurations](##hacking_configs)
-    - [Local Data Storage](##hacking_localdata)
-    - [Customizing the App](##hacking_customappimg)
-    - [Running without Docker Compose](##hacking_runwodc)
+    - [APIs](#hacking_apis)
+    - [Configurations](#hacking_configs)
+    - [Local Data Storage](#hacking_localdata)
+    - [Customizing the App](#hacking_customappimg)
+    - [Running without Docker Compose](#hacking_runwodc)
 - [Lessons Learned](#lessons)
 - [License](#license)
 # Quick Start <a name="quickstart"></a>
@@ -49,6 +49,7 @@ python -m scripts.fetchers.rest fetch --exchange bitfinex --start 2021-01-01T00:
 
 # Hacking <a name="hacking"></a>
 ## APIs <a name="hacking_apis"></a>
+You can easily build your app using the APIs provided in this app, see below:
 ### Redis
 Redis API is available at `localhost`, port `6379` with the password specified in the `docker-compose.yml` file
 
@@ -60,11 +61,15 @@ Key(s) that you may be interested in:
 Postgresql/Timescaledb API is available at `localhost`, port `5432` with the password specified in the `docker-compose.yml` file
 ### Web APIs
 The app’s web API is built on FastAPI
+
 **REST**
-REST API is available at `localhost`, port `8000`
-Documents for REST API is available at `localhost:8000/api/openapi.json`
+- REST API is available at `localhost`, port `8000`
+- Documents for REST API is available at `localhost:8000/api/openapi.json`
+
 **Websocket**
-Subscribe to real-time OHLCV: `ws://localhost:8000/api/ohlcvs`
+- Subscribe to real-time OHLCV: `ws://localhost:8000/api/ohlcvs`
+### Celery Flower
+Celery Flower (to monitor Celery tasks) is available at `localhost`, port `5566`
 ## Configurations <a name="hacking_configs"></a>
 - Configurations for variables used in all components: `./common/config/constants.py`
 - Configurations for fetchers: `./fetchers/config/constants.py`
@@ -74,7 +79,7 @@ Data for Postgres and Redis are stored in `./localdata`
 ## Customizing the App Image <a name="hacking_customappimg"></a>
 After customizing, simply rebuild it and re-run: `docker-compose build --no-cache && docker-compose up -d`
 ## Running without Docker Compose <a name="hacking_runwodc"></a>
-You can still develop, customize and run this app without Docker Compose. However, you may want to run the two containers of Timescaledb/Postgres and Redis and note that you may have to spend some time setting up cron jobs (to refresh materialized views)
+You can still develop, customize and run this app without Docker Compose. However, you may want to run the two containers of Timescaledb/Postgres and Redis and note that you may have to spend some time setting up cron jobs (to refresh materialized views).
 
 ### Run Timescaledb/Postgresql
 Remember to bind-mount data volume to retrieve existing data and make changes persistent
