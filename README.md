@@ -30,7 +30,7 @@ Let me quickly tell you what is inside the app so you can navigate around easily
 Five (5) tmux sessions are created for each of the app’s main components:
 1. Timescaledb/Postgresql: `psql`
 2. Redis: `redis`
-3. Fetching from the exchange’s REST and Websocket APIs: `fetch`
+3. Fetching from the exchanges' REST and Websocket APIs: `fetch`
 4. The app’s web API: `web`
 5. Celery for data fetching tasks: `celery`
 
@@ -77,11 +77,10 @@ The app’s web API is built on [FastAPI](https://fastapi.tiangolo.com) and [SQL
 **REST**
 - REST API is available at `localhost`, port `8000`
 - Documents for REST API is available at `localhost:8000/api/openapi.json`
-- Real-time websocket (WS) chart and analytics charts is at `localhost:8000/view/wschart`
 
 **Websocket**
 - Endpoint for real-time OHLCV: `ws://localhost:8000/api/ohlcvs`
-- When the connection is open, send the following JSON message to subscribe to a OHLCV data stream of a symbol (e.g., bitfinex - BTC - USD):
+- When the connection is open, send the following JSON message to subscribe to an 1-min OHLCV data stream of a symbol (e.g., bitfinex - BTC - USD):
     ```
     {
         event_type: "subscribe",
@@ -93,10 +92,14 @@ The app’s web API is built on [FastAPI](https://fastapi.tiangolo.com) and [SQL
         mls: false
     }
     ```
+- Detailed documentation on this are to be written
+
+**Charts**
+- Real-time websocket (WS) chart and analytics charts are at `localhost:8000/view/wschart`
 ### Celery Flower
 Celery Flower (to monitor Celery tasks) is available at `localhost`, port `5566`
 ## Local Data Storage <a name="hacking_localdata"></a>
-Data for Postgres and Redis are stored in `./localdata`
+Data for Postgres and Redis are stored in `./local_data`
 ## Configurations <a name="hacking_configs"></a>
 - Configurations for variables used in all components: `./common/config/constants.py`
 - Configurations for fetchers: `./fetchers/config/constants.py`

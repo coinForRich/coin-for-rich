@@ -128,13 +128,13 @@ WITH (timescaledb.continuous) AS
       min(low) as "low",
       last(close, "time") as "close",
       sum(volume) as "volume"
-   from ohlcvs
-   group by exchange, base_id, quote_id, "bucket"
-with no data;
+   FROM ohlcvs
+   GROUP BY exchange, base_id, quote_id, "bucket"
+WITH NO DATA;
 
-create materialized view ohlcvs_summary_15min
-with (timescaledb.continuous) as
-   select time_bucket('15 minutes', "time") as "bucket",
+CREATE materialized view ohlcvs_summary_15min
+WITH (timescaledb.continuous) AS
+   SELECT time_bucket('15 minutes', "time") AS "bucket",
       exchange,
       base_id,
       quote_id,
@@ -143,13 +143,13 @@ with (timescaledb.continuous) as
       min(low) as "low",
       last(close, "time") as "close",
       sum(volume) as "volume"
-   from ohlcvs
-   group by exchange, base_id, quote_id, "bucket"
-with no data;
+   FROM ohlcvs
+   GROUP BY exchange, base_id, quote_id, "bucket"
+WITH NO DATA;
 
-create materialized view ohlcvs_summary_30min
-with (timescaledb.continuous) as
-   select time_bucket('30 minutes', "time") as "bucket",
+CREATE materialized view ohlcvs_summary_30min
+WITH (timescaledb.continuous) AS
+   SELECT time_bucket('30 minutes', "time") AS "bucket",
       exchange,
       base_id,
       quote_id,
@@ -158,13 +158,13 @@ with (timescaledb.continuous) as
       min(low) as "low",
       last(close, "time") as "close",
       sum(volume) as "volume"
-   from ohlcvs
-   group by exchange, base_id, quote_id, "bucket"
-with no data;
+   FROM ohlcvs
+   GROUP BY exchange, base_id, quote_id, "bucket"
+WITH NO DATA;
 
-create materialized view ohlcvs_summary_1hour
-with (timescaledb.continuous) as
-   select time_bucket('1 hour', "time") as "bucket",
+CREATE materialized view ohlcvs_summary_1hour
+WITH (timescaledb.continuous) AS
+   SELECT time_bucket('1 hour', "time") AS "bucket",
       exchange,
       base_id,
       quote_id,
@@ -173,13 +173,13 @@ with (timescaledb.continuous) as
       min(low) as "low",
       last(close, "time") as "close",
       sum(volume) as "volume"
-   from ohlcvs
-   group by exchange, base_id, quote_id, "bucket"
-with no data;
+   FROM ohlcvs
+   GROUP BY exchange, base_id, quote_id, "bucket"
+WITH NO DATA;
 
-create materialized view ohlcvs_summary_6hour
-with (timescaledb.continuous) as
-   select time_bucket('6 hours', "time") as "bucket",
+CREATE materialized view ohlcvs_summary_6hour
+WITH (timescaledb.continuous) AS
+   SELECT time_bucket('6 hours', "time") AS "bucket",
       exchange,
       base_id,
       quote_id,
@@ -188,13 +188,13 @@ with (timescaledb.continuous) as
       min(low) as "low",
       last(close, "time") as "close",
       sum(volume) as "volume"
-   from ohlcvs
-   group by exchange, base_id, quote_id, "bucket"
-with no data;
+   FROM ohlcvs
+   GROUP BY exchange, base_id, quote_id, "bucket"
+WITH NO DATA;
 
-create materialized view ohlcvs_summary_12hour
-with (timescaledb.continuous) as
-   select time_bucket('12 hours', "time") as "bucket",
+CREATE materialized view ohlcvs_summary_12hour
+WITH (timescaledb.continuous) AS
+   SELECT time_bucket('12 hours', "time") AS "bucket",
       exchange,
       base_id,
       quote_id,
@@ -203,13 +203,13 @@ with (timescaledb.continuous) as
       min(low) as "low",
       last(close, "time") as "close",
       sum(volume) as "volume"
-   from ohlcvs
-   group by exchange, base_id, quote_id, "bucket"
-with no data;
+   FROM ohlcvs
+   GROUP BY exchange, base_id, quote_id, "bucket"
+WITH NO DATA;
 
-create materialized view ohlcvs_summary_7day
-with (timescaledb.continuous) as
-   select time_bucket('7 days', "time") as "bucket",
+CREATE materialized view ohlcvs_summary_7day
+WITH (timescaledb.continuous) AS
+   SELECT time_bucket('7 days', "time") AS "bucket",
       exchange,
       base_id,
       quote_id,
@@ -218,9 +218,9 @@ with (timescaledb.continuous) as
       min(low) as "low",
       last(close, "time") as "close",
       sum(volume) as "volume"
-   from ohlcvs
-   group by exchange, base_id, quote_id, "bucket"
-with no data;
+   FROM ohlcvs
+   GROUP BY exchange, base_id, quote_id, "bucket"
+WITH NO DATA;
 
 CREATE MATERIALIZED VIEW geo_daily_return AS
    WITH 
