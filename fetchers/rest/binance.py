@@ -90,7 +90,7 @@ class RequestWeightManager:
             operation with `weight`
         '''
         
-        logging.info(f"Current request weight is {self.redis_client.get(self.key_rw)}")
+        # logging.info(f"Current request weight is {self.redis_client.get(self.key_rw)}")
         now = redis_time(self.redis_client)
 
         try:
@@ -386,9 +386,10 @@ class BinanceOHLCVFetcher(BaseOHLCVFetcher):
                         ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
                         ohlcvs_resp.raise_for_status()
                         self._reset_backoff()
+                        ohlcv_data = ohlcvs_resp.json()
                         return (
                             ohlcvs_resp.status_code,
-                            ohlcvs_resp.json(),
+                            ohlcv_data,
                             None,
                             None
                         )

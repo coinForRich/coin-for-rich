@@ -324,9 +324,10 @@ class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
                 try:
                     ohlcvs_resp = await self.async_httpx_client.get(ohlcv_url)
                     ohlcvs_resp.raise_for_status()
+                    ohlcv_data = ohlcvs_resp.json()
                     return (
                         ohlcvs_resp.status_code,
-                        ohlcvs_resp.json(),
+                        ohlcv_data,
                         None,
                         None
                     )

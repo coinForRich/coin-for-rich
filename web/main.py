@@ -8,7 +8,7 @@ from web.routes.views import views_router
 # from web.db.session import engine
 
 # metadata.create_all(bind=engine)
-app = FastAPI()
+app = FastAPI(openapi_url="/api/openapi.json")
 app.mount("/src", StaticFiles(directory="web/src"), name="src")
 app.include_router(api_router, prefix="/api")
 app.include_router(views_router, prefix="/view")

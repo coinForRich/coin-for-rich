@@ -193,6 +193,6 @@ function drawHistWR(data) {
 
 tableTopGeoDailyReturn()
 tableTopWeeklyReturn()
-pieTopQuoteVolume()
 HistGeoDailyReturn()
 HistWeeklyReturn()
+pieTopQuoteVolume()

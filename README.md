@@ -28,7 +28,7 @@ Five (5) tmux sessions are created for each of the app’s main components:
 5. Celery for data fetching tasks: `celery`
 
 To navigate to a tmux session, simply run `tmux a -t <session_name>`
-### Populate tables with historical data
+### Populate tables with real-time data
 Real-time data are automatically fetched from websocket connections to each of the exchanges in the `fetch` tmux session (see the three bottom panes when you’re in there)
 
 ### Populate tables with historical data
@@ -60,11 +60,12 @@ Key(s) that you may be interested in:
 ### Postgresql
 Postgresql/Timescaledb API is available at `localhost`, port `5432` with the password specified in the `docker-compose.yml` file
 ### Web APIs
-The app’s web API is built on FastAPI
+The app’s web API is built on [FastAPI](https://fastapi.tiangolo.com) and [SQLAlchemy](https://www.sqlalchemy.org)
 
 **REST**
 - REST API is available at `localhost`, port `8000`
 - Documents for REST API is available at `localhost:8000/api/openapi.json`
+- Real-time websocket (WS) chart and analytics charts is at `localhost:8000/view/wschart`
 
 **Websocket**
 - Subscribe to real-time OHLCV: `ws://localhost:8000/api/ohlcvs`
@@ -90,6 +91,29 @@ docker run -d --name coin-psql -p 5432:5432 -v /your/absolute/data/path/_postgre
 Remember to bind-mount data volume to retrieve existing data and make changes persistent
 ```
 docker run -d --name coin-redis -p 6379:6379 -v /your/absolute/data/path/_redisdata:/data redis:6.2 redis-server --appendonly yes --requirepass "yourRedisPassword"
+```
+### Run Celery Workers and Flower
+**Workers**
+Run each of the command below
+```
+celery -A celery_app.celery_main worker -Q bitfinex_rest -n bitfinexRestWorker@h -l INFO --logfile="./logs/celery_main_%n_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
+
+celery -A celery_app.celery_main worker -Q binance_rest -n binanceRestWorker@h -l INFO --logfile="./logs/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
+
+celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -l INFO --logfile="./logs/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
+```
+**Flower**
+Run in a dedicated pane/window: `celery -A celery_app.celery_main flower --address=0.0.0.0 --port=5566`
+### Run Websocket Fetchers
+Run each of the command below in a dedicated pane/window:
+```
+python -m scripts.fetchers.ws fetch --exchange bitfinex
+
+python -m scripts.fetchers.ws fetch --exchange binance
+
+python -m scripts.fetchers.ws fetch --exchange bittrex
+
+python -m scripts.fetchers.ws update
 ```
 # Lessons Learned <a name="lessons"></a>
 Lessons learned while making this project is [here](docs/lessons.md). Not much has been written though.
