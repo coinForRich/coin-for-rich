@@ -10,8 +10,8 @@ import random
 from typing import Iterable, Tuple, Union
 from redis.exceptions import LockError
 from common.config.constants import (
-    REDIS_HOST, REDIS_PASSWORD, REDIS_DELIMITER,
-    OHLCVS_TABLE, OHLCVS_ERRORS_TABLE
+    REDIS_HOST, REDIS_USER, REDIS_PASSWORD,
+    REDIS_DELIMITER, OHLCVS_TABLE, OHLCVS_ERRORS_TABLE
 )
 from common.helpers.datetimehelpers import (
     milliseconds_to_datetime,
@@ -78,7 +78,7 @@ class RequestWeightManager:
         if not redis_client:
             redis_client = redis.Redis(
                 host=REDIS_HOST,
-                username="default",
+                username=REDIS_USER,
                 password=REDIS_PASSWORD,
                 decode_responses=True
             )

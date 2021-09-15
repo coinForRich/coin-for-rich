@@ -6,7 +6,9 @@ import redis
 import psycopg2
 from typing import NoReturn
 from common.config.constants import (
-    REDIS_HOST, REDIS_PASSWORD, REDIS_DELIMITER, DBCONNECTION, OHLCVS_TABLE
+    REDIS_HOST, REDIS_USER,
+    REDIS_PASSWORD, REDIS_DELIMITER,
+    DBCONNECTION, OHLCVS_TABLE
 )
 from common.utils.logutils import create_logger
 from common.helpers.datetimehelpers import (
@@ -31,7 +33,7 @@ class OHLCVWebsocketUpdater:
     def __init__(self):
         self.redis_client = redis.Redis(
             host=REDIS_HOST,
-            username="default",
+            username=REDIS_USER,
             password=REDIS_PASSWORD,
             decode_responses=True
         )

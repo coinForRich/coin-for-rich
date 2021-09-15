@@ -7,7 +7,7 @@ import httpx
 import asyncio
 from asyncio.events import AbstractEventLoop
 from common.config.constants import (
-    REDIS_HOST, REDIS_PASSWORD,
+    REDIS_HOST, REDIS_USER, REDIS_PASSWORD,
     SYMBOL_EXCHANGE_TABLE, DBCONNECTION
 )
 from common.utils.asyncioutils import aio_set_exception_handler
@@ -44,7 +44,7 @@ class BaseOHLCVFetcher:
         # Redis client
         self.redis_client = redis.Redis(
             host=REDIS_HOST,
-            username="default",
+            username=REDIS_USER,
             password=REDIS_PASSWORD,
             decode_responses=True
         )

@@ -9,7 +9,7 @@ import redis
 import websockets
 from typing import Any, Iterable, NoReturn
 from common.config.constants import (
-    REDIS_HOST, REDIS_PASSWORD, REDIS_DELIMITER
+    REDIS_HOST, REDIS_USER, REDIS_PASSWORD, REDIS_DELIMITER
 )
 from common.utils.asyncioutils import AsyncLoopThread
 from fetchers.config.constants import (
@@ -35,7 +35,7 @@ class BitfinexOHLCVWebsocket:
     def __init__(self):
         self.redis_client = redis.Redis(
             host=REDIS_HOST,
-            username="default",
+            username=REDIS_USER,
             password=REDIS_PASSWORD,
             decode_responses=True
         )

@@ -3,7 +3,7 @@ import asyncio
 import random
 import time
 from redis.exceptions import LockError
-from common.config.constants import REDIS_HOST, REDIS_PASSWORD
+from common.config.constants import REDIS_HOST, REDIS_USER, REDIS_PASSWORD
 from common.helpers.datetimehelpers import microseconds_to_seconds
 from fetchers.config.constants import REST_RATE_LIMIT_REDIS_KEY
 
@@ -39,7 +39,7 @@ class GCRARateLimiter:
         if not redis_client:
             redis_client = redis.Redis(
                 host=REDIS_HOST,
-                username="default",
+                username=REDIS_USER,
                 password=REDIS_PASSWORD,
                 decode_responses=True
             )
@@ -112,7 +112,7 @@ class AsyncThrottler:
         if not redis_client:
             redis_client = redis.Redis(
                 host=REDIS_HOST,
-                username="default",
+                username=REDIS_USER,
                 password=REDIS_PASSWORD,
                 decode_responses=True
             )

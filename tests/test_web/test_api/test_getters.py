@@ -1,9 +1,11 @@
+import pytest
 from fastapi.testclient import TestClient
 from web.main import app
 
 
 client = TestClient(app)
 
+@pytest.mark.afterpop
 def test_get():
     '''
     Tests getting from Test table
@@ -15,6 +17,7 @@ def test_get():
     resp_j = response.json()[0]
     assert (resp_j['id'] == 1) and (resp_j['b'] == "a") and (resp_j['q'] == "b")
 
+@pytest.mark.afterpop
 def test_analytics():
     '''
     Tests getting from analytics APIs
@@ -52,9 +55,10 @@ def test_analytics():
     response = client.get("/api/analytics/top20qvlm")
     assert response.status_code == 200
 
-def test_api():
+@pytest.mark.afterpop
+def test_other_api():
     '''
-    Tests getting from API
+    Tests getting from other API endpoints
     '''
 
     response = client.get("/api/symbol-exchange")

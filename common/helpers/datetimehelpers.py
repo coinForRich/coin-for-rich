@@ -1,7 +1,7 @@
 # This module contains common datetime helpers
 
 import datetime
-from typing import Union
+from typing import Generator, Union, Any
 from redis import Redis
 
 
@@ -23,18 +23,19 @@ def seconds(mls: Union[float, int]) -> int:
     '''
     return int(mls / 1000)
 
-def microseconds_to_seconds(mic: float):
+def microseconds_to_seconds(mic: Union[float, int]) -> float:
     '''
     returns seconds from `mic` microseconds
     
     :params:
-        `mic`: float of microseconds
+        `mic`: float or int of microseconds
     '''
     return mic / 1000000
 
-def datetime_to_seconds(dt):
+def datetime_to_seconds(dt: datetime.datetime) -> float:
     '''
     converts a datetime.datetime object to seconds, represented in float
+    
     :params:
         `dt`: datetime object
     '''
@@ -43,40 +44,45 @@ def datetime_to_seconds(dt):
 def datetime_to_milliseconds(dt: datetime.datetime) -> int:
     '''
     converts a datetime.datetime object to milliseconds, represented in int
+    
     :params:
         `dt`: datetime object
     '''
     return milliseconds(datetime_to_seconds(dt))
 
-def milliseconds_to_datetime(mls: int) -> datetime.datetime:
+def milliseconds_to_datetime(mls: Union[float, int]) -> datetime.datetime:
     '''
     converts a millisecond timestamp into datetime object
+    
     :params:
-        `mls`: int (milliseconds)
+        `mls`: float or int (milliseconds)
     '''
     return datetime.datetime.fromtimestamp(mls/1000)
 
-def str_to_datetime(s, f):
+def str_to_datetime(s: str, f: str) -> datetime.datetime:
     '''
     converts a string of format `f` to datetime obj
+    
     :params:
         `s`: string - representing datetime
         `f`: string - time format
     '''
     return datetime.datetime.strptime(s, f)
 
-def datetime_to_str(dt, f):
+def datetime_to_str(dt: datetime.datetime, f: str) -> str:
     '''
     converts a datetime object into a string of format `f`
+    
     :params:
         `dt`: datetime obj
         `f`: string - time format
     '''
     return dt.strftime(f)
 
-def milliseconds_to_str(mls, f):
+def milliseconds_to_str(mls: int, f: str) -> str:
     '''
     converts a millisecond timestamp into string of format `f`
+    
     :params:
         `mls`: int (milliseconds)
         `f`: string - time format
@@ -84,9 +90,10 @@ def milliseconds_to_str(mls, f):
 
     return datetime_to_str(milliseconds_to_datetime(mls), f)
 
-def str_to_milliseconds(s, f):
+def str_to_milliseconds(s: str, f: str) -> int:
     '''
     converts a string of format `f` to milliseconds
+    
     :params:
         `s`: datetime string
         `f`: string - time format
@@ -94,9 +101,10 @@ def str_to_milliseconds(s, f):
 
     return datetime_to_milliseconds(str_to_datetime(s, f))
 
-def str_to_seconds(s, f):
+def str_to_seconds(s: str, f: str) -> int:
     '''
     converts a string of format `f` to seconds
+    
     :params:
         `s`: datetime string
         `f`: string - time format
@@ -104,15 +112,19 @@ def str_to_seconds(s, f):
 
     return seconds(str_to_milliseconds(s, f))
 
-def list_days_fromto(start_date, end_date):
+def list_days_fromto(
+        start_date: datetime.datetime,
+        end_date: datetime.datetime
+    ) -> Generator[datetime.datetime, Any, Any]:
     '''
     generates the days between two days (inclusive)
+    
     :params:
         `start_date`: datetime obj
         `end_date`: datetime obj
     '''
 
-    for n in range((end_date - start_date).days+1):
+    for n in range((end_date - start_date).days + 1):
         yield start_date + datetime.timedelta(days=n)
 
 def redis_time(r: Redis) -> float:

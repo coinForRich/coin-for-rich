@@ -23,9 +23,8 @@ from signalr_aio import Connection
 from base64 import b64decode
 from zlib import decompress, MAX_WBITS
 from common.config.constants import (
-    REDIS_HOST,
-    REDIS_PASSWORD,
-    REDIS_DELIMITER,
+    REDIS_HOST, REDIS_USER,
+    REDIS_PASSWORD, REDIS_DELIMITER,
     DEFAULT_DATETIME_STR_RESULT
 )
 from common.helpers.datetimehelpers import str_to_milliseconds, redis_time
@@ -51,7 +50,7 @@ class BittrexOHLCVWebsocket:
     def __init__(self):
         self.redis_client = redis.Redis(
             host=REDIS_HOST,
-            username="default",
+            username=REDIS_USER,
             password=REDIS_PASSWORD,
             decode_responses=True
         )

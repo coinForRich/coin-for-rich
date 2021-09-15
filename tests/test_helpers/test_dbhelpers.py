@@ -1,3 +1,4 @@
+import pytest
 import logging
 import psycopg2
 from psycopg2 import sql, extras
@@ -8,6 +9,7 @@ from fetchers.config.queries import PSQL_INSERT_UPDATE_QUERY, PSQL_INSERT_IGNORE
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 
 
+@pytest.mark.beforepop
 def test_dbhelper():
     def run_query(cur: Any, query: str):
         try:
