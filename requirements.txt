@@ -23,7 +23,7 @@ httpcore==0.13.6
 httpx==0.18.2
 inflect==5.3.0
 iniconfig==1.1.1
-Jinja2==2.11.2
+Jinja2==2.11.3
 kombu==5.1.0
 packaging==21.0
 pbr==5.6.0
