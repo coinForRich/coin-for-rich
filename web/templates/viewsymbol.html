@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>View a Symbol</title>
+        <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <link rel="stylesheet" href="{{ url_for('src', path='/styles/chart.css') }}">
+        <link rel="stylesheet" href="{{ url_for('src', path='/styles/ebqsearch.css') }}">
+        <link rel="stylesheet" href="{{ url_for('src', path='/styles/scrollToTop.css') }}">
+    </head>
+    <body>
+        <h1>Real-time OHLC Chart</h1>
+        <div id="div_searchbox"></div>
+        <div id="chart"></div>
+        <div id="DRTable"></div>
+        <div id="WRTable"></div>
+        <div id="HistGeoDR"></div>
+        <div id="HistWR"></div>
+        <div id="topQuoteVlm"></div>
+        <button onclick="topFunction()" id="myBtn" title="Go to top">Top</button>
+
+        <!-- Lightweight chart script -->
+        <script src="{{ url_for('src', path='/chart.js') }}"></script>
+        <script src="{{ url_for('src', path='/utils/ebqsearch.js') }}"></script>
+        <script src="{{ url_for('src', path='/utils/scrollToTop.js') }}"></script>
+        <script src="{{ url_for('src', path='/analytics.js') }}"></script>
+    </body>
+</html>

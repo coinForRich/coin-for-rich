@@ -1,0 +1,13 @@
+__pycache__/
+*__pycache__/
+.vscode/
+.ipynb_checkpoints/
+.pytest_cache/
+logs/*
+run/
+*/beat/
+local*/
+local_*.sh
+.bak
+.dat
+.dir

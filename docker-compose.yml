@@ -1,0 +1,40 @@
+version: "3"
+services: 
+    psql:
+        image: timescale/timescaledb:2.3.0-pg13
+        container_name: coin-psql
+        environment:
+          - POSTGRES_PASSWORD=icecreamyummy
+        volumes:
+          - ./local_data/_postgresdata:/var/lib/postgresql/data # persist db
+          - ./scripts/database/init:/docker-entrypoint-initdb.d # init script
+        ports:
+          - 5432:5432
+    redis:
+        image: redis:6.2
+        container_name: coin-redis
+        command: redis-server --appendonly yes --requirepass icecreamyummy
+        volumes:
+          - ./local_data/_redisdata:/data # persist db
+        ports:
+          - 6379:6379
+    coin_app:
+        build: .
+        container_name: coin-app
+        command: bash
+        tty: true
+        environment:
+          - POSTGRES_HOST=coin-psql
+          - POSTGRES_PASSWORD=icecreamyummy
+          - REDIS_HOST=coin-redis
+          - REDIS_PASSWORD=icecreamyummy
+          - COMMON_HOST=localhost          
+        depends_on: 
+          - psql
+          - redis
+        volumes:
+          - ./logs:/coin-for-rich/logs
+        ports:
+          - 8000:8000 # web
+          - 5566:5566 # celery flower
+        entrypoint: dockerize -wait tcp://coin-psql:5432 -wait tcp://coin-redis:6379 -timeout 60s bash /coin-for-rich/scripts/docker/init.sh

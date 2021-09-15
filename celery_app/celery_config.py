@@ -11,14 +11,57 @@ include = ['celery_app.celery_tasks']
 # Using the database to store task state
 result_backend = CELERY_REDIS_URL
 
+# Enabling worker pool restart
+worker_pool_restarts = True
+
 # Routing
 task_routes = {
-    'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_all_symbols': {'queue': 'bitfinex'},
-    'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_symbols': {'queue': 'bitfinex'},
-    'celery_app.celery_tasks.bitfinex_resume_fetch': {'queue': 'bitfinex'},
-    'celery_app.celery_tasks.binance_fetch_ohlcvs_all_symbols': {'queue': 'binance'},
-    'celery_app.celery_tasks.binance_fetch_ohlcvs_symbols': {'queue': 'binance'},
-    'celery_app.celery_tasks.binance_resume_fetch': {'queue': 'binance'},
-    'celery_app.celery_tasks.bittrex_fetch_ohlcvs_all_symbols': {'queue': 'bittrex'},
-    'celery_app.celery_tasks.bittrex_fetch_ohlcvs_symbols': {'queue': 'bittrex'}
+    'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_all_symbols': {
+        'queue': 'bitfinex_rest'
+    },
+    'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_symbols': {
+        'queue': 'bitfinex_rest'
+    },
+    'celery_app.celery_tasks.bitfinex_resume_fetch': {
+        'queue': 'bitfinex_rest'
+    },
+    'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_mutual_basequote': {
+        'queue': 'bitfinex_rest'
+    },
+    'celery_app.celery_tasks.bitfinex_fetch_ohlcvs_mutual_basequote_1min': {
+        'queue': 'bitfinex_rest'
+    },
+    'celery_app.celery_tasks.binance_fetch_ohlcvs_all_symbols': {
+        'queue': 'binance_rest'
+    },
+    'celery_app.celery_tasks.binance_fetch_ohlcvs_symbols': {
+        'queue': 'binance_rest'
+    },
+    'celery_app.celery_tasks.binance_resume_fetch': {
+        'queue': 'binance_rest'
+    },
+    'celery_app.celery_tasks.binance_fetch_ohlcvs_mutual_basequote': {
+        'queue': 'binance_rest'
+    },
+    'celery_app.celery_tasks.binance_fetch_ohlcvs_mutual_basequote_1min': {
+        'queue': 'binance_rest'   
+    },
+    'celery_app.celery_tasks.bittrex_fetch_ohlcvs_all_symbols': {
+        'queue': 'bittrex_rest'
+    },
+    'celery_app.celery_tasks.bittrex_fetch_ohlcvs_symbols': {
+        'queue': 'bittrex_rest'
+    },
+    'celery_app.celery_tasks.bittrex_resume_fetch': {
+        'queue': 'bittrex_rest'
+    },
+    'celery_app.celery_tasks.bittrex_fetch_ohlcvs_mutual_basequote': {
+        'queue': 'bittrex_rest'
+    },
+    'celery_app.celery_tasks.bittrex_fetch_ohlcvs_mutual_basequote_1min': {
+        'queue': 'bittrex_rest'
+    },
+    'celery_app.celery_tasks.all_fetch_symbol_data': {
+        'queue': 'all_rest'
+    }
 }

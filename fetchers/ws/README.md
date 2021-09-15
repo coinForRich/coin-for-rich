@@ -1,0 +1,1 @@
+Websocket subscribers to exchanges to be run on different terminal windows

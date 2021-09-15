@@ -1,0 +1,1 @@
+REFRESH MATERIALIZED VIEW top_500_daily_return;

@@ -3,6 +3,19 @@
 # Generic insert query that ignores unique constraints
 PSQL_INSERT_IGNOREDUP_QUERY = "INSERT INTO {table} VALUES %s ON CONFLICT DO NOTHING;"
 
+# Insert query into ohlcvs that updates the existing rows with new ones
+# PSQL_INSERT_UPDATE_QUERY = '''
+# INSERT INTO {table} VALUES %s
+# ON CONFLICT ({}) DO UPDATE SET ({}) = ({});
+# '''
+# Modified this query to enable single-column updates
+PSQL_INSERT_UPDATE_QUERY = '''
+INSERT INTO {table} VALUES %s
+ON CONFLICT ({}) DO UPDATE SET {} = {};
+'''
+
+# Get latest timestamp for each exchange-base-quote
+#  combination
 LATEST_SYMEXCH_QUERY = '''
 select ohlcvss.exchange, symexch.symbol, ohlcvss.time
 from symbol_exchange symexch,
@@ -17,6 +30,23 @@ from symbol_exchange symexch,
    ) ohlcvss;
 '''
 
+# Get 30 sorted mutual base-quote among all exchanges (currently 3)
+#  from a materialized view `common_basequote_30`
+MUTUAL_BASE_QUOTE_QUERY = '''
+select symexch.symbol
+from common_basequote_30 as cb
+inner join symbol_exchange as symexch
+   on cb.base_id = symexch.base_id
+      and cb.quote_id = symexch.quote_id
+where symexch.exchange = %s;
+'''
+
+# Get all symbols from an exchange
+ALL_SYMBOLS_EXCHANGE_QUERY = '''
+select symbol from symbol_exchange where exchange=%s order by base_id, quote_id;
+'''
+
+# Get timestamp gaps
 TS_GAPS_QUERY = '''
 select row_to_json(results)
 from (

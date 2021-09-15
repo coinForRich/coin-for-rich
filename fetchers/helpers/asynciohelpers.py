@@ -28,7 +28,7 @@ def onsuccessgiveup(details):
     throttler.period = \
         THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN'] / \
         THROTTLER_RATE_LIMITS['RATE_LIMIT_HITS_PER_MIN'][exchange_name]
-    print(f"Setting throttler rate limit to: 1 request per {round(throttler.period, 2)} seconds")
+    # print(f"Setting throttler rate limit to: 1 request per {round(throttler.period, 2)} seconds")
 
 # Asyncio exception handler for async tasks
 def aio_handle_exception(loop, context):

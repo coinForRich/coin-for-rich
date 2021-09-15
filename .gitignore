@@ -2,7 +2,14 @@ __pycache__/
 *__pycache__/
 .vscode/
 .ipynb_checkpoints/
+.pytest_cache/
 logs/*
 run/
-test*
+*/beat/
+local*/
+local_*.sh
+_old*
 .env
+.bak
+.dat
+.dir
