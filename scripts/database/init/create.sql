@@ -1,7 +1,7 @@
 -- Automatically creates tables and views
 
 
--- Timescaledb extention
+-- Timescaledb extension
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
 
