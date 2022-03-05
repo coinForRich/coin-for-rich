@@ -7,7 +7,7 @@ attrs==21.2.0
 backoff==1.10.0
 billiard==3.6.4.0
 brotlipy==0.7.0
-celery==5.1.2
+celery==5.2.2
 certifi==2021.5.30
 click==7.1.2
 click-didyoumean==0.0.3
