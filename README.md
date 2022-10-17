@@ -151,5 +151,5 @@ uvicorn web.main:app --reload
 ```
 # Lessons Learned <a name="lessons"></a>
 Lessons learned while making this project is [here](docs/lessons.md). Not much has been written though.
-# License <a name="quickstart"></a>
+# License <a name="license"></a>
 MIT - see [LICENSE](LICENSE)
