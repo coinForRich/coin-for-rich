@@ -3,8 +3,8 @@ services:
     psql:
         image: timescale/timescaledb:2.3.0-pg13
         container_name: coin-psql
-        environment:
-          - POSTGRES_PASSWORD=icecreamyummy
+        env_file:
+          - .env
         volumes:
           - ./local_data/_postgresdata:/var/lib/postgresql/data # persist db
           - ./scripts/database/init:/docker-entrypoint-initdb.d # init script
@@ -23,12 +23,8 @@ services:
         container_name: coin-app
         command: bash
         tty: true
-        environment:
-          - POSTGRES_HOST=coin-psql
-          - POSTGRES_PASSWORD=icecreamyummy
-          - REDIS_HOST=coin-redis
-          - REDIS_PASSWORD=icecreamyummy
-          - COMMON_HOST=localhost          
+        env_file:
+          - .env
         depends_on: 
           - psql
           - redis

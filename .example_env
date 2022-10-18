@@ -1,3 +1,6 @@
+POSTGRES_HOST=coin-psql
 POSTGRES_PASSWORD=icecreamyummy
+REDIS_HOST=coin-redis
 REDIS_PASSWORD=icecreamyummy
+COMMON_HOST=localhost
 COMMON_HOST=localhost

@@ -12,7 +12,7 @@ RUN apt-get -y update && apt-get -y install postgresql-client-13
 # Copy code
 COPY requirements.txt /coin-for-rich/requirements.txt
 RUN pip3 install -r /coin-for-rich/requirements.txt
-COPY .example_env /coin-for-rich/.env
+COPY .env /coin-for-rich/.env
 COPY celery_app /coin-for-rich/celery_app
 COPY common /coin-for-rich/common
 COPY fetchers /coin-for-rich/fetchers
