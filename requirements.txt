@@ -50,4 +50,4 @@ typing-extensions==3.10.0.0
 uvicorn==0.14.0
 vine==5.0.0
 wcwidth==0.2.5
-websockets==9.1
+websockets==10.0
