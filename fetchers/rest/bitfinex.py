@@ -43,6 +43,8 @@ RATE_LIMIT_SECS_PER_MIN = THROTTLER_RATE_LIMITS['RATE_LIMIT_SECS_PER_MIN']
 OHLCVS_CONSUME_BATCH_SIZE = 500
 
 class BitfinexOHLCVFetcher(BaseOHLCVFetcher):
+    '''REST Fetcher for OHLCV from Bitfinex
+    '''
     def __init__(self, *args):
         super().__init__(*args, exchange_name = EXCHANGE_NAME)
 

@@ -49,6 +49,8 @@ DATETIME_STR_FORMAT = "%Y-%m-%dT%H:%M:%S"
 OHLCVS_CONSUME_BATCH_SIZE = 100
 
 class BittrexOHLCVFetcher(BaseOHLCVFetcher):
+    '''REST Fetcher for OHLCV from Bittrex
+    '''
     def __init__(self, *args):
         super().__init__(*args, exchange_name = EXCHANGE_NAME)
 

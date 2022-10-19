@@ -159,6 +159,8 @@ class RequestWeightManager:
 
 
 class BinanceOHLCVFetcher(BaseOHLCVFetcher):
+    '''REST Fetcher for OHLCV from Binance
+    '''
     def __init__(self, *args):
         super().__init__(*args, exchange_name = EXCHANGE_NAME)
 
