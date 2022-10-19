@@ -2,33 +2,30 @@
 
 import asyncio
 import datetime
-import httpx
-import backoff
 from typing import Any, Iterable
-from common.config.constants import (
-    REDIS_DELIMITER, OHLCVS_TABLE,
-    OHLCVS_ERRORS_TABLE, DEFAULT_DATETIME_STR_QUERY
-)
-from common.helpers.datetimehelpers import (
-    datetime_to_str, str_to_datetime, list_days_fromto
-)
-from common.helpers.numbers import round_decimal
-from fetchers.config.constants import (
-    THROTTLER_RATE_LIMITS, OHLCV_UNIQUE_COLUMNS,
-    OHLCV_UPDATE_COLUMNS, REST_RATE_LIMIT_REDIS_KEY,
-    HTTPX_DEFAULT_RETRIES
-)
-from fetchers.config.queries import (
-    PSQL_INSERT_IGNOREDUP_QUERY, PSQL_INSERT_UPDATE_QUERY
-)
-from fetchers.helpers.dbhelpers import psql_bulk_insert
-from fetchers.utils.asyncioutils import onbackoff, onsuccessgiveup
-from fetchers.utils.ratelimit import GCRARateLimiter
-from fetchers.utils.exceptions import (
-    MaximumRetriesReached, UnsuccessfulDatabaseInsert
-)
-from fetchers.rest.base import BaseOHLCVFetcher
 
+import backoff
+import httpx
+
+from common.config.constants import \
+    DEFAULT_DATETIME_STR_QUERY, \
+    OHLCVS_ERRORS_TABLE, OHLCVS_TABLE, \
+    REDIS_DELIMITER
+from common.helpers.datetimehelpers import \
+    datetime_to_str, list_days_fromto, str_to_datetime
+from common.helpers.numbers import round_decimal
+from fetchers.config.constants import \
+    HTTPX_DEFAULT_RETRIES, OHLCV_UNIQUE_COLUMNS, \
+    OHLCV_UPDATE_COLUMNS, REST_RATE_LIMIT_REDIS_KEY, \
+    THROTTLER_RATE_LIMITS
+from fetchers.config.queries import \
+    PSQL_INSERT_IGNOREDUP_QUERY, PSQL_INSERT_UPDATE_QUERY
+from fetchers.helpers.dbhelpers import psql_bulk_insert
+from fetchers.rest.base import BaseOHLCVFetcher
+from fetchers.utils.asyncioutils import onbackoff, onsuccessgiveup
+from fetchers.utils.exceptions import \
+    MaximumRetriesReached, UnsuccessfulDatabaseInsert
+from fetchers.utils.ratelimit import GCRARateLimiter
 
 # Bittrex returns:
 #   1-min or 5-min time windows in a period of 1 day
