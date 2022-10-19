@@ -1,3 +1,6 @@
+# This represents commands to start REST fetching
+#   from CLI using Celery tasks
+
 import argparse
 from celery_app.celery_tasks import *
 
