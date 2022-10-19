@@ -1,33 +1,29 @@
 # Base for all REST fetchers
 
+import asyncio
 import datetime
+from asyncio.events import AbstractEventLoop
+
+import httpx
 import psycopg2
 import redis
-import httpx
-import asyncio
-from asyncio.events import AbstractEventLoop
-from common.config.constants import (
-    REDIS_HOST, REDIS_USER, REDIS_PASSWORD,
-    SYMBOL_EXCHANGE_TABLE, DBCONNECTION
-)
+
+from common.config.constants import \
+    DBCONNECTION, REDIS_HOST, REDIS_PASSWORD, \
+    REDIS_USER, SYMBOL_EXCHANGE_TABLE
 from common.utils.asyncioutils import aio_set_exception_handler
 from common.utils.logutils import create_logger
-from fetchers.config.constants import (
-    HTTPX_MAX_CONCURRENT_CONNECTIONS, HTTPX_DEFAULT_TIMEOUT,
-    OHLCVS_TOFETCH_REDIS_KEY, OHLCVS_FETCHING_REDIS_KEY,
+from fetchers.config.constants import \
+    HTTPX_DEFAULT_TIMEOUT, HTTPX_MAX_CONCURRENT_CONNECTIONS, \
+    OHLCVS_FETCHING_REDIS_KEY, OHLCVS_TOFETCH_REDIS_KEY, \
     SYMEXCH_UNIQUE_COLUMNS, SYMEXCH_UPDATE_COLUMNS
-)
-from fetchers.config.queries import (
-    MUTUAL_BASE_QUOTE_QUERY,
-    PSQL_INSERT_IGNOREDUP_QUERY,
-    PSQL_INSERT_UPDATE_QUERY
-)
+from fetchers.config.queries import \
+    MUTUAL_BASE_QUOTE_QUERY, PSQL_INSERT_UPDATE_QUERY
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 
 
 class BaseOHLCVFetcher:
-    '''
-    Base REST fetcher for all exchanges
+    '''Base REST fetcher for all exchanges
     '''
 
     def __init__(self, exchange_name: str):
@@ -37,10 +33,9 @@ class BaseOHLCVFetcher:
         self.fetching_key = OHLCVS_FETCHING_REDIS_KEY.format(exchange=exchange_name)
 
         # Postgres connection
-        # TODO: Not sure if this is needed
         self.psql_conn = psycopg2.connect(DBCONNECTION)
         self.psql_cur = self.psql_conn.cursor()
-        
+
         # Redis client
         self.redis_client = redis.Redis(
             host=REDIS_HOST,
@@ -63,13 +58,13 @@ class BaseOHLCVFetcher:
 
         # Symbol data
         self.symbol_data = {}
-        
+
 
     def _setup_event_loop(self) -> AbstractEventLoop:
         '''
         Gets the event loop or resets it
         '''
-        
+
         loop = asyncio.get_event_loop()
         if loop.is_closed():
             asyncio.set_event_loop(asyncio.new_event_loop())
@@ -77,14 +72,16 @@ class BaseOHLCVFetcher:
         aio_set_exception_handler(loop)
         return loop
 
-    # TODO: see if this empty method is needed
     async def _fetch_ohlcvs_symbols(*args, **kwargs) -> None:
         '''
-        Function to get OHLCVs of symbols
+        Signature for _fetch_ohlcvs_symbols in child class
         '''
-        
-        pass
-    
+
+    async def _consume_ohlcvs_redis(self, *args, **kwargs) -> None:
+        '''
+        Signature for _consume_ohlcvs_redis in child class
+        '''
+
     async def _resume_fetch(self, update: bool=False) -> None:
         '''
         Resumes fetching tasks if there're params inside Redis sets
@@ -93,9 +90,9 @@ class BaseOHLCVFetcher:
         # Asyncio gather 1 task:
         # - Consume from Redis to-fetch
         await asyncio.gather(
-            self.consume_ohlcvs_redis(update)
+            self._consume_ohlcvs_redis(update)
         )
-    
+
     def close_connections(self) -> None:
         '''
         Interface to close all connections (e.g., PSQL)
@@ -110,7 +107,7 @@ class BaseOHLCVFetcher:
 
         Updates is_trading status in PSQL db for existing ones
         '''
-        
+
         rows = [
             (
                 self.exchange_name,
@@ -139,7 +136,7 @@ class BaseOHLCVFetcher:
                         'quote_id': 'BTC'
                     }
                 }
-            
+
         The query must have a `%s` placeholder for the exchange
 
         Primary use is to get a specific set of symbols
@@ -215,7 +212,7 @@ class BaseOHLCVFetcher:
     ) -> None:
         '''
         Interface to run the fetching of the mutual base-quote symbols
-        
+
         :params:
             `start_date_dt`: datetime obj
             `end_date_dt`: datetime obj
@@ -223,7 +220,7 @@ class BaseOHLCVFetcher:
         # Have to fetch symbol data first to
         # make sure it's up-to-date
         self.fetch_symbol_data()
-        
+
         symbols = self.get_symbols_from_exch(MUTUAL_BASE_QUOTE_QUERY)
         self.run_fetch_ohlcvs(symbols.keys(), start_date_dt, end_date_dt, update)
         self.logger.info(
