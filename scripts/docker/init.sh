@@ -34,7 +34,7 @@ celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -
 
 while true; do
     status=$(celery -A celery_app.celery_main status | grep '3 nodes')
-    if [ "$status" == "3 nodes online." ];
+    if [ "$status" = "3 nodes online." ];
     then
         echo "All 3 Celery workers are online!"
         break
@@ -87,5 +87,3 @@ echo "- $(date +'%Y-%m-%dT%H:%M:%S') - cron job added" >> logs/init.log
 # Print init result
 echo "Initialization complete"
 echo "- $(date +'%Y-%m-%dT%H:%M:%S') - Initialization complete" >> logs/init.log
-
-bash

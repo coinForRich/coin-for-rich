@@ -11,7 +11,7 @@ services:
         ports:
           - 5432:5432
     redis:
-        image: redis:6.2
+        image: redis:7.0.5
         container_name: coin-redis
         command: redis-server --appendonly yes --requirepass icecreamyummy
         volumes:
@@ -21,7 +21,6 @@ services:
     coin_app:
         build: .
         container_name: coin-app
-        command: bash
         tty: true
         env_file:
           - .env
@@ -33,4 +32,4 @@ services:
         ports:
           - 8000:8000 # web
           - 5566:5566 # celery flower
-        entrypoint: dockerize -wait tcp://coin-psql:5432 -wait tcp://coin-redis:6379 -timeout 60s bash /coin-for-rich/scripts/docker/init.sh
+        entrypoint: sh -c '/coin-for-rich/wait-for coin-psql:5432 -t 60 && /coin-for-rich/wait-for coin-redis:6379 -t 60 && /coin-for-rich/scripts/docker/init.sh && bash'
