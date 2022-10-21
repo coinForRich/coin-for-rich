@@ -10,6 +10,7 @@ A standalone package to build a database of cryptocurrencies from three differen
     - [Customizing the App](#hacking_customappimg)
     - [Running without Docker Compose](#hacking_runwodc)
 - [Lessons Learned](#lessons)
+- [More Documentations](#moredocs)
 - [License](#license)
 # Screenshots
 ![OHLCV real-time chart](https://i.imgur.com/5xQxpa3.png)
@@ -150,7 +151,10 @@ python -m scripts.fetchers.ws update
 ```
 uvicorn web.main:app --reload
 ```
+zxcv
 # Lessons Learned <a name="lessons"></a>
 Lessons learned while making this project is [here](docs/lessons.md). Not much has been written though.
+# More documentations <a name="moredocs"></a>
+How the fetchers work is documented [here](docs/fetchers.md).
 # License <a name="license"></a>
 MIT - see [LICENSE](LICENSE)
