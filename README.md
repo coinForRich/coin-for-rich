@@ -2,6 +2,7 @@
 A standalone package to build a database of cryptocurrencies from three different exchanges (Bitfinex, Binance, and Bittrex). If you are looking to build such a database and get started building your application on it as fast as possible, this may help you.
 # Table of Contents
 - [Screenshots](#screenshots)
+- [Infrastructure diagram](#infra)
 - [Quick Start](#quickstart)
 - [Hacking](#hacking)
     - [APIs](#hacking_apis)
@@ -12,12 +13,14 @@ A standalone package to build a database of cryptocurrencies from three differen
 - [Lessons Learned](#lessons)
 - [More Documentations](#moredocs)
 - [License](#license)
-# Screenshots
+# Screenshots <a name="screenshots"></a>
 ![OHLCV real-time chart](https://i.imgur.com/5xQxpa3.png)
 
 ![fetchers](https://i.imgur.com/zb8QKqo.png)
 
 ![database](https://i.imgur.com/XBuHV5F.png)
+# Infrastructure diagram <a name="infra"></a>
+![Infrastructure diagram](https://i.imgur.com/mcSloro.png)
 # Quick Start <a name="quickstart"></a>
 Before running, rename or create an `.env` file containing the variables similar to those of the `.example_env` file.
 ## Run with Docker Compose
