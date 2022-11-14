@@ -8,27 +8,22 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-k
 RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main" | tee  /etc/apt/sources.list.d/pgdg.list
 RUN apt-get -y update && apt-get -y install postgresql-client-13
 
-# Copy code
-COPY requirements.txt /coin-for-rich/requirements.txt
-RUN pip3 install -r /coin-for-rich/requirements.txt
-COPY .env /coin-for-rich/.env
-COPY celery_app /coin-for-rich/celery_app
-COPY common /coin-for-rich/common
-COPY fetchers /coin-for-rich/fetchers
-COPY scripts /coin-for-rich/scripts
-COPY tests /coin-for-rich/tests
-COPY web /coin-for-rich/web
+# Change the working dir and copy needed dirs
 WORKDIR /coin-for-rich
+COPY requirements.txt .
+COPY .env .
+COPY pytest.ini .
+COPY celery_app ./celery_app
+COPY common ./common
+COPY fetchers ./fetchers
+COPY scripts ./scripts
+COPY tests ./tests
+COPY web ./web
 
-# Wait-for using wait-for
+# Finalize the build with py packages, wait-for script and init script
+RUN pip3 install -r requirements.txt
 RUN wget --quiet https://raw.githubusercontent.com/eficode/wait-for/master/wait-for
-
-# Make, rename dirs
-RUN mkdir -p /coin-for-rich/logs
-
-# Cron
+RUN mkdir -p ./logs
 RUN service cron start
-
-# Chmod
-RUN chmod 755 /coin-for-rich/scripts/docker/init.sh
-RUN chmod 755 /coin-for-rich/wait-for
+RUN chmod 755 ./scripts/docker/init.sh
+RUN chmod 755 wait-for
