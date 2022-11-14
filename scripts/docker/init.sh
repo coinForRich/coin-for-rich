@@ -13,7 +13,7 @@ else
 fi
 
 # Redis
-redis-cli -h $REDIS_HOST -a $REDIS_PASSWORD ping
+redis-cli -h $REDIS_HOST -p 6379 -a $REDIS_PASSWORD ping
 status_code=$(($?))
 if [ $status_code -eq 0 ];
 then

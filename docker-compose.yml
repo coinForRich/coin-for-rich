@@ -15,7 +15,16 @@ services:
     redis:
         image: redis:7.0.5
         container_name: coin-redis
-        command: redis-server --appendonly yes --requirepass icecreamyummy
+        # We use the shell form of command here to run the container using shell
+        # and thus make use of the password set in the .env file
+        # - Double dollars, so that the variable is not expanded by Docker Compose,
+        #   but by the shell
+        # - Surround by quotes, so that the shell does not split the password
+        # - The ${variable:?message} syntax causes shell to exit with a non-zero
+        #   code and print a message, when the variable is not set or empty
+        command: /bin/sh -c redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set}"
+        env_file:
+          - .env
         volumes:
           - ./local_data/_redis:/data # persist db
         ports:
