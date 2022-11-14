@@ -41,7 +41,7 @@ def test_dbhelper():
         insert_update_query = PSQL_INSERT_UPDATE_QUERY,
         unique_cols = unique_cols,
         update_cols = update_cols,
-    ) == True
+    ) is True
 
     # Query from
     results = run_query(cur, query)
@@ -53,7 +53,7 @@ def test_dbhelper():
         rows,
         table,
         insert_ignoredup_query = PSQL_INSERT_IGNOREDUP_QUERY
-    ) == True
+    ) is True
 
     # Query from
     results = run_query(cur, query)
