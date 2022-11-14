@@ -70,7 +70,7 @@ You can easily build your app using the APIs provided in this app, see below:
     - For example, with `bitfinex` and `BTC` and `USD`, the key is `ws_send_bitfinex;;BTC;;USD` (I configured the delimiter to be `;;` in this app - it’s a bit difficult to see)
     - You can stream real-time OHLCV data to your outside application using this key
 ### Postgresql
-- Postgresql/Timescaledb API is available at `localhost`, port `5432` with the password specified in the `docker-compose.yml` file
+- Timescaledb/Postgresql API is available at `localhost`, port `5432` with the password specified in the `docker-compose.yml` file
 - Following are some default tables of your interest:
     - `ohlcvs`: contains OHLCV data
     - `symbol_exchange`: contains exchanges' names and associated symbols
@@ -154,7 +154,8 @@ python -m scripts.fetchers.ws update
 ```
 uvicorn web.main:app --reload
 ```
-zxcv
+## Troubleshooting
+Trouleshooting information can be found [here](docs/troubleshooting.md).
 # Lessons Learned <a name="lessons"></a>
 Lessons learned while making this project is [here](docs/lessons.md). Not much has been written though.
 # More documentations <a name="moredocs"></a>
