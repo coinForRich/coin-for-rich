@@ -3,7 +3,7 @@ services:
     psql:
         image: timescale/timescaledb:2.8.0-pg13
         container_name: coin-psql
-        command: ["postgres", "-c", "logging_collector=on", "-c", "log_directory=//var/lib/postgresql/logs", "-c", "log_statement=all"]
+        command: ["postgres", "-c", "logging_collector=on", "-c", "log_directory=/var/lib/postgresql/logs", "-c", "log_statement=all"]
         env_file:
           - .env
         volumes:
