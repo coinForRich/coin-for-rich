@@ -1,12 +1,14 @@
 version: "3"
 services: 
     psql:
-        image: timescale/timescaledb:2.3.0-pg13
+        image: timescale/timescaledb:2.8.0-pg13
         container_name: coin-psql
+        command: ["postgres", "-c", "logging_collector=on", "-c", "log_directory=//var/lib/postgresql/logs", "-c", "log_statement=all"]
         env_file:
           - .env
         volumes:
-          - ./local_data/_postgresdata:/var/lib/postgresql/data # persist db
+          - ./local_data/_postgresql/data:/var/lib/postgresql/data # persist db
+          - ./local_data/_postgresql/logs:/var/lib/postgresql/logs # persist db
           - ./scripts/database/init:/docker-entrypoint-initdb.d # init script
         ports:
           - 5432:5432
@@ -15,7 +17,7 @@ services:
         container_name: coin-redis
         command: redis-server --appendonly yes --requirepass icecreamyummy
         volumes:
-          - ./local_data/_redisdata:/data # persist db
+          - ./local_data/_redis:/data # persist db
         ports:
           - 6379:6379
     coin_app:

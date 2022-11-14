@@ -76,6 +76,7 @@ You can easily build your app using the APIs provided in this app, see below:
     - `symbol_exchange`: contains exchanges' names and associated symbols
     - `ohlcvs_errors`: contains errors when fetching OHLCV over exchanges' REST APIs
 - See [this SQL file](scripts/database/init/create.sql) for full definitions of tables, views and aggregations
+- Logging configuration for the Timescaledb/Postgresql container can be found in the `psql` service section of [the docker-compose.yml file](docker-compose.yml).
 ### Web APIs
 The app’s web API is built on [FastAPI](https://fastapi.tiangolo.com) and [SQLAlchemy](https://www.sqlalchemy.org)
 
