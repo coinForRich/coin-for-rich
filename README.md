@@ -2,7 +2,7 @@
 A standalone package to build a database of cryptocurrencies from three different exchanges (Bitfinex, Binance, and Bittrex). If you are looking to build such a database and get started building your application on it as fast as possible, this may help you.
 # Table of Contents
 - [Screenshots](#screenshots)
-- [Infrastructure diagram](#infra)
+- [Infrastructure Diagram](#infra)
 - [Quick Start](#quickstart)
 - [Hacking](#hacking)
     - [APIs](#hacking_apis)
