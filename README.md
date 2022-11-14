@@ -26,7 +26,7 @@ Before running, rename or create an `.env` file containing the variables similar
 ## Run with Docker Compose
 - Everything should work out-of-the-box, so you do not need to configure anything, unless you encounter problems (see [Hacking](#hacking) section)
 - Clone this repository
-- Run `docker-compose build --no-cache && docker-compose up -d`
+- Run `docker compose build --no-cache && docker compose up -d`
 - At the project folder, look for the file `./logs/init.log`. If you see the line saying “Initialization complete”, then the app is ready
 - Run `docker exec -it coin-app bash` to get inside the app
 ## Inside the App
@@ -64,13 +64,13 @@ Run `pytest -m afterpop`
 ## APIs <a name="hacking_apis"></a>
 You can easily build your app using the APIs provided in this app, see below:
 ### Redis
-- Redis API is available at `localhost`, port `6379` with the password specified in the `docker-compose.yml` file
+- Redis API is available at `localhost`, port `6379` with the password specified in [the docker-compose.yml file](docker-compose.yml)
 - Key(s) that you may be interested in:
     `ws_send_{exchange}{delimiter}{base_id}{delimiter}{quote_id}`: contains a hash of the latest OHLCV data for `base_id` and `quote_id` from `exchange`
     - For example, with `bitfinex` and `BTC` and `USD`, the key is `ws_send_bitfinex;;BTC;;USD` (I configured the delimiter to be `;;` in this app - it’s a bit difficult to see)
     - You can stream real-time OHLCV data to your outside application using this key
 ### Postgresql
-- Timescaledb/Postgresql API is available at `localhost`, port `5432` with the password specified in the `docker-compose.yml` file
+- Timescaledb/Postgresql API is available at `localhost`, port `5432` with the password specified in [the docker-compose.yml file](docker-compose.yml)
 - Following are some default tables of your interest:
     - `ohlcvs`: contains OHLCV data
     - `symbol_exchange`: contains exchanges' names and associated symbols
@@ -111,7 +111,7 @@ Data for Postgres and Redis are stored in `./local_data`
 - Configurations for fetchers: `./fetchers/config/constants.py`
 - Depending on the problems you encounter, you may want to adjust variables in those files
 ## Customizing the App Image <a name="hacking_customappimg"></a>
-- After customizing, simply rebuild it and re-run: `docker-compose build --no-cache && docker-compose up -d`
+- After customizing, simply rebuild it and re-run: `docker compose build --no-cache && docker compose up -d`
 - More documentation on customization are to be written
 ## Running without Docker Compose <a name="hacking_runwodc"></a>
 You can still develop, customize and run this app without Docker Compose. However, you may want to run the two containers of Timescaledb/Postgres and Redis and note that you may have to spend some time setting up cron jobs (to refresh materialized views).
