@@ -26,7 +26,8 @@ Before running, rename or create an `.env` file containing the variables similar
 ## Run with Docker Compose
 - Everything should work out-of-the-box, so you do not need to configure anything, unless you encounter problems (see [Hacking](#hacking) section)
 - Clone this repository
-- Run `docker compose build --no-cache && docker compose up -d`
+- To see the full output of the Docker Compose file, run `docker compose convert`
+- To start the project, run `docker compose build --no-cache && docker compose up -d`
 - At the project folder, look for the file `./logs/init.log`. If you see the line saying “Initialization complete”, then the app is ready
 - Run `docker exec -it coin-app bash` to get inside the app
 ## Inside the App

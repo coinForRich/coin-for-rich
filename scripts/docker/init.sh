@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Postgres/timescaledb
-pg_isready -h $POSTGRES_HOST -p 5432 -U postgres -d postgres
+pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT -U postgres -d postgres
 status_code=$(($?))
 if [ $status_code -eq 0 ];
 then
@@ -13,7 +13,7 @@ else
 fi
 
 # Redis
-redis-cli -h $REDIS_HOST -p 6379 -a $REDIS_PASSWORD ping
+redis-cli -h $REDIS_HOST -p $REDIS_PORT -a $REDIS_PASSWORD ping
 status_code=$(($?))
 if [ $status_code -eq 0 ];
 then
@@ -53,7 +53,7 @@ ses_web="web"
 ses_celery="celery"
 
 tmux new-session -d -s $ses_psql \; \
-    send-keys 'psql postgresql://postgres:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/postgres' C-m
+    send-keys 'psql postgresql://postgres:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/postgres' C-m
 
 tmux new-session -d -s $ses_redis \; \
     send-keys 'redis-cli -h $REDIS_HOST -a $REDIS_PASSWORD' C-m
@@ -74,13 +74,13 @@ tmux new-session -d -s $ses_web \; \
     send-keys 'uvicorn web.main:app --reload --host 0.0.0.0' C-m
 
 tmux new-session -d -s $ses_celery \; \
-    send-keys 'celery -A celery_app.celery_main flower --address=0.0.0.0 --port=5566' C-m
+    send-keys 'celery -A celery_app.celery_main flower --address=0.0.0.0 --port=$CELERY_PORT' C-m
 
 echo "tmux sessions created!"
 echo "- $(date +'%Y-%m-%dT%H:%M:%S') - tmux sessions created" >> logs/init.log
 
 # Cron
-(crontab -l 2>/dev/null; echo "0 0 * * * psql postgresql://postgres:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/postgres -f /coin-for-rich/scripts/database/cron/daily.sql") | crontab -
+(crontab -l 2>/dev/null; echo "0 0 * * * psql postgresql://postgres:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/postgres -f /coin-for-rich/scripts/database/cron/daily.sql") | crontab -
 echo "cron job added!"
 echo "- $(date +'%Y-%m-%dT%H:%M:%S') - cron job added" >> logs/init.log
 

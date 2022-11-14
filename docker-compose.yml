@@ -2,7 +2,10 @@ version: "3"
 services: 
     psql:
         image: timescale/timescaledb:2.8.0-pg13
-        container_name: coin-psql
+        
+        # This will resolve to the var set in the .env file
+        container_name: ${POSTGRES_HOST}
+
         command: ["postgres", "-c", "logging_collector=on", "-c", "log_directory=/var/lib/postgresql/logs", "-c", "log_filename=postgresql_%Y-%m-%dT%H:%M:%S.log", "-c", "log_statement=all"]
         env_file:
           - .env
@@ -11,10 +14,13 @@ services:
           - ./local_data/_postgresql/logs:/var/lib/postgresql/logs # persist db
           - ./scripts/database/init:/docker-entrypoint-initdb.d # init script
         ports:
-          - 5432:5432
+          - ${POSTGRES_PORT}:${POSTGRES_PORT}
     redis:
         image: redis:7.0.5
-        container_name: coin-redis
+
+        # This will resolve to the var set in the .env file
+        container_name: ${REDIS_HOST}
+
         # We use the shell form of command here to run the container using shell
         # and thus make use of the password set in the .env file
         # - Double dollars, so that the variable is not expanded by Docker Compose,
@@ -23,12 +29,13 @@ services:
         # - The ${variable:?message} syntax causes shell to exit with a non-zero
         #   code and print a message, when the variable is not set or empty
         command: /bin/sh -c redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set}"
+
         env_file:
           - .env
         volumes:
           - ./local_data/_redis:/data # persist db
         ports:
-          - 6379:6379
+          - ${REDIS_PORT}:${REDIS_PORT}
     coin_app:
         build: .
         container_name: coin-app
@@ -41,6 +48,9 @@ services:
         volumes:
           - ./logs:/coin-for-rich/logs
         ports:
-          - 8000:8000 # web
-          - 5566:5566 # celery flower
-        entrypoint: sh -c '/coin-for-rich/wait-for coin-psql:5432 -t 60 && /coin-for-rich/wait-for coin-redis:6379 -t 60 && /coin-for-rich/scripts/docker/init.sh && bash'
+          - ${WEB_PORT}:${WEB_PORT} # web
+          - ${CELERY_PORT}:${CELERY_PORT} # celery flower
+
+        # The use of env vars here (double dollars) will resolve to the ones
+        # that are passed in the container via the env_file instruction above
+        entrypoint: /bin/sh -c '/coin-for-rich/wait-for $${POSTGRES_HOST}:$${POSTGRES_PORT} -t 60 && /coin-for-rich/wait-for $${REDIS_HOST}:$${REDIS_PORT} -t 60 && /coin-for-rich/scripts/docker/init.sh && bash'
