@@ -115,17 +115,36 @@ Data for Postgres and Redis are stored in `./local_data`
 - After customizing, simply rebuild it and re-run: `docker compose build --no-cache && docker compose up -d`
 - More documentation on customization are to be written
 ## Running without Docker Compose <a name="hacking_runwodc"></a>
-You can still develop, customize and run this app without Docker Compose. However, you may want to run the two containers of Timescaledb/Postgres and Redis and note that you may have to spend some time setting up cron jobs (to refresh materialized views).
+You can still develop, customize and run this app without Docker Compose. However, you may want to run the two containers of Timescaledb/Postgres and Redis and note that you may have to spend some time setting up cron jobs (to refresh materialized views). For Timescaledb/Postgres and Redis, remember to bind-mount data volume to retrieve existing data and make changes persistent. Also be mindful of the versions of the images you're running.
 
 ### Run Timescaledb/Postgresql
-Remember to bind-mount data volume to retrieve existing data and make changes persistent
 ```
-docker run -d --name coin-psql -p 5432:5432 -v /your/absolute/data/path/_postgresdata:/var/lib/postgresql/data -e POSTGRES_PASSWORD=yourPostgresPassword timescale/timescaledb:2.3.0-pg13
+docker run -d \
+    --name coin-psql \
+    --env-file .env \
+    --volume /path/to/project/local_data/_postgresql/data:/var/lib/postgresql/data \
+    --volume /path/to/project/scripts/database/init:/docker-entrypoint-initdb.d \
+    --volume /path/to/project/logs/postgres:/var/lib/postgresql/logs \
+    --publish 5432:5432 \
+    timescale/timescaledb:2.8.0-pg13 \
+    postgres \
+        -c logging_collector=on \
+        -c log_directory=/var/lib/postgresql/logs \
+        -c log_filename=postgresql_%Y-%m-%dT%H:%M:%S.log \
+        -c log_statement=all
 ```
 ### Run Redis
-Remember to bind-mount data volume to retrieve existing data and make changes persistent
 ```
-docker run -d --name coin-redis -p 6379:6379 -v /your/absolute/data/path/_redisdata:/data redis:6.2 redis-server --appendonly yes --requirepass "yourRedisPassword"
+docker run -d \
+    --name coin-redis \
+    --env-file .env \
+    --volume /path/to/project/local_data/_redis:/data \
+    --publish 6379:6379 \
+    redis:7.0.5 \
+    /bin/sh -c \
+        redis-server \
+        --appendonly yes \
+        --requirepass "$${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set}"
 ```
 ### Run Celery Workers and Flower
 **Workers**
@@ -160,7 +179,7 @@ uvicorn web.main:app --reload
 Trouleshooting information can be found [here](docs/troubleshooting.md).
 # Lessons Learned <a name="lessons"></a>
 Lessons learned while making this project is [here](docs/lessons.md). Not much has been written though.
-# More documentations <a name="moredocs"></a>
+# More Documentations <a name="moredocs"></a>
 How the fetchers work is documented [here](docs/fetchers.md).
 # License <a name="license"></a>
 MIT - see [LICENSE](LICENSE)
