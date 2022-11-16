@@ -27,6 +27,7 @@ from common.config.constants import (
     REDIS_PASSWORD, REDIS_DELIMITER,
     DEFAULT_DATETIME_STR_RESULT
 )
+from common.utils.logutils import create_logger
 from common.helpers.datetimehelpers import str_to_milliseconds, redis_time
 from fetchers.config.constants import (
     WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY, WS_SUB_LIST_REDIS_KEY
@@ -47,7 +48,19 @@ BACKOFF_MIN_SECS = 2.0
 BACKOFF_MAX_SECS = 60.0
 
 class BittrexOHLCVWebsocket:
-    def __init__(self):
+    '''
+    Bittrex OHLCV websocket fetcher
+    '''
+
+    def __init__(
+        self, log_to_stream: bool = False, log_filename: str = None
+    ):
+        check_log_file = log_to_stream is False and log_filename is None
+        if check_log_file:
+            raise ValueError(
+                "log_filename must be provided if not logging to stream"
+            )
+
         self.redis_client = redis.Redis(
             host=REDIS_HOST,
             username=REDIS_USER,
@@ -69,14 +82,11 @@ class BittrexOHLCVWebsocket:
         self.latest_ts = None
 
         # Logging
-        self.logger = logging.getLogger(f'{EXCHANGE_NAME}_websocket')
-        self.logger.setLevel(logging.INFO)
-        log_handler = logging.StreamHandler()
-        log_handler.setLevel(logging.INFO)
-        log_formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        log_handler.setFormatter(log_formatter)
-        self.logger.addHandler(log_handler)
+        self.logger = create_logger(
+            f'{EXCHANGE_NAME}_websocket',
+            stream_handler=log_to_stream,
+            log_filename=log_filename
+        )
 
         # Backoff
         self.backoff_delay = BACKOFF_MIN_SECS
@@ -212,7 +222,7 @@ class BittrexOHLCVWebsocket:
 
                 # self.logger.info(f'ws sub redis key: {ws_sub_redis_key}')
                 # self.logger.info(f'ws serve redis key: {ws_serve_redis_key}')
-                
+
                 # Add ws sub key to set of all ws sub keys
                 # Set hash value for ws sub key
                 # Replace ws serve key hash if this timestamp
@@ -256,7 +266,7 @@ class BittrexOHLCVWebsocket:
     async def subscribe(self, symbols: Iterable) -> NoReturn:
         '''
         Subscribes to WS channels of `symbols`
-        '''        
+        '''
 
         while True:
             try:
@@ -277,7 +287,7 @@ class BittrexOHLCVWebsocket:
                 )
                 await asyncio.sleep(min(self.backoff_delay, BACKOFF_MAX_SECS))
                 self.backoff_delay *= (1+random.random()) # add a random factor
-            
+
             # Sleep to release event loop
             await asyncio.sleep(0.01)
 

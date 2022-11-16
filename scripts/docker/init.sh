@@ -26,11 +26,13 @@ fi
 
 # Celery
 echo "Creating Celery workers..."
-celery -A celery_app.celery_main worker -Q bitfinex_rest -n bitfinexRestWorker@h -l INFO --logfile="./logs/celery_main_%n_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
+mkdir -p ./logs/celery
 
-celery -A celery_app.celery_main worker -Q binance_rest -n binanceRestWorker@h -l INFO --logfile="./logs/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
+celery -A celery_app.celery_main worker -Q bitfinex_rest -n bitfinexRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
 
-celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -l INFO --logfile="./logs/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
+celery -A celery_app.celery_main worker -Q binance_rest -n binanceRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
+
+celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
 
 while true; do
     status=$(celery -A celery_app.celery_main status | grep '3 nodes')
@@ -46,6 +48,8 @@ echo "- $(date +'%Y-%m-%dT%H:%M:%S') - Celery workers created" >> logs/init.log
 
 # Tmux sessions
 echo "Creating tmux sessions..."
+mkdir -p ./logs/websockets
+
 ses_psql="psql"
 ses_redis="redis"
 ses_fetch="fetch"
@@ -64,10 +68,10 @@ tmux new-session -d -s $ses_fetch \; \
     split-window -h -p 50 \; \
     select-pane -t 0 \; \
     split-window -h -p 50 \; \
-    select-pane -t 1 \; send-keys 'python -m scripts.fetchers.ws update' C-m \; \
-    select-pane -t 2 \; send-keys 'python -m scripts.fetchers.ws fetch --exchange bitfinex' C-m \; \
-    select-pane -t 3 \; send-keys 'python -m scripts.fetchers.ws fetch --exchange binance' C-m \; \
-    select-pane -t 4 \; send-keys 'python -m scripts.fetchers.ws fetch --exchange bittrex' C-m \; \
+    select-pane -t 1 \; send-keys 'python -m scripts.fetchers.ws update --log_filename ./logs/websockets/updater_websocket.log' C-m \; \
+    select-pane -t 2 \; send-keys 'python -m scripts.fetchers.ws fetch --exchange bitfinex --log_filename ./logs/websockets/bitfinex_websocket.log' C-m \; \
+    select-pane -t 3 \; send-keys 'python -m scripts.fetchers.ws fetch --exchange binance --log_filename ./logs/websockets/binance_websocket.log' C-m \; \
+    select-pane -t 4 \; send-keys 'python -m scripts.fetchers.ws fetch --exchange bittrex --log_filename ./logs/websockets/bittrex_websocket.log' C-m \; \
     select-pane -t 0 \; send-keys 'echo ">>> You can fetch data from an exchange REST API using a command like this: python -m scripts.fetchers.rest fetch --exchange bitfinex --start 2021-01-01T00:00:00 --end 2021-01-02T00:00:00"' C-m
 
 tmux new-session -d -s $ses_web \; \

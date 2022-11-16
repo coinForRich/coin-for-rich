@@ -11,8 +11,8 @@ services:
           - .env
         volumes:
           - ./local_data/_postgresql/data:/var/lib/postgresql/data # persist db
-          - ./local_data/_postgresql/logs:/var/lib/postgresql/logs # persist db
           - ./scripts/database/init:/docker-entrypoint-initdb.d # init script
+          - ./logs/postgres:/var/lib/postgresql/logs # logging
         ports:
           - ${POSTGRES_PORT}:${POSTGRES_PORT}
     redis:

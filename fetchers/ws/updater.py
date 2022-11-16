@@ -30,7 +30,24 @@ UPDATE_FREQUENCY_SECS = 10
 DATA_HELD_MLS_THRESHOLD = 3600000 # 1 day
 
 class OHLCVWebsocketUpdater:
-    def __init__(self):
+    '''
+    Updater for OHLCVs from websockets;
+
+    This object updates/inserts OHLCV data from Redis into PSQL;
+
+    The update mechanism for now is periodic (i.e., update/insert after
+    a certain period of time)
+    '''
+
+    def __init__(
+        self, log_to_stream: bool = False, log_filename: str = None
+    ):
+        check_log_file = log_to_stream is False and log_filename is None
+        if check_log_file:
+            raise ValueError(
+                "log_filename must be provided if not logging to stream"
+            )
+
         self.redis_client = redis.Redis(
             host=REDIS_HOST,
             username=REDIS_USER,
@@ -38,7 +55,14 @@ class OHLCVWebsocketUpdater:
             decode_responses=True
         )
 
-        self.logger = create_logger("WS_fetcher_updater")
+        # Set the log writing mode to 'w', because
+        # it will be too much log data if we use 'a'
+        self.logger = create_logger(
+            "WS_fetcher_updater",
+            stream_handler=log_to_stream,
+            log_filename=log_filename,
+            mode="w"
+        )
         self.psql_conn = psycopg2.connect(DBCONNECTION)
 
     @classmethod

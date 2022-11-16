@@ -33,7 +33,19 @@ BACKOFF_MIN_SECS = 2.0
 BACKOFF_MAX_SECS = 60.0
 
 class BinanceOHLCVWebsocket:
-    def __init__(self):
+    '''
+    Binance OHLCV websocket fetcher
+    '''
+
+    def __init__(
+        self, log_to_stream: bool = False, log_filename: str = None
+    ):
+        check_log_file = log_to_stream is False and log_filename is None
+        if check_log_file:
+            raise ValueError(
+                "log_filename must be provided if not logging to stream"
+            )
+
         self.redis_client = redis.Redis(
             host=REDIS_HOST,
             username=REDIS_USER,
@@ -48,7 +60,11 @@ class BinanceOHLCVWebsocket:
         self.rest_fetcher = BinanceOHLCVFetcher()
 
         # Logging
-        self.logger = create_logger(f'{EXCHANGE_NAME}_websocket')
+        self.logger = create_logger(
+            f'{EXCHANGE_NAME}_websocket',
+            stream_handler=log_to_stream,
+            log_filename=log_filename
+        )
 
         # Backoff
         self.backoff_delay = BACKOFF_MIN_SECS
@@ -174,7 +190,7 @@ class BinanceOHLCVWebsocket:
             )
         )
         # await asyncio.gather(self.subscribe(symbols))
-    
+
     def run_mutual_basequote(self) -> None:
         asyncio.run(self.mutual_basequote())
 

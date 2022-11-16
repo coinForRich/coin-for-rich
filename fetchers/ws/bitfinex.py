@@ -9,8 +9,10 @@ import redis
 import websockets
 from typing import Any, Iterable, NoReturn
 from common.config.constants import (
-    REDIS_HOST, REDIS_USER, REDIS_PASSWORD, REDIS_DELIMITER
+    REDIS_HOST, REDIS_USER,
+    REDIS_PASSWORD, REDIS_DELIMITER
 )
+from common.utils.logutils import create_logger
 from common.utils.asyncioutils import AsyncLoopThread
 from fetchers.config.constants import (
     WS_SUB_REDIS_KEY, WS_SERVE_REDIS_KEY,
@@ -32,7 +34,19 @@ BACKOFF_MIN_SECS = 2.0
 BACKOFF_MAX_SECS = 60.0
 
 class BitfinexOHLCVWebsocket:
-    def __init__(self):
+    '''
+    Bitfinex OHLCV websocket fetcher
+    '''
+
+    def __init__(
+        self, log_to_stream: bool = False, log_filename: str = None
+    ):
+        check_log_file = log_to_stream is False and log_filename is None
+        if check_log_file:
+            raise ValueError(
+                "log_filename must be provided if not logging to stream"
+            )
+
         self.redis_client = redis.Redis(
             host=REDIS_HOST,
             username=REDIS_USER,
@@ -48,14 +62,11 @@ class BitfinexOHLCVWebsocket:
         self.rest_fetcher = BitfinexOHLCVFetcher()
 
         # Logging
-        self.logger = logging.getLogger(f'{EXCHANGE_NAME}_websocket')
-        self.logger.setLevel(logging.INFO)
-        log_handler = logging.StreamHandler()
-        log_handler.setLevel(logging.INFO)
-        log_formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        log_handler.setFormatter(log_formatter)
-        self.logger.addHandler(log_handler)
+        self.logger = create_logger(
+            f'{EXCHANGE_NAME}_websocket',
+            stream_handler=log_to_stream,
+            log_filename=log_filename
+        )
 
         # Rate limit manager
         # Limit to attempt to connect every 3 secs
@@ -160,7 +171,7 @@ class BitfinexOHLCVWebsocket:
 
                                     # logging.info(f'ws sub redis key: {ws_sub_redis_key}')
                                     # logging.info(f'ws serve redis key: {ws_serve_redis_key}')
-                                    
+
                                     # Add ws sub key to set of all ws sub keys
                                     # Set hash value for ws sub key
                                     # Replace ws serve key hash if this timestamp
@@ -188,7 +199,7 @@ class BitfinexOHLCVWebsocket:
                                 except Exception as exc:
                                     self.logger.warning(
                                         f"Bitfinex WS Fetcher: EXCEPTION: {exc}")
-                        
+
                         # Sleep to release event loop
                         await asyncio.sleep(0.01)
             except (ConnectionClosed, InvalidStatusCode) as exc:
@@ -233,7 +244,7 @@ class BitfinexOHLCVWebsocket:
                     for i in range(0, len(symbols), MAX_SUB_PER_CONN)
             )
         )
-            
+ 
     def run_mutual_basequote(self) -> None:
         asyncio.run(self.mutual_basequote())
 

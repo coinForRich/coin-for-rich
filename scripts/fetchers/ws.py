@@ -27,18 +27,26 @@ arg_parser.add_argument(
     help='name of the exchange; Only needed if action is fetch'
 )
 
+arg_parser.add_argument(
+    '--log_filename',
+    metavar='log_filename',
+    type=str,
+    help='full path to the log filename'
+)
+
 # Execute the parse_args() method
 args = arg_parser.parse_args()
 action = args.action
 exchange = args.exchange
+log_filename = args.log_filename
 if action == "fetch":
     if exchange == "bitfinex":
-        ws = BitfinexOHLCVWebsocket()
+        ws = BitfinexOHLCVWebsocket(log_filename=log_filename)
     elif exchange == "binance":
-        ws = BinanceOHLCVWebsocket()
+        ws = BinanceOHLCVWebsocket(log_filename=log_filename)
     elif exchange == "bittrex":
-        ws = BittrexOHLCVWebsocket()
+        ws = BittrexOHLCVWebsocket(log_filename=log_filename)
     ws.run_all()
 elif action == "update":
-    ws = OHLCVWebsocketUpdater()
+    ws = OHLCVWebsocketUpdater(log_filename=log_filename)
     ws.update()
