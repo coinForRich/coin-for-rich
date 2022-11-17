@@ -180,6 +180,7 @@ Trouleshooting information can be found [here](docs/troubleshooting.md).
 # Lessons Learned <a name="lessons"></a>
 Lessons learned while making this project is [here](docs/lessons.md). Not much has been written though.
 # More Documentations <a name="moredocs"></a>
-How the fetchers work is documented [here](docs/fetchers.md).
+- How the fetchers work is documented [here](docs/fetchers.md).
+- How all the services in the infrastructure are connected and other stuff are documented [here](docs/infrastructure.md).
 # License <a name="license"></a>
 MIT - see [LICENSE](LICENSE)
