@@ -20,7 +20,7 @@ A standalone package to build a database of cryptocurrencies from three differen
 
 ![database](https://i.imgur.com/XBuHV5F.png)
 # Infrastructure Diagram <a name="infra"></a>
-![Infrastructure diagram](https://i.imgur.com/mcSloro.png)
+![Infrastructure diagram](https://i.imgur.com/43NNHNO.png)
 # Quick Start <a name="quickstart"></a>
 Before running, rename or create an `.env` file containing the variables similar to those of the `.example_env` file.
 ## Run with Docker Compose
