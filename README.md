@@ -56,6 +56,8 @@ python -m scripts.fetchers.rest fetch --exchange bitfinex --start 2021-01-01T00:
     ```
     \i /coin-for-rich/scripts/database/once/populate_agg.sql
     ```
+## View real-time price charts
+Open your browser and hop to `localhost:8000/view/wschart`
 ## Tests
 ### Before population of materialized views and aggregations
 Run `pytest -m beforepop`
