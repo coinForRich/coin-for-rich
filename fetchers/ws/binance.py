@@ -126,7 +126,9 @@ class BinanceOHLCVWebsocket:
                                     #   >> serve_ key is a hash with its [internal]
                                     #   keys as timestamp, o, h, l, c, v; this is
                                     #   because the web service (a.k.a. FastAPI) only
-                                    #   serves to the user [via its websocket connection] #   the latest price data, meaning when any new data #   comes in from the exchange's ws API,
+                                    #   serves to the user [via its websocket connection]
+                                    #   the latest price data, meaning when any new data
+                                    #   comes in from the exchange's ws API,
                                     #   the hash gets updated
 
                                     sub_val = make_sub_val(
