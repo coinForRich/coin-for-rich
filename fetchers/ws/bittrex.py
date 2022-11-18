@@ -37,13 +37,16 @@ from fetchers.rest.bittrex import BittrexOHLCVFetcher, EXCHANGE_NAME
 from fetchers.utils.exceptions import (
     ConnectionClosed, UnsuccessfulConnection, InvalidStatusCode
 )
+from fetchers.helpers.ws import (
+    make_sub_val,
+    make_sub_redis_key,
+    make_serve_redis_key
+)
 
 
 URI = 'https://socket-v3.bittrex.com/signalr'
 API_KEY = ''
 API_SECRET = ''
-MAX_SUB_PER_CONN = 200
-MAX_SUB_PER_CONN = 25
 BACKOFF_MIN_SECS = 2.0
 BACKOFF_MAX_SECS = 60.0
 
@@ -154,6 +157,12 @@ class BittrexOHLCVWebsocket:
             self.logger.info(f"Group {i}: Subscription successful")
 
     async def _invoke(self, method: str, *args) -> Union[Any, None]:
+        '''
+        Invokes a method
+
+        Default function from template
+        '''
+
         async with self.asyncio_lock:
             self.invocation_event = asyncio.Event()
             self.signalr_hub.server.invoke(method, *args)
@@ -161,27 +170,63 @@ class BittrexOHLCVWebsocket:
             return self.invocation_response
 
     async def on_message(self, **msg) -> None:
+        '''
+        Action to take on message
+
+        Default function from template
+        '''
+
         if 'R' in msg:
             self.invocation_response = msg['R']
             self.invocation_event.set()
 
     async def on_error(self, msg) -> None:
+        '''
+        Action to take on error
+
+        Default function from template
+        '''
+
         self.latest_ts = redis_time(self.redis_client)
         self.logger.warning(msg)
 
     async def on_heartbeat(self, msg) -> None:
+        '''
+        Action to take on heartbeat from websocket server
+
+        Default function from template
+        '''
+
         self.latest_ts = redis_time(self.redis_client)
         # self.logger.info('\u2661')
 
     async def on_auth_expiring(self, msg) -> None:
+        '''
+        Action to take on AUTH expiring
+
+        Default function from template
+        '''
+
         self.logger.info('Authentication expiring...')
         asyncio.create_task(self._authenticate())
 
     async def on_trade(self, msg) -> None:
+        '''
+        Action to take on trade response
+
+        Default function from template
+        '''
+
         self.latest_ts = redis_time(self.redis_client)
         await self.decode_message('Trade', msg)
 
     async def on_candle(self, msg) -> None:
+        '''
+        Action to take on candle response
+
+        Default function from template
+        '''
+
         self.latest_ts = redis_time(self.redis_client)
         respj = await self.decode_message('Candle', msg)
 
@@ -199,29 +244,44 @@ class BittrexOHLCVWebsocket:
                 low_ = ohlcv['low']
                 close_ = ohlcv['close']
                 volume_ = ohlcv['volume']
-                sub_val = f'{timestamp}{REDIS_DELIMITER}{open_}{REDIS_DELIMITER}{high_}{REDIS_DELIMITER}{low_}{REDIS_DELIMITER}{close_}{REDIS_DELIMITER}{volume_}'
-
-                # Setting Redis data for updating ohlcv psql db
-                #   and serving real-time chart
-                # This Redis-update-ohlcv-psql-db-procedure
-                #   may be changed with a pipeline from fastAPI...
                 base_id = self.rest_fetcher.symbol_data[symbol]['base_id']
                 quote_id = self.rest_fetcher.symbol_data[symbol]['quote_id']
-                ws_sub_redis_key = WS_SUB_REDIS_KEY.format(
-                    exchange = EXCHANGE_NAME,
-                    base_id = base_id,
-                    quote_id = quote_id,
-                    delimiter = REDIS_DELIMITER
-                )
-                ws_serve_redis_key = WS_SERVE_REDIS_KEY.format(
-                    exchange = EXCHANGE_NAME,
-                    base_id = base_id,
-                    quote_id = quote_id,
-                    delimiter = REDIS_DELIMITER
-                )
 
-                # self.logger.info(f'ws sub redis key: {ws_sub_redis_key}')
-                # self.logger.info(f'ws serve redis key: {ws_serve_redis_key}')
+                # We make "sub'ed value" by serializing the price
+                #   data so it can be put into Redis
+                # Then, unique sub'ed and serve Redis keys
+                #   are created to store the above sub'ed value
+                # Also note here that the value put into the sub_
+                #   and the serve_ keys are different:
+                #   >> sub_ key is a hash with its [internal]
+                #   keys as timestamps; this is so that the updater
+                #   script can bulk-insert all the price data in
+                #   the sub_ key to PSQL later, meanwhile...
+                #   >> serve_ key is a hash with its [internal]
+                #   keys as timestamp, o, h, l, c, v; this is
+                #   because the web service (a.k.a. FastAPI) only
+                #   serves to the user [via its websocket connection]
+                #   the latest price data, meaning when any new data
+                #   comes in from the exchange's ws API,
+                #   the hash gets updated
+
+                sub_val = make_sub_val(
+                    timestamp,
+                    open_, high_, low_, close_, volume_,
+                    REDIS_DELIMITER
+                )
+                ws_sub_redis_key = make_sub_redis_key(
+                    EXCHANGE_NAME,
+                    base_id,
+                    quote_id,
+                    REDIS_DELIMITER
+                )
+                ws_serve_redis_key = make_serve_redis_key(
+                    EXCHANGE_NAME,
+                    base_id,
+                    quote_id,
+                    REDIS_DELIMITER
+                )
 
                 # Add ws sub key to set of all ws sub keys
                 # Set hash value for ws sub key
@@ -252,10 +312,22 @@ class BittrexOHLCVWebsocket:
                     f"Bittrex WS Fethcer: EXCEPTION: {exc}")
 
     async def decode_message(self, title, msg) -> None:
+        '''
+        Decodes message
+
+        Default function from template
+        '''
+
         decoded_msg = await self.process_message(msg[0])
         return decoded_msg
 
     async def process_message(self, message) -> None:
+        '''
+        Processes message
+
+        Default function from template
+        '''
+
         try:
             decompressed_msg = decompress(
                 b64decode(message, validate=True), -MAX_WBITS)
@@ -292,20 +364,28 @@ class BittrexOHLCVWebsocket:
             await asyncio.sleep(0.01)
 
     async def all(self) -> NoReturn:
+        '''
+        Subscribes to WS channels of all symbols
+        '''
+
         self.rest_fetcher.fetch_symbol_data()
         symbols =  tuple(self.rest_fetcher.symbol_data.keys())
         await asyncio.gather(self.subscribe(symbols))
 
     async def mutual_basequote(self) -> NoReturn:
         '''
-        Subscribes to WS channels of the mutual symbols
-            among all exchanges
+        Subscribes to all base-quote's that are available
+        in all exchanges
         '''
 
         symbols_dict = self.rest_fetcher.get_symbols_from_exch(MUTUAL_BASE_QUOTE_QUERY)
         await asyncio.gather(self.subscribe(symbols_dict.keys()))
 
     def run_mutual_basequote(self) -> None:
+        '''
+        API to run the `mutual base-quote` method
+        '''
+
         # loop = asyncio.get_event_loop()
         # if loop.is_closed():
         #     asyncio.set_event_loop(asyncio.new_event_loop())
@@ -318,4 +398,8 @@ class BittrexOHLCVWebsocket:
         asyncio.run(self.mutual_basequote())
 
     def run_all(self) -> None:
+        '''
+        API to run the `all` method
+        '''
+
         asyncio.run(self.all())

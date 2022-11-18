@@ -35,7 +35,7 @@ WS_RATE_LIMIT_REDIS_KEY = "ws_rate_limit_{exchange}"
 # Serve is for serving real time data to our web service
 WS_SUB_PREFIX = "ws_sub_"
 WS_SUB_REDIS_KEY = "ws_sub_{exchange}{delimiter}{base_id}{delimiter}{quote_id}"
-WS_SERVE_REDIS_KEY = "ws_send_{exchange}{delimiter}{base_id}{delimiter}{quote_id}"
+WS_SERVE_REDIS_KEY = "ws_serve_{exchange}{delimiter}{base_id}{delimiter}{quote_id}"
 WS_SUB_LIST_REDIS_KEY = "ws_sub_list"
 WS_SUB_PROCESSING_REDIS_KEY = "ws_sub_processing"
 

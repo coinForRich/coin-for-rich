@@ -22,8 +22,12 @@ from fetchers.config.queries import MUTUAL_BASE_QUOTE_QUERY
 from fetchers.rest.bitfinex import BitfinexOHLCVFetcher, EXCHANGE_NAME
 from fetchers.utils.ratelimit import AsyncThrottler
 from fetchers.utils.exceptions import (
-    UnsuccessfulConnection, ConnectionClosed,
-    InvalidStatusCode
+    UnsuccessfulConnection, ConnectionClosed, InvalidStatusCode
+)
+from fetchers.helpers.ws import (
+    make_sub_val,
+    make_sub_redis_key,
+    make_serve_redis_key
 )
 
 
@@ -148,29 +152,42 @@ class BitfinexOHLCVWebsocket:
                                     low_ = respj[1][4]
                                     close_ = respj[1][2]
                                     volume_ = respj[1][5]
-                                    sub_val = f'{timestamp}{REDIS_DELIMITER}{open_}{REDIS_DELIMITER}{high_}{REDIS_DELIMITER}{low_}{REDIS_DELIMITER}{close_}{REDIS_DELIMITER}{volume_}'
-
-                                    # Setting Redis data for updating ohlcv psql db
-                                    #   and serving real-time chart
-                                    # This Redis-update-ohlcv-psql-db-procedure
-                                    #   may be changed with a pipeline from fastAPI...
                                     base_id = self.rest_fetcher.symbol_data[symbol]['base_id']
                                     quote_id = self.rest_fetcher.symbol_data[symbol]['quote_id']
-                                    ws_sub_redis_key = WS_SUB_REDIS_KEY.format(
-                                        exchange = EXCHANGE_NAME,
-                                        base_id = base_id,
-                                        quote_id = quote_id,
-                                        delimiter = REDIS_DELIMITER,
-                                    )
-                                    ws_serve_redis_key = WS_SERVE_REDIS_KEY.format(
-                                        exchange = EXCHANGE_NAME,
-                                        base_id = base_id,
-                                        quote_id = quote_id,
-                                        delimiter = REDIS_DELIMITER
-                                    )
 
-                                    # logging.info(f'ws sub redis key: {ws_sub_redis_key}')
-                                    # logging.info(f'ws serve redis key: {ws_serve_redis_key}')
+                                    # We make "sub'ed value" by serializing the price
+                                    #   data so it can be put into Redis
+                                    # Then, unique sub'ed and serve Redis keys
+                                    #   are created to store the above sub'ed value
+                                    # Also note here that the value put into the sub_
+                                    #   and the serve_ keys are different:
+                                    #   >> sub_ key is a hash with its [internal]
+                                    #   keys as timestamps; this is so that the updater
+                                    #   script can bulk-insert all the price data in
+                                    #   the sub_ key to PSQL later, meanwhile...
+                                    #   >> serve_ key is a hash with its [internal]
+                                    #   keys as timestamp, o, h, l, c, v; this is
+                                    #   because the web service (a.k.a. FastAPI) only
+                                    #   serves to the user [via its websocket connection] #   the latest price data, meaning when any new data #   comes in from the exchange's ws API,
+                                    #   the hash gets updated
+
+                                    sub_val = make_sub_val(
+                                        timestamp,
+                                        open_, high_, low_, close_, volume_,
+                                        REDIS_DELIMITER
+                                    )
+                                    ws_sub_redis_key = make_sub_redis_key(
+                                        EXCHANGE_NAME,
+                                        base_id,
+                                        quote_id,
+                                        REDIS_DELIMITER
+                                    )
+                                    ws_serve_redis_key = make_serve_redis_key(
+                                        EXCHANGE_NAME,
+                                        base_id,
+                                        quote_id,
+                                        REDIS_DELIMITER
+                                    )
 
                                     # Add ws sub key to set of all ws sub keys
                                     # Set hash value for ws sub key
@@ -211,17 +228,15 @@ class BitfinexOHLCVWebsocket:
 
     async def mutual_basequote(self) -> None:
         '''
-        Subscribes to WS channels of the mutual symbols
-            among all exchanges
+        Subscribes to all base-quote's that are available
+        in all exchanges
         '''
 
         symbols_dict = self.rest_fetcher.get_symbols_from_exch(MUTUAL_BASE_QUOTE_QUERY)
         self.rest_fetcher.close_connections()
-        # symbols = ["ETHBTC", "BTCEUR"]
         await asyncio.gather(self.subscribe(symbols_dict.keys()))
 
     async def all(self) -> None:
-    # def all(self):
         '''
         Subscribes to WS channels of all symbols
         '''
@@ -244,10 +259,17 @@ class BitfinexOHLCVWebsocket:
                     for i in range(0, len(symbols), MAX_SUB_PER_CONN)
             )
         )
- 
+
     def run_mutual_basequote(self) -> None:
+        '''
+        API to run the `mutual base-quote` method
+        '''
+
         asyncio.run(self.mutual_basequote())
 
     def run_all(self) -> None:
+        '''
+        API to run the `all` method
+        '''
+
         asyncio.run(self.all())
-        # self.all()

@@ -22,7 +22,7 @@ from fetchers.config.constants import (
 from fetchers.config.queries import PSQL_INSERT_IGNOREDUP_QUERY
 from fetchers.helpers.dbhelpers import psql_bulk_insert
 from fetchers.helpers.ws import (
-    make_sub_val, make_sub_redis_key, make_send_redis_key
+    make_sub_val, make_sub_redis_key, make_serve_redis_key
 )
 
 

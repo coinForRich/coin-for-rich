@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from fastapi import WebSocket
 from common.config.constants import REDIS_DELIMITER
 from common.utils.asyncioutils import AsyncLoopThread
-from fetchers.helpers.ws import make_send_redis_key
+from fetchers.helpers.ws import make_serve_redis_key
 from web.config.constants import OHLCV_INTERVALS
 from web.routes.api.rest.utils.readers import read_ohlcvs
 from web.routes.api.ws.utils.parsers import parse_ohlcv
@@ -71,7 +71,7 @@ class WSSender:
             # Sleep between messages according to `interval` as well
             # TODO: add heartbeat
             if interval == "1m":
-                ws_send_redis_key = make_send_redis_key(
+                ws_send_redis_key = make_serve_redis_key(
                     exchange, base_id, quote_id, REDIS_DELIMITER
                 )
                 data = self.redis_client.hgetall(ws_send_redis_key)

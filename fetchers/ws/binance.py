@@ -20,7 +20,7 @@ from fetchers.utils.exceptions import (
 from fetchers.helpers.ws import (
     make_sub_val,
     make_sub_redis_key,
-    make_send_redis_key
+    make_serve_redis_key
 )
 
 
@@ -28,7 +28,6 @@ from fetchers.helpers.ws import (
 #   However, so far only a max value of 200 works...
 URI = "wss://stream.binance.com:9443/ws"
 MAX_SUB_PER_CONN = 200
-MAX_SUB_PER_CONN = 25
 BACKOFF_MIN_SECS = 2.0
 BACKOFF_MAX_SECS = 60.0
 
@@ -52,9 +51,6 @@ class BinanceOHLCVWebsocket:
             password=REDIS_PASSWORD,
             decode_responses=True
         )
-        # self.ws_msg_ids = {
-        #     "subscribe": 1
-        # }
 
         # Rest fetcher for convenience
         self.rest_fetcher = BinanceOHLCVFetcher()
@@ -67,6 +63,8 @@ class BinanceOHLCVWebsocket:
         )
 
         # Backoff
+        # This backoff delay will be increased
+        #   when a connection is unsuccessful
         self.backoff_delay = BACKOFF_MIN_SECS
 
     async def subscribe(self, symbols: Iterable, i: int = 0) -> NoReturn:
@@ -98,7 +96,7 @@ class BinanceOHLCVWebsocket:
                     while True:
                         resp = await ws.recv()
                         respj = json.loads(resp)
-                            
+
                         if isinstance(respj, dict):
                             if 'result' in respj:
                                 if respj['result'] is not None:
@@ -115,19 +113,34 @@ class BinanceOHLCVWebsocket:
                                     base_id = self.rest_fetcher.symbol_data[symbol]['base_id']
                                     quote_id = self.rest_fetcher.symbol_data[symbol]['quote_id']
 
+                                    # We make "sub'ed value" by serializing the price
+                                    #   data so it can be put into Redis
+                                    # Then, unique sub'ed and serve Redis keys
+                                    #   are created to store the above sub'ed value
+                                    # Also note here that the value put into the sub_
+                                    #   and the serve_ keys are different:
+                                    #   >> sub_ key is a hash with its [internal]
+                                    #   keys as timestamps; this is so that the updater
+                                    #   script can bulk-insert all the price data in
+                                    #   the sub_ key to PSQL later, meanwhile...
+                                    #   >> serve_ key is a hash with its [internal]
+                                    #   keys as timestamp, o, h, l, c, v; this is
+                                    #   because the web service (a.k.a. FastAPI) only
+                                    #   serves to the user [via its websocket connection] #   the latest price data, meaning when any new data #   comes in from the exchange's ws API,
+                                    #   the hash gets updated
+
                                     sub_val = make_sub_val(
                                         timestamp,
                                         open_, high_, low_, close_, volume_,
                                         REDIS_DELIMITER
                                     )
-
                                     ws_sub_redis_key = make_sub_redis_key(
                                         EXCHANGE_NAME,
                                         base_id,
                                         quote_id,
                                         REDIS_DELIMITER
                                     )
-                                    ws_serve_redis_key = make_send_redis_key(
+                                    ws_serve_redis_key = make_serve_redis_key(
                                         EXCHANGE_NAME,
                                         base_id,
                                         quote_id,
@@ -136,6 +149,8 @@ class BinanceOHLCVWebsocket:
 
                                     # Add ws sub key to set of all ws sub keys
                                     # Set hash value for ws sub key
+                                    # Replace ws serve key hash if this timestamp
+                                    #   is more up-to-date
                                     self.redis_client.sadd(
                                         WS_SUB_LIST_REDIS_KEY, ws_sub_redis_key)
                                     self.redis_client.hset(
@@ -169,9 +184,13 @@ class BinanceOHLCVWebsocket:
                 self.backoff_delay *= (1+random.random()) # add a random factor
 
     async def mutual_basequote(self) -> None:
+        '''
+        Subscribes to all base-quote's that are available
+        in all exchanges
+        '''
+
         symbols_dict = self.rest_fetcher.get_symbols_from_exch(MUTUAL_BASE_QUOTE_QUERY)
         self.rest_fetcher.close_connections()
-        # symbols_dict = ["ETHBTC", "BTCEUR"]
         await asyncio.gather(self.subscribe(symbols_dict.keys()))
 
     async def all(self) -> None:
@@ -189,10 +208,17 @@ class BinanceOHLCVWebsocket:
                     for i in range(0, len(symbols), MAX_SUB_PER_CONN)
             )
         )
-        # await asyncio.gather(self.subscribe(symbols))
 
     def run_mutual_basequote(self) -> None:
+        '''
+        API to run the `mutual base-quote` method
+        '''
+
         asyncio.run(self.mutual_basequote())
 
     def run_all(self) -> None:
+        '''
+        API to run the `all` method
+        '''
+
         asyncio.run(self.all())

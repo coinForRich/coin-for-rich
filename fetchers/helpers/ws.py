@@ -8,7 +8,7 @@ def make_sub_val(t, o, h, l, c, v, d) -> str:
     Serializes OHLCV into sub value
 
     For use of the WS updater
-    
+
     :params:
         `t`: timestamp
         `d`: delimiter
@@ -23,7 +23,7 @@ def make_sub_redis_key(exch: str, base: str, quote: str, delimiter: str) -> str:
     Can be of use when a query is submitted to view chart
         of a symbol (i.e., e-b-q combination);
         We can then indicate if the symbol is actively traded
-    
+
     :params:
         `exch`: exchange name
         `base`: base id
@@ -37,10 +37,14 @@ def make_sub_redis_key(exch: str, base: str, quote: str, delimiter: str) -> str:
         delimiter = delimiter
     )
 
-def make_send_redis_key(exch: str, base: str, quote: str, delimiter: str) -> str:
+# TODO: Rename this function to make_serve_redis_key
+def make_serve_redis_key(exch: str, base: str, quote: str, delimiter: str) -> str:
     '''
     Makes send/serve Redis key for the e-b-q combination
-    
+
+    Can be of use for the web service to grab real-time price
+        data of a symbol (i.e., e-b-q combination)
+
     :params:
         `exch`: exchange name
         `base`: base id
