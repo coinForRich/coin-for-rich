@@ -153,29 +153,29 @@ docker run -d \
 
 Run each of the command below
 ```
-celery -A celery_app.celery_main worker -Q bitfinex_rest -n bitfinexRestWorker@h -l INFO --logfile="./logs/celery_main_%n_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
+celery -A celery_app.celery_main worker -Q bitfinex_rest -n bitfinexRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
 
-celery -A celery_app.celery_main worker -Q binance_rest -n binanceRestWorker@h -l INFO --logfile="./logs/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
+celery -A celery_app.celery_main worker -Q binance_rest -n binanceRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
 
-celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -l INFO --logfile="./logs/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
+celery -A celery_app.celery_main worker -Q bittrex_rest -n bittrexRestWorker@h -l INFO --logfile="./logs/celery/celery_main_%n.log_$(date +'%Y-%m-%dT%H:%M:%S').log" --detach
 ```
 **Flower**
 
-Run in a dedicated pane/window: `celery -A celery_app.celery_main flower --address=0.0.0.0 --port=5566`
+Run in a dedicated pane/window: `celery -A celery_app.celery_main flower --address=0.0.0.0 --port=$CELERY_PORT`
 ### Run Websocket Fetchers
 Run each of the command below in a dedicated pane/window:
 ```
-python -m scripts.fetchers.ws fetch --exchange bitfinex
+python -m scripts.fetchers.ws fetch --exchange bitfinex --log_filename ./logs/websockets/bitfinex_websocket.log
 
-python -m scripts.fetchers.ws fetch --exchange binance
+python -m scripts.fetchers.ws fetch --exchange binance --log_filename ./logs/websockets/binance_websocket.log
 
-python -m scripts.fetchers.ws fetch --exchange bittrex
+python -m scripts.fetchers.ws fetch --exchange bittrex --log_filename ./logs/websockets/bittrex_websocket.log
 
-python -m scripts.fetchers.ws update
+python -m scripts.fetchers.ws update --log_filename ./logs/websockets/updater_websocket.log
 ```
 ### Run FastAPI Web Server
 ```
-uvicorn web.main:app --reload
+uvicorn web.main:app --reload --host 0.0.0.0
 ```
 ## Troubleshooting
 Trouleshooting information can be found [here](docs/troubleshooting.md).
