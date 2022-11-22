@@ -8,6 +8,7 @@
 - Run Redis using Docker Compose with option to use password from .env file
     - https://stackoverflow.com/questions/68461172/docker-compose-redis-password-via-environment-variable
         - "`env_file` allows to set environment variables in the container - while you need them in the environment of docker-compose in order to perform variable substitution for `${REDIS_PASSWORD}`".
+        - Thus, if we want to run the Redis container with environment variables specified in the `.env` file, we must use the double dollar sign around Redis password in the container command: `$${REDIS_PASSWORD}`
 
 # Docker
 - Use environment variables in Docker Compose file
