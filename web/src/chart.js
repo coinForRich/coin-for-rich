@@ -755,13 +755,13 @@ syncToInterval(periods[0])
 
 // SMA legend
 chart.subscribeCrosshairMove((param) => {
-	setSMALegendText(param.seriesPrices.get(smaLine))
+	setSMALegendText(param.seriesData.get(smaLine))
 })
 
 // OHLC legend?
 chart.subscribeCrosshairMove((param) => {
 	if (param.time) {
-        setOHLCLegendText(param.seriesPrices.get(candleSeries))
+        setOHLCLegendText(param.seriesData.get(candleSeries))
     }
 })
 

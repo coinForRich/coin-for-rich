@@ -92,13 +92,13 @@ The app’s web API is built on [FastAPI](https://fastapi.tiangolo.com) and [SQL
 - When the connection is open, send the following JSON message to subscribe to an 1-min OHLCV data stream of a symbol (e.g., bitfinex - BTC - USD):
     ```
     {
-        event_type: "subscribe",
-        data_type: "ohlcv",
-        exchange: "bitfinex",
-        base_id: "BTC",
-        quote_id: "USD",
-        interval: "1m",
-        mls: false
+        "event_type": "subscribe",
+        "data_type": "ohlcv",
+        "exchange": "bitfinex",
+        "base_id": "BTC",
+        "quote_id": "USD",
+        "interval": "1m",
+        "mls": false
     }
     ```
 - Detailed documentation on this are to be written
